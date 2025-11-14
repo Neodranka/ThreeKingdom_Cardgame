@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using ThreeKingdoms.UI;
 
 namespace ThreeKingdoms
 {
@@ -39,10 +40,11 @@ namespace ThreeKingdoms
                 DeckManager.Instance.InitializeDeck();
             }
 
-            // 创建UI
-            if (UIManager.Instance != null)
+            // 创建UI (新版UI系统)
+            if (BattleUI.Instance != null && BattleManager.Instance.players.Count > 0)
             {
-                UIManager.Instance.CreatePlayerInfoPanels(BattleManager.Instance.players);
+                Player localPlayer = BattleManager.Instance.players[0]; // 第一个玩家作为本地玩家
+                BattleUI.Instance.InitializePlayers(BattleManager.Instance.players, localPlayer);
             }
 
             // 延迟开始游戏
@@ -59,7 +61,7 @@ namespace ThreeKingdoms
             for (int i = 0; i < playerCount; i++)
             {
                 GameObject playerObj;
-                
+
                 if (playerPrefab != null)
                 {
                     playerObj = Instantiate(playerPrefab);
@@ -78,7 +80,7 @@ namespace ThreeKingdoms
                     player.faction = (Faction)(i % 4);
                     player.maxHP = Random.Range(3, 5);
                     player.currentHP = player.maxHP;
-                    
+
                     players.Add(player);
                     Debug.Log($"创建玩家: {player.playerName} ({player.generalName}) - HP:{player.maxHP}");
                 }
@@ -143,7 +145,7 @@ namespace ThreeKingdoms
             if (BattleManager.Instance.players.Count >= 1)
             {
                 Player player = BattleManager.Instance.players[0];
-                
+
                 // 先受到伤害
                 player.TakeDamage(1);
 

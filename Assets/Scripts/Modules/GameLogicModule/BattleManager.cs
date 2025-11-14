@@ -29,7 +29,7 @@ namespace ThreeKingdoms
         [Header("玩家")]
         public List<Player> players = new List<Player>();
         public int currentPlayerIndex = 0;
-        
+
         [Header("回合信息")]
         public TurnPhase currentPhase = TurnPhase.Prepare;
         public int turnCount = 0;
@@ -87,9 +87,12 @@ namespace ThreeKingdoms
 
             Player currentPlayer = GetCurrentPlayer();
             turnCount++;
-            
+
             Debug.Log($"========== 第 {turnCount} 回合 ==========");
             Debug.Log($"当前玩家: {currentPlayer.playerName}");
+
+            // 更新UI
+            UpdateUI();
 
             // 准备阶段
             currentPhase = TurnPhase.Prepare;
@@ -113,13 +116,13 @@ namespace ThreeKingdoms
         {
             Debug.Log("【判定阶段】");
             Player currentPlayer = GetCurrentPlayer();
-            
+
             // 处理判定区的牌
             if (currentPlayer.judgeCards.Count > 0)
             {
                 // TODO: 处理判定
             }
-            
+
             NextPhase();
         }
 
@@ -130,11 +133,15 @@ namespace ThreeKingdoms
         {
             Debug.Log("【摸牌阶段】");
             Player currentPlayer = GetCurrentPlayer();
-            
+
             List<Card> drawnCards = DeckManager.Instance.DrawCards(drawPhaseCardCount);
             currentPlayer.DrawCards(drawnCards);
-            
+
             Debug.Log($"{currentPlayer.playerName} 摸了 {drawPhaseCardCount} 张牌");
+
+            // 更新UI
+            UpdateUI();
+
             NextPhase();
         }
 
@@ -146,7 +153,7 @@ namespace ThreeKingdoms
             Debug.Log("【出牌阶段】");
             Player currentPlayer = GetCurrentPlayer();
             Debug.Log($"{currentPlayer.playerName} 的手牌: {currentPlayer.handCards.Count} 张");
-            
+
             // 出牌阶段由玩家操作,这里暂时自动跳过
             // TODO: 实现出牌逻辑
         }
@@ -166,14 +173,14 @@ namespace ThreeKingdoms
         {
             Debug.Log("【弃牌阶段】");
             Player currentPlayer = GetCurrentPlayer();
-            
+
             int handCardLimit = currentPlayer.GetHandCardLimit();
             int cardsToDiscard = currentPlayer.handCards.Count - handCardLimit;
-            
+
             if (cardsToDiscard > 0)
             {
                 Debug.Log($"{currentPlayer.playerName} 需要弃置 {cardsToDiscard} 张牌");
-                
+
                 // 自动弃牌(实际应该由玩家选择)
                 for (int i = 0; i < cardsToDiscard && currentPlayer.handCards.Count > 0; i++)
                 {
@@ -182,7 +189,7 @@ namespace ThreeKingdoms
                     DeckManager.Instance.DiscardCard(card);
                 }
             }
-            
+
             NextPhase();
         }
 
@@ -193,7 +200,7 @@ namespace ThreeKingdoms
         {
             Debug.Log("【结束阶段】");
             // 结束阶段逻辑
-            
+
             EndTurn();
         }
 
@@ -317,10 +324,10 @@ namespace ThreeKingdoms
             }
 
             Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【杀】");
-            
+
             // 询问目标是否出【闪】
             bool dodged = AskForDodge(target);
-            
+
             if (!dodged)
             {
                 target.TakeDamage(1, user);
@@ -364,6 +371,31 @@ namespace ThreeKingdoms
 
             user.Recover(1);
             DeckManager.Instance.DiscardCard(peachCard);
+
+            // 更新UI
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// 更新UI
+        /// </summary>
+        private void UpdateUI()
+        {
+            if (UI.BattleUI.Instance != null)
+            {
+                Player currentPlayer = GetCurrentPlayer();
+                if (currentPlayer != null)
+                {
+                    // 更新当前玩家手牌
+                    UI.BattleUI.Instance.UpdateHandCards(currentPlayer.handCards);
+
+                    // 更新所有玩家信息
+                    UI.BattleUI.Instance.UpdateAllPlayerInfo();
+
+                    // 更新当前玩家指示器
+                    UI.BattleUI.Instance.UpdateCurrentPlayerIndicator(currentPlayer);
+                }
+            }
         }
     }
 }
