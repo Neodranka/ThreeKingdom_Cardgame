@@ -25,21 +25,60 @@ namespace ThreeKingdoms.UI
 
         [Header("动画")]
         public float hoverScale = 1.1f;
-        public float animationSpeed = 10f;
+        public float hoverYOffset = 20f; // Y轴偏移量
+        public float animationSpeed = 5f;
 
         private Vector3 originalScale;
-        private Vector3 originalPosition;
+        private float originalY; // 只保存Y坐标
         private RectTransform rectTransform;
+        private Canvas hoverCanvas; // 用于控制渲染顺序
+        private bool isHovering = false;
 
         private void Awake()
         {
             rectTransform = GetComponent<RectTransform>();
             originalScale = transform.localScale;
-            originalPosition = transform.localPosition;
 
             if (selectedBorder != null)
             {
                 selectedBorder.SetActive(false);
+            }
+        }
+
+        private void Start()
+        {
+            // 延迟保存Y坐标,等待Layout计算完成
+            Invoke(nameof(SaveOriginalY), 0.1f);
+        }
+
+        private void SaveOriginalY()
+        {
+            originalY = rectTransform.anchoredPosition.y;
+        }
+
+        private void Update()
+        {
+            // 平滑动画效果
+            if (isHovering || isSelected)
+            {
+                // 目标位置: 上移
+                float targetY = originalY + hoverYOffset;
+                Vector2 currentPos = rectTransform.anchoredPosition;
+                currentPos.y = Mathf.Lerp(currentPos.y, targetY, Time.deltaTime * animationSpeed);
+                rectTransform.anchoredPosition = currentPos;
+
+                // 目标缩放
+                transform.localScale = Vector3.Lerp(transform.localScale, originalScale * hoverScale, Time.deltaTime * animationSpeed);
+            }
+            else
+            {
+                // 目标位置: 原始位置
+                Vector2 currentPos = rectTransform.anchoredPosition;
+                currentPos.y = Mathf.Lerp(currentPos.y, originalY, Time.deltaTime * animationSpeed);
+                rectTransform.anchoredPosition = currentPos;
+
+                // 目标缩放
+                transform.localScale = Vector3.Lerp(transform.localScale, originalScale, Time.deltaTime * animationSpeed);
             }
         }
 
@@ -50,6 +89,9 @@ namespace ThreeKingdoms.UI
         {
             cardData = card;
             UpdateDisplay();
+
+            // 重新保存原始Y坐标
+            Invoke(nameof(SaveOriginalY), 0.1f);
         }
 
         /// <summary>
@@ -151,13 +193,16 @@ namespace ThreeKingdoms.UI
         {
             if (!isInteractable) return;
 
-            // 放大卡牌
-            transform.localScale = originalScale * hoverScale;
+            isHovering = true;
 
-            // 稍微上移
-            Vector3 newPos = originalPosition;
-            newPos.y += 30f;
-            transform.localPosition = newPos;
+            // 创建临时Canvas来提升渲染层级
+            if (hoverCanvas == null)
+            {
+                hoverCanvas = gameObject.AddComponent<Canvas>();
+                hoverCanvas.overrideSorting = true;
+                gameObject.AddComponent<GraphicRaycaster>();
+            }
+            hoverCanvas.sortingOrder = 100; // 提升到最前面
         }
 
         /// <summary>
@@ -167,11 +212,12 @@ namespace ThreeKingdoms.UI
         {
             if (!isInteractable) return;
 
-            if (!isSelected)
+            isHovering = false;
+
+            // 如果没有选中,移除临时Canvas
+            if (!isSelected && hoverCanvas != null)
             {
-                // 恢复原始大小和位置
-                transform.localScale = originalScale;
-                transform.localPosition = originalPosition;
+                hoverCanvas.sortingOrder = 0;
             }
         }
 
@@ -197,17 +243,23 @@ namespace ThreeKingdoms.UI
                 selectedBorder.SetActive(isSelected);
             }
 
+            // 选中时保持Canvas层级
             if (isSelected)
             {
-                // 选中时稍微上移
-                Vector3 newPos = originalPosition;
-                newPos.y += 30f;
-                transform.localPosition = newPos;
+                if (hoverCanvas == null)
+                {
+                    hoverCanvas = gameObject.AddComponent<Canvas>();
+                    hoverCanvas.overrideSorting = true;
+                    gameObject.AddComponent<GraphicRaycaster>();
+                }
+                hoverCanvas.sortingOrder = 100;
             }
             else
             {
-                // 取消选中恢复位置
-                transform.localPosition = originalPosition;
+                if (hoverCanvas != null && !isHovering)
+                {
+                    hoverCanvas.sortingOrder = 0;
+                }
             }
 
             // 通知BattleUI
@@ -223,6 +275,8 @@ namespace ThreeKingdoms.UI
         /// </summary>
         public void SetSelected(bool selected)
         {
+            if (isSelected == selected) return;
+
             isSelected = selected;
             if (selectedBorder != null)
             {
@@ -231,14 +285,20 @@ namespace ThreeKingdoms.UI
 
             if (selected)
             {
-                Vector3 newPos = originalPosition;
-                newPos.y += 30f;
-                transform.localPosition = newPos;
+                if (hoverCanvas == null)
+                {
+                    hoverCanvas = gameObject.AddComponent<Canvas>();
+                    hoverCanvas.overrideSorting = true;
+                    gameObject.AddComponent<GraphicRaycaster>();
+                }
+                hoverCanvas.sortingOrder = 100;
             }
             else
             {
-                transform.localPosition = originalPosition;
-                transform.localScale = originalScale;
+                if (hoverCanvas != null && !isHovering)
+                {
+                    hoverCanvas.sortingOrder = 0;
+                }
             }
         }
 
