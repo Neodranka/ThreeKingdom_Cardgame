@@ -29,10 +29,12 @@ namespace ThreeKingdoms.UI
         public float animationSpeed = 5f;
 
         private Vector3 originalScale;
-        private float originalY; // 只保存Y坐标
+        private Vector2 originalPosition; // 保存完整的原始位置
         private RectTransform rectTransform;
         private Canvas hoverCanvas; // 用于控制渲染顺序
+        private GraphicRaycaster graphicRaycaster;
         private bool isHovering = false;
+        private bool positionInitialized = false;
 
         private void Awake()
         {
@@ -47,25 +49,40 @@ namespace ThreeKingdoms.UI
 
         private void Start()
         {
-            // 延迟保存Y坐标,等待Layout计算完成
-            Invoke(nameof(SaveOriginalY), 0.1f);
+            // 延迟保存位置,等待Layout计算完成
+            StartCoroutine(InitializePosition());
         }
 
-        private void SaveOriginalY()
+        private System.Collections.IEnumerator InitializePosition()
         {
-            originalY = rectTransform.anchoredPosition.y;
+            // 等待至少2帧,确保Layout完全计算完成
+            yield return null;
+            yield return null;
+
+            originalPosition = rectTransform.anchoredPosition;
+            positionInitialized = true;
+        }
+
+        /// <summary>
+        /// 刷新原始位置(用于布局改变后)
+        /// </summary>
+        public void RefreshOriginalPosition()
+        {
+            positionInitialized = false;
+            StartCoroutine(InitializePosition());
         }
 
         private void Update()
         {
+            // 等待位置初始化完成
+            if (!positionInitialized) return;
+
             // 平滑动画效果
             if (isHovering || isSelected)
             {
                 // 目标位置: 上移
-                float targetY = originalY + hoverYOffset;
-                Vector2 currentPos = rectTransform.anchoredPosition;
-                currentPos.y = Mathf.Lerp(currentPos.y, targetY, Time.deltaTime * animationSpeed);
-                rectTransform.anchoredPosition = currentPos;
+                Vector2 targetPos = originalPosition + new Vector2(0, hoverYOffset);
+                rectTransform.anchoredPosition = Vector2.Lerp(rectTransform.anchoredPosition, targetPos, Time.deltaTime * animationSpeed);
 
                 // 目标缩放
                 transform.localScale = Vector3.Lerp(transform.localScale, originalScale * hoverScale, Time.deltaTime * animationSpeed);
@@ -73,9 +90,7 @@ namespace ThreeKingdoms.UI
             else
             {
                 // 目标位置: 原始位置
-                Vector2 currentPos = rectTransform.anchoredPosition;
-                currentPos.y = Mathf.Lerp(currentPos.y, originalY, Time.deltaTime * animationSpeed);
-                rectTransform.anchoredPosition = currentPos;
+                rectTransform.anchoredPosition = Vector2.Lerp(rectTransform.anchoredPosition, originalPosition, Time.deltaTime * animationSpeed);
 
                 // 目标缩放
                 transform.localScale = Vector3.Lerp(transform.localScale, originalScale, Time.deltaTime * animationSpeed);
@@ -90,8 +105,9 @@ namespace ThreeKingdoms.UI
             cardData = card;
             UpdateDisplay();
 
-            // 重新保存原始Y坐标
-            Invoke(nameof(SaveOriginalY), 0.1f);
+            // 重新初始化位置
+            positionInitialized = false;
+            StartCoroutine(InitializePosition());
         }
 
         /// <summary>
@@ -200,7 +216,7 @@ namespace ThreeKingdoms.UI
             {
                 hoverCanvas = gameObject.AddComponent<Canvas>();
                 hoverCanvas.overrideSorting = true;
-                gameObject.AddComponent<GraphicRaycaster>();
+                graphicRaycaster = gameObject.AddComponent<GraphicRaycaster>();
             }
             hoverCanvas.sortingOrder = 100; // 提升到最前面
         }
@@ -214,10 +230,18 @@ namespace ThreeKingdoms.UI
 
             isHovering = false;
 
-            // 如果没有选中,移除临时Canvas
+            // 如果没有选中,移除临时Canvas - 这样不会影响层级
             if (!isSelected && hoverCanvas != null)
             {
-                hoverCanvas.sortingOrder = 0;
+                // 关键:必须先删除GraphicRaycaster,因为它依赖Canvas
+                if (graphicRaycaster != null)
+                {
+                    Destroy(graphicRaycaster);
+                    graphicRaycaster = null;
+                }
+                // 然后再删除Canvas
+                Destroy(hoverCanvas);
+                hoverCanvas = null;
             }
         }
 
@@ -250,15 +274,24 @@ namespace ThreeKingdoms.UI
                 {
                     hoverCanvas = gameObject.AddComponent<Canvas>();
                     hoverCanvas.overrideSorting = true;
-                    gameObject.AddComponent<GraphicRaycaster>();
+                    graphicRaycaster = gameObject.AddComponent<GraphicRaycaster>();
                 }
                 hoverCanvas.sortingOrder = 100;
             }
             else
             {
+                // 取消选中时移除Canvas
                 if (hoverCanvas != null && !isHovering)
                 {
-                    hoverCanvas.sortingOrder = 0;
+                    // 关键:必须先删除GraphicRaycaster,因为它依赖Canvas
+                    if (graphicRaycaster != null)
+                    {
+                        Destroy(graphicRaycaster);
+                        graphicRaycaster = null;
+                    }
+                    // 然后再删除Canvas
+                    Destroy(hoverCanvas);
+                    hoverCanvas = null;
                 }
             }
 
@@ -289,15 +322,24 @@ namespace ThreeKingdoms.UI
                 {
                     hoverCanvas = gameObject.AddComponent<Canvas>();
                     hoverCanvas.overrideSorting = true;
-                    gameObject.AddComponent<GraphicRaycaster>();
+                    graphicRaycaster = gameObject.AddComponent<GraphicRaycaster>();
                 }
                 hoverCanvas.sortingOrder = 100;
             }
             else
             {
+                // 取消选中时移除Canvas
                 if (hoverCanvas != null && !isHovering)
                 {
-                    hoverCanvas.sortingOrder = 0;
+                    // 关键:必须先删除GraphicRaycaster,因为它依赖Canvas
+                    if (graphicRaycaster != null)
+                    {
+                        Destroy(graphicRaycaster);
+                        graphicRaycaster = null;
+                    }
+                    // 然后再删除Canvas
+                    Destroy(hoverCanvas);
+                    hoverCanvas = null;
                 }
             }
         }
