@@ -375,7 +375,68 @@ namespace ThreeKingdoms
             // 更新UI
             UpdateUI();
         }
+        /// <summary>
+        /// 使用【决斗】
+        /// </summary>
+        public void UseDuel(Player user, Player target, Card card)
+        {
+            user.PlayCard(card);
+            DeckManager.Instance.DiscardCard(card);
+            target.TakeDamage(1, user);
+            Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【决斗】");
+        }
 
+        /// <summary>
+        /// 使用【南蛮入侵】
+        /// </summary>
+        public void UseSavageAssault(Player user, Card card)
+        {
+            user.PlayCard(card);
+            DeckManager.Instance.DiscardCard(card);
+
+            foreach (var player in players)
+            {
+                if (player != user && player.isAlive)
+                {
+                    player.TakeDamage(1, user);
+                }
+            }
+            Debug.Log($"{user.playerName} 使用了【南蛮入侵】");
+        }
+
+        /// <summary>
+        /// 使用【万箭齐发】
+        /// </summary>
+        public void UseArrowBarrage(Player user, Card card)
+        {
+            user.PlayCard(card);
+            DeckManager.Instance.DiscardCard(card);
+
+            foreach (var player in players)
+            {
+                if (player != user && player.isAlive)
+                {
+                    player.TakeDamage(1, user);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 使用【桃园结义】
+        /// </summary>
+        public void UsePeachGarden(Player user, Card card)
+        {
+            user.PlayCard(card);
+            DeckManager.Instance.DiscardCard(card);
+
+            foreach (var player in players)
+            {
+                if (player.isAlive && player.currentHP < player.maxHP)
+                {
+                    player.Recover(1);
+                }
+            }
+        }
         /// <summary>
         /// 更新UI
         /// </summary>

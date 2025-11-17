@@ -63,6 +63,15 @@ namespace ThreeKingdoms.UI
             positionInitialized = true;
         }
 
+        /// <summary>
+        /// 刷新原始位置(用于布局改变后)
+        /// </summary>
+        public void RefreshOriginalPosition()
+        {
+            positionInitialized = false;
+            StartCoroutine(InitializePosition());
+        }
+
         private void Update()
         {
             // 等待位置初始化完成

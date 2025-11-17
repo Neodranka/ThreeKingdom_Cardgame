@@ -338,26 +338,64 @@ namespace ThreeKingdoms.UI
             Player user = BattleManager.Instance.GetCurrentPlayer();
 
             // 根据卡牌类型执行不同操作
-            if (card.cardName == "杀")
+            switch (card.cardName)
             {
-                if (selectedTarget == null)
-                {
-                    ShowMessage("请选择目标!");
+                case "杀":
+                    if (selectedTarget == null)
+                    {
+                        ShowMessage("请选择目标!");
+                        return;
+                    }
+                    UseSlash(user, selectedTarget, card);
+                    break;
+
+                case "桃":
+                    UsePeach(user, card);
+                    break;
+
+                case "闪":
+                    ShowMessage("【闪】只能在响应【杀】时使用");
                     return;
-                }
-                UseSlash(user, selectedTarget, card);
-            }
-            else if (card.cardName == "桃")
-            {
-                UsePeach(user, card);
-            }
-            else
-            {
-                ShowMessage($"卡牌 {card.cardName} 的效果尚未实现");
+
+                case "决斗":
+                    if (selectedTarget == null)
+                    {
+                        ShowMessage("请选择目标!");
+                        return;
+                    }
+                    BattleManager.Instance.UseDuel(user, selectedTarget, card);
+                    RemoveCardUI(card);
+                    AddLog($"{user.playerName} 对 {selectedTarget.playerName} 使用了【决斗】");
+                    break;
+
+                case "南蛮入侵":
+                    BattleManager.Instance.UseSavageAssault(user, card);
+                    RemoveCardUI(card);
+                    AddLog($"{user.playerName} 使用了【南蛮入侵】");
+                    break;
+
+                case "万箭齐发":
+                    BattleManager.Instance.UseArrowBarrage(user, card);
+                    RemoveCardUI(card);
+                    AddLog($"{user.playerName} 使用了【万箭齐发】");
+                    break;
+
+                case "桃园结义":
+                    BattleManager.Instance.UsePeachGarden(user, card);
+                    RemoveCardUI(card);
+                    AddLog($"{user.playerName} 使用了【桃园结义】");
+                    break;
+
+                default:
+                    ShowMessage($"卡牌 {card.cardName} 的效果尚未实现");
+                    return;
             }
 
             // 清除选择
             ClearSelection();
+
+            // 更新所有UI
+            UpdateAllPlayerInfo();
         }
 
         /// <summary>
@@ -429,6 +467,9 @@ namespace ThreeKingdoms.UI
         /// <summary>
         /// 移除卡牌UI
         /// </summary>
+        /// <summary>
+        /// 移除卡牌UI - 改进版
+        /// </summary>
         private void RemoveCardUI(Card card)
         {
             CardUI toRemove = null;
@@ -444,7 +485,30 @@ namespace ThreeKingdoms.UI
             if (toRemove != null)
             {
                 handCardUIs.Remove(toRemove);
-                toRemove.PlayUseAnimation();
+
+                // 播放使用动画,动画完成后刷新剩余卡牌位置
+                toRemove.PlayUseAnimation(() => {
+                    StartCoroutine(RefreshAllCardPositions());
+                });
+            }
+        }
+
+        /// <summary>
+        /// 刷新所有卡牌位置(在卡牌被移除后调用)
+        /// </summary>
+        private System.Collections.IEnumerator RefreshAllCardPositions()
+        {
+            // 等待Layout重新计算完成
+            yield return null;
+            yield return null;
+
+            // 刷新所有剩余卡牌的原始位置
+            foreach (var cardUI in handCardUIs)
+            {
+                if (cardUI != null)
+                {
+                    cardUI.RefreshOriginalPosition();
+                }
             }
         }
 
