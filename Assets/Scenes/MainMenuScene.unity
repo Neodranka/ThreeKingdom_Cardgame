@@ -2629,6 +2629,8 @@ MonoBehaviour:
   playerCount: 2
   autoStart: 1
   playerPrefab: {fileID: 0}
+  defaultAILevel: 1
+  aiThinkingTime: 1.5
 --- !u!114 &1749171990
 MonoBehaviour:
   m_ObjectHideFlags: 0

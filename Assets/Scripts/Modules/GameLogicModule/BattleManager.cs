@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Collections;
+using ThreeKingdoms.AI;
 
 namespace ThreeKingdoms
 {
@@ -152,10 +154,15 @@ namespace ThreeKingdoms
         {
             Debug.Log("【出牌阶段】");
             Player currentPlayer = GetCurrentPlayer();
-            Debug.Log($"{currentPlayer.playerName} 的手牌: {currentPlayer.handCards.Count} 张");
 
-            // 出牌阶段由玩家操作,这里暂时自动跳过
-            // TODO: 实现出牌逻辑
+            if (currentPlayer.isAI && currentPlayer.aiController != null)
+            {
+                StartCoroutine(currentPlayer.aiController.ExecuteAITurn());
+            }
+            else
+            {
+                Debug.Log("等待玩家操作...");
+            }
         }
 
         /// <summary>
@@ -298,7 +305,7 @@ namespace ThreeKingdoms
                 }
             }
 
-            if (aliveCount <= 1)
+            if (aliveCount == 1)
             {
                 gameOver = true;
                 if (winner != null)

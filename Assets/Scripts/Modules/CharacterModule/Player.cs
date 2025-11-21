@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using ThreeKingdoms.AI;
 
 namespace ThreeKingdoms
 {
@@ -19,6 +20,10 @@ namespace ThreeKingdoms
     /// </summary>
     public class Player : MonoBehaviour
     {
+        [Header("AI设置")]
+        public bool isAI = false;
+        public AIPlayer aiController;
+
         [Header("基础信息")]
         public string playerName = "玩家";
         public string generalName = "武将";    // 武将名称
@@ -64,6 +69,8 @@ namespace ThreeKingdoms
             {
                 Die(source);
             }
+
+            NotifyUIUpdate();
         }
 
         /// <summary>
@@ -73,6 +80,8 @@ namespace ThreeKingdoms
         {
             currentHP = Mathf.Min(currentHP + amount, maxHP);
             Debug.Log($"{playerName} 回复 {amount} 点体力,当前体力:{currentHP}");
+
+            NotifyUIUpdate();
         }
 
         /// <summary>
@@ -137,6 +146,20 @@ namespace ThreeKingdoms
             handCards.Clear();
             equipments.Clear();
             judgeCards.Clear();
+
+            NotifyUIUpdate();
+        }
+
+        /// <summary>
+        /// 通知UI更新
+        /// </summary>
+        private void NotifyUIUpdate()
+        {
+            // 检查BattleUI是否存在并更新所有玩家信息
+            if (UI.BattleUI.Instance != null)
+            {
+                UI.BattleUI.Instance.UpdateAllPlayerInfo();
+            }
         }
 
         /// <summary>
