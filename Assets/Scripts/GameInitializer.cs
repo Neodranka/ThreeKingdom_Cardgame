@@ -1,7 +1,8 @@
-using UnityEngine;
 using System.Collections.Generic;
+using ThreeKingdoms.AI;
+using ThreeKingdoms.DatabaseModule;  // ⭐ 引入数据库模块
 using ThreeKingdoms.UI;
-using ThreeKingdoms.AI;  // ⭐ AI支持
+using UnityEngine;
 
 namespace ThreeKingdoms
 {
@@ -21,6 +22,9 @@ namespace ThreeKingdoms
         [Range(0, 3)]
         public int defaultAILevel = 1;  // 默认AI等级
         public float aiThinkingTime = 1.5f;  // AI思考时间
+
+        [Header("武将数据设置")]
+        public bool useGeneralData = true;  // 是否使用武将数据系统
 
         private void Start()
         {
@@ -58,11 +62,27 @@ namespace ThreeKingdoms
         }
 
         /// <summary>
-        /// 创建玩家 - 完整版(支持AI)
+        /// 创建玩家 - 完整版(支持武将数据和AI)
         /// </summary>
         private void CreatePlayers()
         {
             List<Player> players = new List<Player>();
+
+            // ⭐ 尝试获取武将数据
+            List<DatabaseModule.GeneralData> selectedGenerals = null;
+            if (useGeneralData && DatabaseModule.GeneralDatabase.Instance != null)
+            {
+                int availableCount = GeneralDatabase.Instance.GetGeneralCount();
+                if (availableCount > 0)
+                {
+                    selectedGenerals = GeneralDatabase.Instance.GetRandomGenerals(playerCount, false);
+                    Debug.Log($"从数据库选择了 {selectedGenerals.Count} 个武将");
+                }
+                else
+                {
+                    Debug.LogWarning("武将数据库为空，将使用默认配置");
+                }
+            }
 
             for (int i = 0; i < playerCount; i++)
             {
@@ -84,10 +104,23 @@ namespace ThreeKingdoms
                 {
                     // 设置基础信息
                     player.playerName = $"玩家{i + 1}";
-                    player.generalName = GetRandomGeneralName(i);
-                    player.faction = (Faction)(i % 4);
-                    player.maxHP = Random.Range(3, 5);
-                    player.currentHP = player.maxHP;
+
+                    // ⭐ 使用武将数据初始化（如果有）
+                    if (selectedGenerals != null && i < selectedGenerals.Count && selectedGenerals[i] != null)
+                    {
+                        // 使用武将数据
+                        player.InitializeFromGeneralData(selectedGenerals[i]);
+                        Debug.Log($"✓ {player.playerName} 使用武将: {player.generalName} [{player.faction}] HP:{player.maxHP}");
+                    }
+                    else
+                    {
+                        // 使用默认配置
+                        player.generalName = GetRandomGeneralName(i);
+                        player.faction = (Faction)(i % 4);
+                        player.maxHP = Random.Range(3, 5);
+                        player.currentHP = player.maxHP;
+                        Debug.LogWarning($"⚠ {player.playerName} 使用默认配置: {player.generalName}");
+                    }
 
                     // ⭐ AI设置: 第一个玩家是人类,其他都是AI
                     if (i > 0)
@@ -125,12 +158,11 @@ namespace ThreeKingdoms
             // 设置到BattleManager
             BattleManager.Instance.players = players;
 
-            Debug.Log($"========== 玩家创建完成 ==========");
-            Debug.Log($"共 {players.Count} 个玩家 (1个人类, {players.Count - 1}个AI)");
+            Debug.Log($"========== 创建了 {players.Count} 个玩家 ==========");
         }
 
         /// <summary>
-        /// 获取随机武将名
+        /// 获取随机武将名（备用方案）
         /// </summary>
         private string GetRandomGeneralName(int index)
         {
@@ -155,8 +187,6 @@ namespace ThreeKingdoms
                 BattleManager.Instance.StartGame();
             }
         }
-
-        // ============ 测试方法 (Context Menu) ============
 
         /// <summary>
         /// 测试使用【杀】
@@ -201,59 +231,41 @@ namespace ThreeKingdoms
         }
 
         /// <summary>
-        /// 测试AI行动
+        /// 测试技能系统
         /// </summary>
-        [ContextMenu("Test AI Action")]
-        public void TestAIAction()
+        [ContextMenu("Test Skill System")]
+        public void TestSkillSystem()
         {
-            if (BattleManager.Instance.players.Count >= 2)
-            {
-                Player aiPlayer = BattleManager.Instance.players[1];
-                if (aiPlayer.isAI && aiPlayer.aiController != null)
-                {
-                    StartCoroutine(aiPlayer.aiController.ExecuteAITurn());
-                }
-            }
-        }
+            Debug.Log("========== 测试技能系统 ==========");
 
-        /// <summary>
-        /// 给所有玩家添加测试卡牌
-        /// </summary>
-        [ContextMenu("Give Test Cards")]
-        public void GiveTestCards()
-        {
+            if (BattleManager.Instance.players.Count == 0)
+            {
+                Debug.LogError("没有玩家!");
+                return;
+            }
+
             foreach (var player in BattleManager.Instance.players)
             {
-                // 给每个玩家添加一些测试卡牌
-                player.handCards.Add(new Card("杀", CardType.Basic, CardSuit.Spade, 7));
-                player.handCards.Add(new Card("桃", CardType.Basic, CardSuit.Heart, 3));
-                player.handCards.Add(new Card("闪", CardType.Basic, CardSuit.Diamond, 6));
+                Debug.Log($"--- {player.playerName} ({player.generalName}) ---");
+                Debug.Log($"  阵营: {player.faction}");
+                Debug.Log($"  体力: {player.currentHP}/{player.maxHP}");
+                Debug.Log($"  技能数量: {player.skills.Count}");
 
-                Debug.Log($"{player.playerName} 获得了测试卡牌");
-            }
-
-            // 更新UI
-            if (BattleUI.Instance != null)
-            {
-                Player currentPlayer = BattleManager.Instance.GetCurrentPlayer();
-                BattleUI.Instance.UpdateHandCards(currentPlayer.handCards);
-            }
-        }
-
-        /// <summary>
-        /// 切换AI等级
-        /// </summary>
-        [ContextMenu("Increase AI Level")]
-        public void IncreaseAILevel()
-        {
-            foreach (var player in BattleManager.Instance.players)
-            {
-                if (player.isAI && player.aiController != null)
+                foreach (var skill in player.skills)
                 {
-                    player.aiController.aiLevel = (player.aiController.aiLevel + 1) % 4;
-                    Debug.Log($"{player.playerName} AI等级调整为: {player.aiController.aiLevel}");
+                    if (skill != null)
+                    {
+                        Debug.Log($"  ✓ 技能: {skill.SkillData.skillName} - {skill.GetDescription()}");
+                    }
+                }
+
+                if (player.skills.Count == 0)
+                {
+                    Debug.LogWarning($"  ⚠ {player.generalName} 没有技能!");
                 }
             }
+
+            Debug.Log("========================================");
         }
     }
 }

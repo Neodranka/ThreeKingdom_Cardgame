@@ -338,10 +338,12 @@ namespace ThreeKingdoms
             if (!dodged)
             {
                 target.TakeDamage(1, user);
-            }
-            else
-            {
-                Debug.Log($"{target.playerName} 使用【闪】躲避了攻击");
+
+                // ⭐ 添加这几行
+                if (EventManager.Instance != null)
+                {
+                    EventManager.Instance.TriggerPlayerDamaged(target, user, 1, slashCard);
+                }
             }
 
             DeckManager.Instance.DiscardCard(slashCard);
@@ -454,13 +456,13 @@ namespace ThreeKingdoms
                 Player currentPlayer = GetCurrentPlayer();
                 if (currentPlayer != null)
                 {
-                    // 更新当前玩家手牌
-                    UI.BattleUI.Instance.UpdateHandCards(currentPlayer.handCards);
+                    // ⭐ 只有本地玩家回合才更新手牌
+                    if (currentPlayer == players[0])  // 第一个玩家是本地玩家
+                    {
+                        UI.BattleUI.Instance.UpdateHandCards(currentPlayer.handCards);
+                    }
 
-                    // 更新所有玩家信息
                     UI.BattleUI.Instance.UpdateAllPlayerInfo();
-
-                    // 更新当前玩家指示器
                     UI.BattleUI.Instance.UpdateCurrentPlayerIndicator(currentPlayer);
                 }
             }

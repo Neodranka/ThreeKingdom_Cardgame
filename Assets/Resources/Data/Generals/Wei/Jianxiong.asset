@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e74860b9454cc84da0fef00481d33c7, type: 3}
+  m_Name: Jianxiong
+  m_EditorClassIdentifier: 
+  skillId: jianxiong
+  skillName: "\u5978\u96C4"
+  skillType: 2
+  timing: 5
+  description: "\u5F53\u4F60\u53D7\u5230\u4F24\u5BB3\u540E\uFF0C\u4F60\u53EF\u4EE5\u83B7\u5F97\u5BF9\u4F60\u9020\u6210\u4F24\u5BB3\u7684\u724C\u3002"
+  skillClassName: ThreeKingdoms.DatabaseModule.Skills.JianxiongSkill
+  configJson: 
+  icon: {fileID: 0}
+  soundEffect: {fileID: 0}
