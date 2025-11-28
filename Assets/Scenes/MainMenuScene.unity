@@ -2735,7 +2735,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a48995e22999d93438d22af3fc9cc6d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  drawPhaseCardCount: 0
+  drawPhaseCardCount: 2
   players: []
   currentPlayerIndex: 0
   currentPhase: 0
