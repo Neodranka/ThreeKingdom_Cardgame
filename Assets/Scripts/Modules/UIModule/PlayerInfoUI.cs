@@ -17,6 +17,7 @@ namespace ThreeKingdoms.UI
         [Header("UI引用")]
         public TextMeshProUGUI playerNameText;
         public TextMeshProUGUI generalNameText;
+        public TextMeshProUGUI factionText;  // ⭐ 阵营文本
         public Image avatarImage;
         public GameObject hpContainer;
         public GameObject hpIconPrefab;
@@ -65,6 +66,9 @@ namespace ThreeKingdoms.UI
                 generalNameText.text = playerData.generalName;
             }
 
+            // ⭐ 更新阵营显示
+            UpdateFactionDisplay();
+
             // 更新体力显示
             UpdateHP();
 
@@ -79,6 +83,38 @@ namespace ThreeKingdoms.UI
 
             // 更新头像(简易版用文字)
             UpdateAvatar();
+        }
+
+        /// <summary>
+        /// ⭐ 更新阵营显示
+        /// </summary>
+        private void UpdateFactionDisplay()
+        {
+            if (factionText != null && playerData != null)
+            {
+                // 设置阵营文字
+                string factionName = GetFactionName(playerData.faction);
+                factionText.text = factionName;
+
+                // 设置阵营颜色
+                Color factionColor = GetFactionColor(playerData.faction);
+                factionText.color = factionColor;
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取阵营名称
+        /// </summary>
+        private string GetFactionName(Faction faction)
+        {
+            switch (faction)
+            {
+                case Faction.Wei: return "魏";
+                case Faction.Shu: return "蜀";
+                case Faction.Wu: return "吴";
+                case Faction.Qun: return "群";
+                default: return "未知";
+            }
         }
 
         /// <summary>
@@ -185,40 +221,39 @@ namespace ThreeKingdoms.UI
                 Destroy(child.gameObject);
             }
 
-            // 显示装备
+            // 创建装备槽位
             foreach (var equipment in playerData.equipments)
             {
                 GameObject slot = CreateEquipmentSlot(equipment);
-                slot.transform.SetParent(equipmentContainer, false);
+                if (slot != null)
+                {
+                    slot.transform.SetParent(equipmentContainer);
+                }
             }
         }
 
         /// <summary>
-        /// 创建装备槽
+        /// 创建装备槽位
         /// </summary>
         private GameObject CreateEquipmentSlot(Card equipment)
         {
             if (equipmentSlotPrefab != null)
             {
                 GameObject slot = Instantiate(equipmentSlotPrefab);
-                // 设置装备信息
-                TextMeshProUGUI text = slot.GetComponentInChildren<TextMeshProUGUI>();
-                if (text != null)
-                {
-                    text.text = equipment.cardName;
-                }
+                // TODO: 设置装备信息
                 return slot;
             }
             else
             {
-                // 创建简单的装备显示
-                GameObject slot = new GameObject("Equipment");
+                // 创建简单的装备槽
+                GameObject slot = new GameObject($"Equipment_{equipment.cardName}");
                 Image img = slot.AddComponent<Image>();
-                img.color = new Color(0.8f, 0.7f, 0.5f);
+                img.color = new Color(0.8f, 0.6f, 0.2f);
 
                 RectTransform rt = slot.GetComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(60, 40);
+                rt.sizeDelta = new Vector2(60, 80);
 
+                // 添加装备名称
                 GameObject textObj = new GameObject("Text");
                 textObj.transform.SetParent(slot.transform);
                 TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
@@ -241,37 +276,110 @@ namespace ThreeKingdoms.UI
         /// </summary>
         private void UpdateAvatar()
         {
-            if (avatarImage != null)
+            if (avatarImage == null || playerData == null) return;
+
+            // 方案1: 如果GeneralData中直接有avatar引用
+            if (playerData.generalData != null && playerData.generalData.avatar != null)
             {
-                // 简易版:根据阵营设置颜色
-                Color factionColor = GetFactionColor(playerData.faction);
-                avatarImage.color = factionColor;
+                avatarImage.sprite = playerData.generalData.avatar;
+                avatarImage.color = Color.white;  // 使用原图颜色
 
-                // 在头像上显示武将名字首字
+                // 清除文字（因为已经有图片了）
                 Transform textTransform = avatarImage.transform.Find("AvatarText");
-                if (textTransform == null)
+                if (textTransform != null)
                 {
-                    GameObject textObj = new GameObject("AvatarText");
-                    textObj.transform.SetParent(avatarImage.transform);
-                    TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
-                    text.fontSize = 36;
-                    text.alignment = TextAlignmentOptions.Center;
-                    text.color = Color.white;
-                    text.fontStyle = FontStyles.Bold;
-
-                    RectTransform rt = textObj.GetComponent<RectTransform>();
-                    rt.anchorMin = Vector2.zero;
-                    rt.anchorMax = Vector2.one;
-                    rt.sizeDelta = Vector2.zero;
-
-                    textTransform = textObj.transform;
+                    textTransform.gameObject.SetActive(false);
                 }
+            }
+            // 方案2: 如果使用路径动态加载
+            else if (playerData.generalData != null && !string.IsNullOrEmpty(playerData.generalData.avatarPath))
+            {
+                Sprite loadedSprite = Resources.Load<Sprite>($"Sprites/Characters/{playerData.generalData.avatarPath}");
 
-                TextMeshProUGUI avatarText = textTransform.GetComponent<TextMeshProUGUI>();
-                if (avatarText != null && !string.IsNullOrEmpty(playerData.generalName))
+                if (loadedSprite != null)
                 {
-                    avatarText.text = playerData.generalName.Substring(0, 1);
+                    avatarImage.sprite = loadedSprite;
+                    avatarImage.color = Color.white;
+
+                    // 清除文字
+                    Transform textTransform = avatarImage.transform.Find("AvatarText");
+                    if (textTransform != null)
+                    {
+                        textTransform.gameObject.SetActive(false);
+                    }
                 }
+                else
+                {
+                    Debug.LogWarning($"无法加载头像: Sprites/Characters/{playerData.generalData.avatarPath}");
+                    UseFallbackAvatar();
+                }
+            }
+            // 方案3: 根据generalId自动加载
+            else if (playerData.generalData != null)
+            {
+                string avatarPath = $"Sprites/Characters/{playerData.faction}/{playerData.generalData.generalId}";
+                Sprite loadedSprite = Resources.Load<Sprite>(avatarPath);
+
+                if (loadedSprite != null)
+                {
+                    avatarImage.sprite = loadedSprite;
+                    avatarImage.color = Color.white;
+
+                    // 清除文字
+                    Transform textTransform = avatarImage.transform.Find("AvatarText");
+                    if (textTransform != null)
+                    {
+                        textTransform.gameObject.SetActive(false);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"无法加载头像: {avatarPath}，使用备用方案");
+                    UseFallbackAvatar();
+                }
+            }
+            // 备用方案: 使用纯色 + 文字
+            else
+            {
+                UseFallbackAvatar();
+            }
+        }
+
+        /// <summary>
+        /// 使用备用头像（纯色+文字）
+        /// </summary>
+        private void UseFallbackAvatar()
+        {
+            // 根据阵营设置颜色
+            Color factionColor = GetFactionColor(playerData.faction);
+            avatarImage.color = factionColor;
+            avatarImage.sprite = null;  // 不使用图片
+
+            // 显示武将名字首字
+            Transform textTransform = avatarImage.transform.Find("AvatarText");
+            if (textTransform == null)
+            {
+                GameObject textObj = new GameObject("AvatarText");
+                textObj.transform.SetParent(avatarImage.transform);
+                TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
+                text.fontSize = 36;
+                text.alignment = TextAlignmentOptions.Center;
+                text.color = Color.white;
+                text.fontStyle = FontStyles.Bold;
+
+                RectTransform rt = textObj.GetComponent<RectTransform>();
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.sizeDelta = Vector2.zero;
+
+                textTransform = textObj.transform;
+            }
+
+            textTransform.gameObject.SetActive(true);
+            TextMeshProUGUI avatarText = textTransform.GetComponent<TextMeshProUGUI>();
+            if (avatarText != null && !string.IsNullOrEmpty(playerData.generalName))
+            {
+                avatarText.text = playerData.generalName.Substring(0, 1);
             }
         }
 
@@ -341,22 +449,30 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
-        /// 显示操作面板
-        /// </summary>
-        public void ShowActionPanel(bool show)
-        {
-            if (actionPanel != null)
-            {
-                actionPanel.SetActive(show);
-            }
-        }
-
-        /// <summary>
         /// 播放受伤动画
         /// </summary>
         public void PlayDamageAnimation()
         {
-            StartCoroutine(FlashColor(Color.red));
+            StartCoroutine(DamageFlashAnimation());
+        }
+
+        /// <summary>
+        /// 受伤闪烁动画
+        /// </summary>
+        private System.Collections.IEnumerator DamageFlashAnimation()
+        {
+            Image background = GetComponent<Image>();
+            if (background == null) yield break;
+
+            Color originalColor = background.color;
+            Color damageColor = Color.red;
+
+            // 闪红
+            background.color = damageColor;
+            yield return new WaitForSeconds(0.1f);
+
+            // 恢复
+            background.color = originalColor;
         }
 
         /// <summary>
@@ -364,40 +480,26 @@ namespace ThreeKingdoms.UI
         /// </summary>
         public void PlayRecoverAnimation()
         {
-            StartCoroutine(FlashColor(Color.green));
+            StartCoroutine(RecoverFlashAnimation());
         }
 
         /// <summary>
-        /// 颜色闪烁动画
+        /// 回复闪烁动画
         /// </summary>
-        private System.Collections.IEnumerator FlashColor(Color flashColor)
+        private System.Collections.IEnumerator RecoverFlashAnimation()
         {
-            Image bg = GetComponent<Image>();
-            if (bg != null)
-            {
-                Color originalColor = bg.color;
-                float duration = 0.2f;
+            Image background = GetComponent<Image>();
+            if (background == null) yield break;
 
-                // 变色
-                float elapsed = 0f;
-                while (elapsed < duration)
-                {
-                    elapsed += Time.deltaTime;
-                    bg.color = Color.Lerp(originalColor, flashColor, elapsed / duration);
-                    yield return null;
-                }
+            Color originalColor = background.color;
+            Color healColor = Color.green;
 
-                // 恢复
-                elapsed = 0f;
-                while (elapsed < duration)
-                {
-                    elapsed += Time.deltaTime;
-                    bg.color = Color.Lerp(flashColor, originalColor, elapsed / duration);
-                    yield return null;
-                }
+            // 闪绿
+            background.color = healColor;
+            yield return new WaitForSeconds(0.1f);
 
-                bg.color = originalColor;
-            }
+            // 恢复
+            background.color = originalColor;
         }
     }
 }

@@ -386,48 +386,211 @@ namespace ThreeKingdoms
         }
         /// <summary>
         /// 使用【决斗】
+        /// 双方轮流出【杀】，先没杀的人受到1点伤害
         /// </summary>
         public void UseDuel(Player user, Player target, Card card)
         {
-            user.PlayCard(card);
-            DeckManager.Instance.DiscardCard(card);
-            target.TakeDamage(1, user);
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
             Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【决斗】");
+            DeckManager.Instance.DiscardCard(card);
+
+            // 触发使用卡牌事件
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, target);
+            }
+
+            // 决斗流程：目标先出杀
+            Player currentResponder = target;
+            Player opponent = user;
+            bool targetLost = false;
+
+            while (true)
+            {
+                Debug.Log($"[决斗] 等待 {currentResponder.playerName} 出【杀】");
+
+                // 检查是否有杀
+                Card slashCard = FindSlashInHand(currentResponder);
+
+                if (slashCard == null)
+                {
+                    // 没有杀，决斗失败
+                    Debug.Log($"[决斗] {currentResponder.playerName} 没有【杀】");
+                    targetLost = currentResponder == target;
+                    break;
+                }
+
+                // 有杀，打出
+                currentResponder.PlayCard(slashCard);
+                DeckManager.Instance.DiscardCard(slashCard);
+                Debug.Log($"[决斗] {currentResponder.playerName} 打出了【杀】");
+
+                // 交换响应者
+                Player temp = currentResponder;
+                currentResponder = opponent;
+                opponent = temp;
+            }
+
+            // 决定谁受伤
+            Player loser = targetLost ? target : user;
+            Debug.Log($"[决斗] {loser.playerName} 决斗失败，受到1点伤害");
+            loser.TakeDamage(1, loser == target ? user : target);
+
+            // 触发受伤事件
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerPlayerDamaged(loser, loser == target ? user : target, 1, card);
+            }
+
+            // 更新UI
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// 在手牌中查找【杀】
+        /// </summary>
+        private Card FindSlashInHand(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "杀")
+                {
+                    return card;
+                }
+            }
+            return null;
         }
 
         /// <summary>
         /// 使用【南蛮入侵】
+        /// 所有其他角色需打出【杀】，否则受到1点伤害
         /// </summary>
         public void UseSavageAssault(Player user, Card card)
         {
-            user.PlayCard(card);
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
+            Debug.Log($"{user.playerName} 使用了【南蛮入侵】");
             DeckManager.Instance.DiscardCard(card);
 
+            // 触发使用卡牌事件
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, null);
+            }
+
+            // 结算每个其他玩家
             foreach (var player in players)
             {
-                if (player != user && player.isAlive)
+                if (player == user || !player.isAlive) continue;
+
+                Debug.Log($"[南蛮入侵] {player.playerName} 需要打出【杀】");
+
+                // 检查是否有杀
+                Card slashCard = FindSlashInHand(player);
+
+                if (slashCard != null)
                 {
+                    // 有杀，打出
+                    player.PlayCard(slashCard);
+                    DeckManager.Instance.DiscardCard(slashCard);
+                    Debug.Log($"[南蛮入侵] {player.playerName} 打出了【杀】，免疫伤害");
+                }
+                else
+                {
+                    // 没有杀，受到伤害
+                    Debug.Log($"[南蛮入侵] {player.playerName} 没有【杀】，受到1点伤害");
                     player.TakeDamage(1, user);
+
+                    // 触发受伤事件
+                    if (EventManager.Instance != null)
+                    {
+                        EventManager.Instance.TriggerPlayerDamaged(player, user, 1, card);
+                    }
                 }
             }
-            Debug.Log($"{user.playerName} 使用了【南蛮入侵】");
+
+            // 更新UI
+            UpdateUI();
         }
 
         /// <summary>
         /// 使用【万箭齐发】
+        /// 所有其他角色需打出【闪】，否则受到1点伤害
         /// </summary>
         public void UseArrowBarrage(Player user, Card card)
         {
-            user.PlayCard(card);
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
+            Debug.Log($"{user.playerName} 使用了【万箭齐发】");
             DeckManager.Instance.DiscardCard(card);
 
+            // 触发使用卡牌事件
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, null);
+            }
+
+            // 结算每个其他玩家
             foreach (var player in players)
             {
-                if (player != user && player.isAlive)
+                if (player == user || !player.isAlive) continue;
+
+                Debug.Log($"[万箭齐发] {player.playerName} 需要打出【闪】");
+
+                // 检查是否有闪
+                Card dodgeCard = FindDodgeInHand(player);
+
+                if (dodgeCard != null)
                 {
+                    // 有闪，打出
+                    player.PlayCard(dodgeCard);
+                    DeckManager.Instance.DiscardCard(dodgeCard);
+                    Debug.Log($"[万箭齐发] {player.playerName} 打出了【闪】，免疫伤害");
+                }
+                else
+                {
+                    // 没有闪，受到伤害
+                    Debug.Log($"[万箭齐发] {player.playerName} 没有【闪】，受到1点伤害");
                     player.TakeDamage(1, user);
+
+                    // 触发受伤事件
+                    if (EventManager.Instance != null)
+                    {
+                        EventManager.Instance.TriggerPlayerDamaged(player, user, 1, card);
+                    }
                 }
             }
+
+            // 更新UI
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// 在手牌中查找【闪】
+        /// </summary>
+        private Card FindDodgeInHand(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "闪")
+                {
+                    return card;
+                }
+            }
+            return null;
         }
 
         /// <summary>
