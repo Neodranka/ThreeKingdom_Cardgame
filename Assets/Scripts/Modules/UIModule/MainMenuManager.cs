@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-namespace ThreeKingdomsKill.UI
+namespace ThreeKingdoms.UI
 {
     /// <summary>
     /// 主菜单管理器
@@ -20,10 +20,10 @@ namespace ThreeKingdomsKill.UI
             // 绑定按钮事件
             if (battleModeButton != null)
                 battleModeButton.onClick.AddListener(OnBattleModeClicked);
-            
+
             if (storyModeButton != null)
                 storyModeButton.onClick.AddListener(OnStoryModeClicked);
-            
+
             if (settingsButton != null)
                 settingsButton.onClick.AddListener(OnSettingsClicked);
 
@@ -31,13 +31,13 @@ namespace ThreeKingdomsKill.UI
         }
 
         /// <summary>
-        /// 进入对战模式
+        /// 进入对战模式（先进入游戏准备场景）
         /// </summary>
         private void OnBattleModeClicked()
         {
-            Debug.Log("进入对战模式");
-            // 加载游戏场景
-            SceneManager.LoadScene("GameScene");
+            Debug.Log("进入游戏准备");
+            // 加载游戏准备场景
+            SceneManager.LoadScene("GameSetup");
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace ThreeKingdomsKill.UI
             Debug.Log("故事模式开发中...");
             // TODO: 之后实现故事模式
             // SceneManager.LoadScene("StoryMode");
-            
+
             // 暂时显示提示（可选）
             ShowComingSoonMessage("故事模式开发中，敬请期待！");
         }
@@ -61,7 +61,7 @@ namespace ThreeKingdomsKill.UI
             Debug.Log("设置功能开发中...");
             // TODO: 之后实现设置面板
             // 可以打开一个设置UI面板，包括音量、画质等设置
-            
+
             ShowComingSoonMessage("设置功能开发中，敬请期待！");
         }
 
@@ -80,10 +80,10 @@ namespace ThreeKingdomsKill.UI
             // 清理事件监听，防止内存泄漏
             if (battleModeButton != null)
                 battleModeButton.onClick.RemoveListener(OnBattleModeClicked);
-            
+
             if (storyModeButton != null)
                 storyModeButton.onClick.RemoveListener(OnStoryModeClicked);
-            
+
             if (settingsButton != null)
                 settingsButton.onClick.RemoveListener(OnSettingsClicked);
         }
