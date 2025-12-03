@@ -86,19 +86,27 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
-        /// ⭐ 更新阵营显示
+        /// ⭐ 更新阵营显示（本地化）
         /// </summary>
         private void UpdateFactionDisplay()
         {
             if (factionText != null && playerData != null)
             {
-                // 设置阵营文字
-                string factionName = GetFactionName(playerData.faction);
+                // ⭐ 使用本地化文本
+                string factionKey = $"faction_{playerData.faction.ToString().ToLower()}";
+                string factionName = LocalizationManager.Instance.GetText(factionKey);
+
                 factionText.text = factionName;
 
                 // 设置阵营颜色
                 Color factionColor = GetFactionColor(playerData.faction);
                 factionText.color = factionColor;
+
+                // ⭐ 设置韩文字体
+                if (LocalizationManager.Instance.GetCurrentLanguage() == Language.Korean)
+                {
+                    factionText.font = TMPFontHelper.GetKoreanFont();
+                }
             }
         }
 
