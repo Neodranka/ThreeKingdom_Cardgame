@@ -103,6 +103,31 @@ namespace ThreeKingdoms.UI
         public void SetCard(Card card)
         {
             cardData = card;
+
+            if (cardNameText != null)
+            {
+                // 使用本地化卡牌名称
+                cardNameText.text = CardNameHelper.GetLocalizedCardName(card.cardName);
+            }
+
+            if (pointText != null)
+            {
+                // 使用本地化点数
+                pointText.text = CardNameHelper.GetLocalizedPoint(card.point);
+            }
+
+            if (suitText != null)
+            {
+                // 使用本地化花色
+                suitText.text = CardNameHelper.GetLocalizedSuit(card.suit);
+            }
+
+            // 设置字体
+            if (LocalizationManager.Instance != null)
+            {
+                TMPFontHelper.SetFontByLanguage(cardNameText);
+            }
+
             UpdateDisplay();
 
             // 重新初始化位置

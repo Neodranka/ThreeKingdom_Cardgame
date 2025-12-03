@@ -56,46 +56,56 @@ namespace ThreeKingdoms
         {
             if (!BattleManager.Instance.gameStarted) return;
 
-            // 更新回合信息
+            // 更新回合信息（使用本地化）
             if (turnInfoText != null)
             {
                 Player currentPlayer = BattleManager.Instance.GetCurrentPlayer();
-                turnInfoText.text = $"第 {BattleManager.Instance.turnCount} 回合\n当前玩家: {currentPlayer?.playerName}";
+                string turnText = LocalizationManager.Instance.GetTextFormatted("ui_turn", BattleManager.Instance.turnCount);
+                string currentPlayerText = LocalizationManager.Instance.GetText("ui_current_player");
+                turnInfoText.text = $"{turnText}\n{currentPlayerText}: {currentPlayer?.playerName}";
             }
 
-            // 更新阶段信息
+            // 更新阶段信息（使用本地化）
             if (phaseText != null)
             {
-                phaseText.text = $"阶段: {GetPhaseText(BattleManager.Instance.currentPhase)}";
+                string phaseLabel = LocalizationManager.Instance.GetText("ui_phase");
+                string phaseValue = GetLocalizedPhaseText(BattleManager.Instance.currentPhase);
+                phaseText.text = $"{phaseLabel}: {phaseValue}";
             }
 
-            // 更新牌堆信息
+            // 更新牌堆信息（使用本地化）
             if (deckInfoText != null)
             {
-                deckInfoText.text = $"牌堆: {DeckManager.Instance.GetDrawPileCount()} 张\n弃牌堆: {DeckManager.Instance.GetDiscardPileCount()} 张";
-            }
+                string drawPile = LocalizationManager.Instance.GetText("ui_draw_pile");
+                string discardPile = LocalizationManager.Instance.GetText("ui_discard_pile");
+                string cards = LocalizationManager.Instance.GetText("ui_cards");
 
-            // 更新结束阶段按钮
-            if (endPhaseButton != null)
-            {
-                endPhaseButton.interactable = BattleManager.Instance.currentPhase == TurnPhase.Play;
+                deckInfoText.text = $"{drawPile}: {DeckManager.Instance.GetDrawPileCount()} {cards}\n" +
+                                   $"{discardPile}: {DeckManager.Instance.GetDiscardPileCount()} {cards}";
             }
         }
 
         /// <summary>
         /// 获取阶段文本
         /// </summary>
-        private string GetPhaseText(TurnPhase phase)
+        private string GetLocalizedPhaseText(TurnPhase phase)
         {
             switch (phase)
             {
-                case TurnPhase.Prepare: return "准备阶段";
-                case TurnPhase.Judge: return "判定阶段";
-                case TurnPhase.Draw: return "摸牌阶段";
-                case TurnPhase.Play: return "出牌阶段";
-                case TurnPhase.Discard: return "弃牌阶段";
-                case TurnPhase.End: return "结束阶段";
-                default: return "未知阶段";
+                case TurnPhase.Prepare:
+                    return LocalizationManager.Instance.GetText("phase_prepare");
+                case TurnPhase.Judge:
+                    return LocalizationManager.Instance.GetText("phase_judge");
+                case TurnPhase.Draw:
+                    return LocalizationManager.Instance.GetText("phase_draw");
+                case TurnPhase.Play:
+                    return LocalizationManager.Instance.GetText("phase_play");
+                case TurnPhase.Discard:
+                    return LocalizationManager.Instance.GetText("phase_discard");
+                case TurnPhase.End:
+                    return LocalizationManager.Instance.GetText("phase_end");
+                default:
+                    return "Unknown Phase";
             }
         }
 
