@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e74860b9454cc84da0fef00481d33c7, type: 3}
+  m_Name: Wusheng
+  m_EditorClassIdentifier: 
+  skillId: wusheng
+  skillName: "\u6B66\u5723"
+  skillType: 1
+  timing: 4
+  description: "\u4F60\u53EF\u4EE5\u5C06\u4E00\u5F20\u7EA2\u8272\u724C\u5F53\u3010\u6740\u3011\u4F7F\u7528\u6216\u6253\u51FA\u3002"
+  skillClassName: ThreeKingdoms.DatabaseModule.Skills.WushengSkill
+  configJson: 
+  icon: {fileID: 0}
+  soundEffect: {fileID: 0}
