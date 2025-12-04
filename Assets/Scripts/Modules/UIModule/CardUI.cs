@@ -145,19 +145,38 @@ namespace ThreeKingdoms.UI
             // 设置卡牌名称
             if (cardNameText != null)
             {
-                cardNameText.text = cardData.cardName;
+                // 使用本地化的卡牌名称
+                cardNameText.text = CardNameHelper.GetLocalizedCardName(cardData.cardName);
+
+                // 设置字体
+                if (LocalizationManager.Instance != null)
+                {
+                    TMPFontHelper.SetFontByLanguage(cardNameText);
+                }
             }
 
             // 设置点数
             if (pointText != null)
             {
-                pointText.text = GetPointText(cardData.point);
+                pointText.text = CardNameHelper.GetLocalizedPoint(cardData.point);
+
+                // 设置字体
+                if (LocalizationManager.Instance != null)
+                {
+                    TMPFontHelper.SetFontByLanguage(pointText);
+                }
             }
 
             // 设置花色
             if (suitText != null)
             {
-                suitText.text = GetSuitSymbol(cardData.suit);
+                suitText.text = CardNameHelper.GetLocalizedSuit(cardData.suit);
+
+                // 设置字体
+                if (LocalizationManager.Instance != null)
+                {
+                    TMPFontHelper.SetFontByLanguage(suitText);
+                }
             }
 
             // 设置背景颜色
