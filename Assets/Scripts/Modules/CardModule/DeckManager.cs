@@ -77,21 +77,23 @@ namespace ThreeKingdoms
                 drawPile.Add(new Card("桃", CardType.Basic, suit, point));
             }
 
-            // 【决斗】- 3张
-            for (int i = 0; i < 3; i++)
+            // 【决斗】- 4张
+            for (int i = 0; i < 4; i++)
             {
                 drawPile.Add(new Card("决斗", CardType.Trick, CardSuit.Spade, i + 1));
             }
 
-            // 【南蛮入侵】- 3张
-            for (int i = 0; i < 3; i++)
+            // 【南蛮入侵】- 4张
+            for (int i = 0; i < 4; i++)
             {
                 drawPile.Add(new Card("南蛮入侵", CardType.Trick, CardSuit.Spade, i + 7));
             }
 
-            // 【万箭齐发】- 2张
-            drawPile.Add(new Card("万箭齐发", CardType.Trick, CardSuit.Heart, 1));
-            drawPile.Add(new Card("万箭齐发", CardType.Trick, CardSuit.Heart, 2));
+            // 【万箭齐发】- 4张
+            for (int i = 0; i < 4; i++)
+            {
+                drawPile.Add(new Card("万箭齐发", CardType.Trick, CardSuit.Heart, i+7));
+            }
 
             // 【无懈可击】- 3张
             for (int i = 0; i < 3; i++)
@@ -100,16 +102,22 @@ namespace ThreeKingdoms
                 drawPile.Add(new Card("无懈可击", CardType.Trick, suit, 11));
             }
 
-            // 【顺手牵羊】- 3张
-            for (int i = 0; i < 3; i++)
+            // 【顺手牵羊】- 4张
+            for (int i = 0; i < 4; i++)
             {
                 drawPile.Add(new Card("顺手牵羊", CardType.Trick, CardSuit.Spade, i + 3));
             }
 
-            // 【过河拆桥】- 3张
-            for (int i = 0; i < 3; i++)
+            // 【过河拆桥】- 4张
+            for (int i = 0; i < 4; i++)
             {
                 drawPile.Add(new Card("过河拆桥", CardType.Trick, CardSuit.Spade, i + 3));
+            }
+
+            // 【五谷丰登】- 4张
+            for (int i = 0; i < 4; i++)
+            {
+                drawPile.Add(new Card("五谷丰登", CardType.Trick, CardSuit.Spade, i + 3));
             }
         }
 

@@ -103,6 +103,31 @@ namespace ThreeKingdoms.UI
         public void SetCard(Card card)
         {
             cardData = card;
+
+            if (cardNameText != null)
+            {
+                // 使用本地化卡牌名称
+                cardNameText.text = CardNameHelper.GetLocalizedCardName(card.cardName);
+            }
+
+            if (pointText != null)
+            {
+                // 使用本地化点数
+                pointText.text = CardNameHelper.GetLocalizedPoint(card.point);
+            }
+
+            if (suitText != null)
+            {
+                // 使用本地化花色
+                suitText.text = CardNameHelper.GetLocalizedSuit(card.suit);
+            }
+
+            // 设置字体
+            if (LocalizationManager.Instance != null)
+            {
+                TMPFontHelper.SetFontByLanguage(cardNameText);
+            }
+
             UpdateDisplay();
 
             // 重新初始化位置
@@ -120,19 +145,38 @@ namespace ThreeKingdoms.UI
             // 设置卡牌名称
             if (cardNameText != null)
             {
-                cardNameText.text = cardData.cardName;
+                // 使用本地化的卡牌名称
+                cardNameText.text = CardNameHelper.GetLocalizedCardName(cardData.cardName);
+
+                // 设置字体
+                if (LocalizationManager.Instance != null)
+                {
+                    TMPFontHelper.SetFontByLanguage(cardNameText);
+                }
             }
 
             // 设置点数
             if (pointText != null)
             {
-                pointText.text = GetPointText(cardData.point);
+                pointText.text = CardNameHelper.GetLocalizedPoint(cardData.point);
+
+                // 设置字体
+                if (LocalizationManager.Instance != null)
+                {
+                    TMPFontHelper.SetFontByLanguage(pointText);
+                }
             }
 
             // 设置花色
             if (suitText != null)
             {
-                suitText.text = GetSuitSymbol(cardData.suit);
+                suitText.text = CardNameHelper.GetLocalizedSuit(cardData.suit);
+
+                // 设置字体
+                if (LocalizationManager.Instance != null)
+                {
+                    TMPFontHelper.SetFontByLanguage(suitText);
+                }
             }
 
             // 设置背景颜色
