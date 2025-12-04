@@ -467,6 +467,179 @@ namespace ThreeKingdoms
         }
 
         /// <summary>
+        /// 使用【顺手牵羊】
+        /// </summary>
+        public void UseSnatch(Player user, Player target, Card card)
+        {
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
+            Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【顺手牵羊】");
+            DeckManager.Instance.DiscardCard(card);
+
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, target);
+            }
+
+            if (target.handCards.Count == 0)
+            {
+                Debug.Log($"[顺手牵羊] {target.playerName} 没有手牌");
+                if (UI.BattleUI.Instance != null)
+                {
+                    UI.BattleUI.Instance.AddLog($"{target.playerName} 没有手牌");
+                }
+                UpdateUI();
+                return;
+            }
+
+            int randomIndex = Random.Range(0, target.handCards.Count);
+            Card snatched = target.handCards[randomIndex];
+
+            target.handCards.RemoveAt(randomIndex);
+            user.handCards.Add(snatched);
+
+            Debug.Log($"[顺手牵羊] {user.playerName} 获得了 {target.playerName} 的一张手牌");
+
+            if (UI.BattleUI.Instance != null)
+            {
+                string cardName = CardNameHelper.GetLocalizedCardName(snatched.cardName);
+                UI.BattleUI.Instance.AddLog($"{user.playerName} 获得了 {target.playerName} 的【{cardName}】");
+            }
+
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// 使用【过河拆桥】
+        /// </summary>
+        public void UseDismantlement(Player user, Player target, Card card)
+        {
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
+            Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【过河拆桥】");
+            DeckManager.Instance.DiscardCard(card);
+
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, target);
+            }
+
+            int totalCards = target.handCards.Count + target.equipments.Count;
+            if (totalCards == 0)
+            {
+                Debug.Log($"[过河拆桥] {target.playerName} 没有可弃置的牌");
+                if (UI.BattleUI.Instance != null)
+                {
+                    UI.BattleUI.Instance.AddLog($"{target.playerName} 没有可弃置的牌");
+                }
+                UpdateUI();
+                return;
+            }
+
+            int randomChoice = Random.Range(0, totalCards);
+            Card discarded = null;
+            string cardType = "";
+
+            if (randomChoice < target.handCards.Count)
+            {
+                discarded = target.handCards[randomChoice];
+                target.handCards.RemoveAt(randomChoice);
+                cardType = "手牌";
+            }
+            else
+            {
+                int equipIndex = randomChoice - target.handCards.Count;
+                discarded = target.equipments[equipIndex];
+                target.equipments.RemoveAt(equipIndex);
+                cardType = "装备";
+            }
+
+            DeckManager.Instance.DiscardCard(discarded);
+
+            Debug.Log($"[过河拆桥] {user.playerName} 弃置了 {target.playerName} 的一张{cardType}");
+
+            if (UI.BattleUI.Instance != null)
+            {
+                string cardName = CardNameHelper.GetLocalizedCardName(discarded.cardName);
+                UI.BattleUI.Instance.AddLog($"{user.playerName} 弃置了 {target.playerName} 的【{cardName}】");
+            }
+
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// 使用【五谷丰登】
+        /// </summary>
+        public void UseHarvest(Player user, Card card)
+        {
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
+            Debug.Log($"{user.playerName} 使用了【五谷丰登】");
+            DeckManager.Instance.DiscardCard(card);
+
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, null);
+            }
+
+            int aliveCount = 0;
+            foreach (var player in players)
+            {
+                if (player.isAlive) aliveCount++;
+            }
+
+            List<Card> harvestCards = new List<Card>();
+            for (int i = 0; i < aliveCount; i++)
+            {
+                Card drawn = DeckManager.Instance.DrawCard();
+                if (drawn != null)
+                {
+                    harvestCards.Add(drawn);
+                }
+            }
+
+            Debug.Log($"[五谷丰登] 亮出了 {harvestCards.Count} 张牌");
+
+            int currentPlayerIndex = players.IndexOf(user);
+
+            for (int i = 0; i < aliveCount && harvestCards.Count > 0; i++)
+            {
+                int playerIndex = (currentPlayerIndex + i) % players.Count;
+                Player player = players[playerIndex];
+
+                if (!player.isAlive) continue;
+
+                int randomIndex = Random.Range(0, harvestCards.Count);
+                Card chosen = harvestCards[randomIndex];
+                harvestCards.RemoveAt(randomIndex);
+
+                player.handCards.Add(chosen);
+
+                Debug.Log($"[五谷丰登] {player.playerName} 获得了【{chosen.cardName}】");
+
+                if (UI.BattleUI.Instance != null)
+                {
+                    string cardName = CardNameHelper.GetLocalizedCardName(chosen.cardName);
+                    UI.BattleUI.Instance.AddLog($"{player.playerName} 获得了【{cardName}】");
+                }
+            }
+
+            UpdateUI();
+        }
+
+        /// <summary>
         /// 使用【南蛮入侵】
         /// 所有其他角色需打出【杀】，否则受到1点伤害
         /// </summary>

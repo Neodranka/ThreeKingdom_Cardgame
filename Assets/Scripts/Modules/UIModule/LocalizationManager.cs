@@ -77,7 +77,6 @@ namespace ThreeKingdoms
             AddTranslation("ai_easy", "简单", "Easy", "쉬움");
             AddTranslation("ai_normal", "普通", "Normal", "보통");
             AddTranslation("ai_hard", "困难", "Hard", "어려움");
-            AddTranslation("ai_expert", "专家", "Expert", "전문가");
 
             // ==================== 武将 (Generals) ====================
 
@@ -89,7 +88,6 @@ namespace ThreeKingdoms
             AddTranslation("general_zhugeliang", "诸葛亮", "Zhuge Liang", "제갈량");
             AddTranslation("general_zhaoyun", "赵云", "Zhao Yun", "조운");
             AddTranslation("general_machao", "马超", "Ma Chao", "마초");
-            AddTranslation("general_huangyueying", "黄月英", "Huang Yueying", "황월영");
 
             // 阵营
             AddTranslation("faction_wei", "魏", "Wei", "위");
@@ -100,14 +98,14 @@ namespace ThreeKingdoms
             // ==================== 卡牌名称 (Card Names) ====================
 
             // 基础牌
-            AddTranslation("card_slash", "杀", "Slash", "살");
-            AddTranslation("card_dodge", "闪", "Dodge", "섬");
-            AddTranslation("card_peach", "桃", "Peach", "복숭아");
+            AddTranslation("card_slash", "杀", "Slash", "공격");
+            AddTranslation("card_dodge", "闪", "Dodge", "회피");
+            AddTranslation("card_peach", "桃", "Heal", "회복");
 
             // 锦囊牌 - 即时锦囊
             AddTranslation("card_duel", "决斗", "Duel", "결투");
             AddTranslation("card_savage_assault", "南蛮入侵", "Savage Assault", "남만침입");
-            AddTranslation("card_arrow_barrage", "万箭齐发", "Arrow Barrage", "만전제발");
+            AddTranslation("card_arrow_barrage", "万箭齐发", "Arrow Barrage", "일제사격");
             AddTranslation("card_peach_garden", "桃园结义", "Peach Garden", "도원결의");
             AddTranslation("card_nullification", "无懈可击", "Nullification", "무해가격");
             AddTranslation("card_snatch", "顺手牵羊", "Snatch", "순수견양");
@@ -249,7 +247,9 @@ namespace ThreeKingdoms
             AddTranslation("msg_arrow_barrage_start", "【万箭齐发】生效", "Arrow Barrage activated", "만전제발 발동");
             AddTranslation("msg_all_recover", "所有角色回复1点体力", "All characters recovered 1 HP", "모든 캐릭터 체력 1 회복");
 
-            // ==================== 缺失补充 ====================
+
+
+            // ==================== 手动修复缺失补充 ====================
             AddTranslation("ui_battle_mode", "对战模式", "Battle Mode", "대결모드");
             AddTranslation("ui_story_mode", "故事模式", "Story Mode", "스토리 모드");
             AddTranslation("ui_settings", "设置", "Setting", "설정");

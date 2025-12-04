@@ -386,6 +386,63 @@ namespace ThreeKingdoms.UI
                     AddLog($"{user.playerName} 使用了【桃园结义】");
                     break;
 
+                case "顺手牵羊":
+                    if (selectedTarget == null)
+                    {
+                        ShowMessage("msg_select_target");
+                        return;
+                    }
+
+                    if (selectedTarget.handCards.Count == 0 && selectedTarget.equipments.Count == 0)
+                    {
+                        ShowMessage("目标没有可获得的牌!");
+                        return;
+                    }
+
+                    BattleManager.Instance.UseSnatch(user, selectedTarget, card);
+                    RemoveCardUI(card);
+
+                    string snatchName = CardNameHelper.GetLocalizedCardName("顺手牵羊");
+                    //AddLocalizedLog("msg_used_card_on_target", user.playerName, selectedTarget.playerName, snatchName);
+                    break;
+
+                case "过河拆桥":
+                    if (selectedTarget == null)
+                    {
+                        ShowMessage("msg_select_target");
+                        return;
+                    }
+
+                    if (selectedTarget.handCards.Count == 0 && selectedTarget.equipments.Count == 0)
+                    {
+                        ShowMessage("目标没有可弃置的牌!");
+                        return;
+                    }
+
+                    BattleManager.Instance.UseDismantlement(user, selectedTarget, card);
+                    RemoveCardUI(card);
+
+                    string dismantleName = CardNameHelper.GetLocalizedCardName("过河拆桥");
+                    //AddLocalizedLog("msg_used_card_on_target", user.playerName, selectedTarget.playerName, dismantleName);
+                    break;
+
+                case "五谷丰登":
+                    BattleManager.Instance.UseHarvest(user, card);
+                    RemoveCardUI(card);
+
+                    string harvestName = CardNameHelper.GetLocalizedCardName("五谷丰登");
+                    //AddLocalizedLog("msg_used_card", user.playerName, harvestName);
+                    break;
+
+                case "无懈可击":
+                    ShowMessage("【无懈可击】只能在响应锦囊牌时使用");
+                    return;
+
+                case "乐不思蜀":
+                case "闪电":
+                    ShowMessage("延时锦囊暂未实现");
+                    return;
+
                 default:
                     ShowMessage($"卡牌 {card.cardName} 的效果尚未实现");
                     return;
