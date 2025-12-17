@@ -16,6 +16,7 @@ namespace ThreeKingdomsKill.UI
         [SerializeField] private Button battleModeButton;
         [SerializeField] private Button storyModeButton;
         [SerializeField] private Button settingsButton;
+        [SerializeField] private TextMeshProUGUI titleText; // ⭐ 游戏标题文本
 
         // ⭐ 按钮文本引用
         private TextMeshProUGUI battleModeText;
@@ -91,6 +92,14 @@ namespace ThreeKingdomsKill.UI
 
             Debug.Log("[MainMenu] 开始刷新UI文本...");
 
+            // ⭐ 更新标题文本
+            if (titleText != null)
+            {
+                titleText.text = ThreeKingdoms.LocalizationManager.Instance.GetText("menu_title");
+                ThreeKingdoms.UI.TMPFontHelper.SetFontByLanguage(titleText);
+                Debug.Log($"[MainMenu] 更新标题 -> \"{titleText.text}\"");
+            }
+
             // 更新按钮文本
             UpdateButtonText(battleModeButton, battleModeText, "ui_battle_mode");
             UpdateButtonText(storyModeButton, storyModeText, "ui_story_mode");
@@ -137,7 +146,10 @@ namespace ThreeKingdomsKill.UI
         private void OnStoryModeClicked()
         {
             Debug.Log("故事模式开发中...");
-            ShowComingSoonMessage("故事模式开发中，敬请期待！");
+            string message = ThreeKingdoms.LocalizationManager.Instance != null
+                ? ThreeKingdoms.LocalizationManager.Instance.GetText("msg_story_mode_coming_soon")
+                : "故事模式开发中，敬请期待！";
+            ShowComingSoonMessage(message);
         }
 
         /// <summary>
@@ -146,7 +158,10 @@ namespace ThreeKingdomsKill.UI
         private void OnSettingsClicked()
         {
             Debug.Log("设置功能开发中...");
-            ShowComingSoonMessage("设置功能开发中，敬请期待！");
+            string message = ThreeKingdoms.LocalizationManager.Instance != null
+                ? ThreeKingdoms.LocalizationManager.Instance.GetText("msg_settings_coming_soon")
+                : "设置功能开发中，敬请期待！";
+            ShowComingSoonMessage(message);
         }
 
         /// <summary>

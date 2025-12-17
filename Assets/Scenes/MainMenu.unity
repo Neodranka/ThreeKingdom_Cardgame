@@ -570,6 +570,7 @@ MonoBehaviour:
   battleModeButton: {fileID: 2029888509}
   storyModeButton: {fileID: 845954888}
   settingsButton: {fileID: 1390345925}
+  titleText: {fileID: 73731540}
 --- !u!4 &449774885
 Transform:
   m_ObjectHideFlags: 0
@@ -2154,7 +2155,10 @@ MonoBehaviour:
   languageDropdown: {fileID: 796174378}
   languageButton: {fileID: 0}
   currentLanguageText: {fileID: 0}
+  languageLabelText: {fileID: 0}
   useDropdown: 1
+  enableHotkey: 1
+  hotkeyCode: 108
 --- !u!1 &1619238250
 GameObject:
   m_ObjectHideFlags: 0

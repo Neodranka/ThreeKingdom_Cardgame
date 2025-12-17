@@ -34,7 +34,12 @@ namespace ThreeKingdoms.UI
         public Transform equipmentContainer;
         public GameObject equipmentSlotPrefab;
 
+        [Header("技能按钮")]
+        public Transform skillButtonContainer;
+        public GameObject skillButtonPrefab;
+
         private List<GameObject> hpIcons = new List<GameObject>();
+        private SkillButtonContainer skillContainer;
 
         /// <summary>
         /// 设置玩家数据
@@ -83,6 +88,9 @@ namespace ThreeKingdoms.UI
 
             // 更新头像(简易版用文字)
             UpdateAvatar();
+
+            // ⭐ 更新技能按钮
+            UpdateSkillButtons();
         }
 
         /// <summary>
@@ -111,17 +119,30 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
-        /// ⭐ 获取阵营名称
+        /// ⭐ 获取阵营名称（本地化）
         /// </summary>
         private string GetFactionName(Faction faction)
         {
+            if (LocalizationManager.Instance == null)
+            {
+                // fallback
+                switch (faction)
+                {
+                    case Faction.Wei: return "魏";
+                    case Faction.Shu: return "蜀";
+                    case Faction.Wu: return "吴";
+                    case Faction.Qun: return "群";
+                    default: return "未知";
+                }
+            }
+
             switch (faction)
             {
-                case Faction.Wei: return "魏";
-                case Faction.Shu: return "蜀";
-                case Faction.Wu: return "吴";
-                case Faction.Qun: return "群";
-                default: return "未知";
+                case Faction.Wei: return LocalizationManager.Instance.GetText("faction_wei");
+                case Faction.Shu: return LocalizationManager.Instance.GetText("faction_shu");
+                case Faction.Wu: return LocalizationManager.Instance.GetText("faction_wu");
+                case Faction.Qun: return LocalizationManager.Instance.GetText("faction_qun");
+                default: return LocalizationManager.Instance.GetText("faction_unknown");
             }
         }
 
@@ -179,20 +200,27 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
-        /// 更新手牌数量
+        /// 更新手牌数量（本地化）
         /// </summary>
         private void UpdateHandCount()
         {
             if (handCountText != null)
             {
+                string handLabel = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetText("ui_hand_cards")
+                    : "手牌";
+                string countUnit = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetText("ui_cards")
+                    : "张";
+
                 if (isLocalPlayer)
                 {
-                    handCountText.text = $"手牌: {playerData.handCards.Count}";
+                    handCountText.text = $"{handLabel}: {playerData.handCards.Count}";
                 }
                 else
                 {
                     // 其他玩家只显示数量
-                    handCountText.text = $"手牌: {playerData.handCards.Count} 张";
+                    handCountText.text = $"{handLabel}: {playerData.handCards.Count} {countUnit}";
                 }
             }
         }
@@ -508,6 +536,101 @@ namespace ThreeKingdoms.UI
 
             // 恢复
             background.color = originalColor;
+        }
+
+        /// <summary>
+        /// ⭐ 更新技能按钮
+        /// </summary>
+        private void UpdateSkillButtons()
+        {
+            if (playerData == null) return;
+
+            // 只为本地玩家显示技能按钮
+            if (!isLocalPlayer) return;
+
+            // 如果已经创建过技能按钮，只更新状态
+            if (skillContainer != null)
+            {
+                skillContainer.UpdateAllButtonStates();
+                return;
+            }
+
+            // 检查是否有主动技能
+            bool hasActiveSkills = false;
+            foreach (var skill in playerData.skills)
+            {
+                if (skill != null && skill.SkillData != null &&
+                    skill.SkillData.skillType == DatabaseModule.SkillType.Active)
+                {
+                    hasActiveSkills = true;
+                    break;
+                }
+            }
+
+            if (!hasActiveSkills) return;
+
+            // 首次创建技能按钮容器
+            CreateSkillButtonContainer();
+
+            // 初始化技能按钮
+            if (skillContainer != null)
+            {
+                skillContainer.Initialize(playerData);
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 创建技能按钮容器
+        /// </summary>
+        private void CreateSkillButtonContainer()
+        {
+            Transform containerParent = skillButtonContainer ?? transform;
+
+            // 如果没有指定容器，创建一个
+            if (skillButtonContainer == null)
+            {
+                GameObject containerObj = new GameObject("SkillButtonContainer");
+                containerObj.transform.SetParent(transform, false);
+
+                RectTransform rt = containerObj.AddComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0, 0);
+                rt.anchorMax = new Vector2(1, 0);
+                rt.pivot = new Vector2(0.5f, 0);
+                rt.anchoredPosition = new Vector2(0, -10);
+                rt.sizeDelta = new Vector2(0, 40);
+
+                // 添加水平布局
+                HorizontalLayoutGroup hlg = containerObj.AddComponent<HorizontalLayoutGroup>();
+                hlg.spacing = 5;
+                hlg.childAlignment = TextAnchor.MiddleCenter;
+                hlg.childControlWidth = false;
+                hlg.childControlHeight = false;
+                hlg.childForceExpandWidth = false;
+                hlg.childForceExpandHeight = false;
+
+                containerParent = containerObj.transform;
+            }
+
+            // 添加SkillButtonContainer组件
+            skillContainer = containerParent.gameObject.GetComponent<SkillButtonContainer>();
+            if (skillContainer == null)
+            {
+                skillContainer = containerParent.gameObject.AddComponent<SkillButtonContainer>();
+            }
+
+            skillContainer.buttonContainer = containerParent;
+            skillContainer.skillButtonPrefab = skillButtonPrefab;
+        }
+
+        /// <summary>
+        /// ⭐ 刷新技能按钮状态
+        /// </summary>
+        public void RefreshSkillButtonStates()
+        {
+            if (skillContainer != null)
+            {
+                skillContainer.UpdateAllButtonStates();
+            }
         }
     }
 }

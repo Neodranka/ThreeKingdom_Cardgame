@@ -24,6 +24,9 @@ namespace ThreeKingdoms.UI
         [SerializeField] private TextMeshProUGUI selectedCharacterText; // 已选武将显示
         [SerializeField] private Button startGameButton;           // 开始游戏按钮
         [SerializeField] private Button backButton;                // 返回按钮
+        [SerializeField] private TextMeshProUGUI titleText;        // ⭐ 场景标题
+        [SerializeField] private TextMeshProUGUI identityModeLabel; // ⭐ 身份场标签
+        [SerializeField] private TextMeshProUGUI selectGeneralLabel; // ⭐ 选择武将标签
 
         [Header("Font Settings")]
         [Tooltip("默认字体资源（可选，不设置则使用TMP默认字体）")]
@@ -115,6 +118,28 @@ namespace ThreeKingdoms.UI
             }
 
             Debug.Log($"[GameSetup] 刷新UI文本，当前语言：{LocalizationManager.Instance.GetCurrentLanguage()}");
+
+            // ⭐ 0. 更新场景标题
+            if (titleText != null)
+            {
+                titleText.text = LocalizationManager.Instance.GetText("setup_title");
+                TMPFontHelper.SetFontByLanguage(titleText);
+                Debug.Log($"[GameSetup] 更新标题 -> \"{titleText.text}\"");
+            }
+
+            // ⭐ 0.5 更新身份模式标签
+            if (identityModeLabel != null)
+            {
+                identityModeLabel.text = LocalizationManager.Instance.GetText("setup_identity_mode");
+                TMPFontHelper.SetFontByLanguage(identityModeLabel);
+            }
+
+            // ⭐ 0.6 更新选择武将标签
+            if (selectGeneralLabel != null)
+            {
+                selectGeneralLabel.text = LocalizationManager.Instance.GetText("setup_select_general");
+                TMPFontHelper.SetFontByLanguage(selectGeneralLabel);
+            }
 
             // 1. 更新按钮文本
             if (startGameButton != null)

@@ -523,6 +523,9 @@ MonoBehaviour:
   selectedCharacterText: {fileID: 1838841210}
   startGameButton: {fileID: 882122225}
   backButton: {fileID: 1135441058}
+  titleText: {fileID: 881054560}
+  identityModeLabel: {fileID: 132831460}
+  selectGeneralLabel: {fileID: 1838841210}
   defaultFont: {fileID: 11400000, guid: e7c69d888e819f748a8f8675b71026fb, type: 2}
   availableGenerals: []
 --- !u!4 &234852884

@@ -67,6 +67,9 @@ namespace ThreeKingdoms.DatabaseModule.Skills
         {
             if (player != Owner) return;
 
+            // ⭐ 回合开始时设置无限出杀
+            Owner.maxSlashPerTurn = 999;
+
             // 回合开始时提示咆哮生效
             Log($"{Owner.generalName} 的回合开始，【咆哮】生效（本回合使用杀无次数限制）");
         }
