@@ -16,6 +16,7 @@ namespace ThreeKingdoms.UI
         [SerializeField] private TMP_Dropdown languageDropdown;
         [SerializeField] private Button languageButton;
         [SerializeField] private TextMeshProUGUI currentLanguageText;
+        [SerializeField] private TextMeshProUGUI languageLabelText; // ⭐ "语言"/"Language"标签
 
         [Header("选项")]
         [SerializeField] private bool useDropdown = true; // true=下拉菜单, false=循环按钮
@@ -54,6 +55,9 @@ namespace ThreeKingdoms.UI
         /// </summary>
         private void InitializeLanguageSwitcher()
         {
+            // ⭐ 初始化语言标签
+            UpdateLanguageLabel();
+
             if (useDropdown && languageDropdown != null)
             {
                 InitializeDropdown();
@@ -73,6 +77,9 @@ namespace ThreeKingdoms.UI
         {
             Debug.Log($"[LanguageSwitcher] 检测到语言切换: {newLanguage}");
 
+            // ⭐ 更新语言标签
+            UpdateLanguageLabel();
+
             // 同步UI显示
             if (useDropdown && languageDropdown != null)
             {
@@ -85,6 +92,18 @@ namespace ThreeKingdoms.UI
             else if (!useDropdown && languageButton != null)
             {
                 UpdateButtonText();
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 更新语言标签文本
+        /// </summary>
+        private void UpdateLanguageLabel()
+        {
+            if (languageLabelText != null && ThreeKingdoms.LocalizationManager.Instance != null)
+            {
+                languageLabelText.text = ThreeKingdoms.LocalizationManager.Instance.GetText("menu_language");
+                TMPFontHelper.SetFontByLanguage(languageLabelText);
             }
         }
 
@@ -112,6 +131,10 @@ namespace ThreeKingdoms.UI
             // RemoveAllListeners()会破坏dropdown的内部监听器
             languageDropdown.onValueChanged.RemoveListener(OnLanguageChanged);
 
+            // ⭐ 先设置字体，再添加选项
+            // 设置一个支持所有语言的字体（使用中文字体，因为它通常包含更多字符）
+            SetDropdownFont();
+
             // 清空并添加语言选项
             languageDropdown.ClearOptions();
 
@@ -138,6 +161,51 @@ namespace ThreeKingdoms.UI
             languageDropdown.onValueChanged.AddListener(OnLanguageChanged);
 
             Debug.Log("[LanguageSwitcher] 下拉菜单初始化完成");
+        }
+
+        /// <summary>
+        /// ⭐ 设置下拉菜单的字体
+        /// </summary>
+        private void SetDropdownFont()
+        {
+            if (languageDropdown == null) return;
+
+            // ⭐ 使用通用字体（支持中文、英文、韩文）
+            TMP_FontAsset font = TMPFontHelper.GetUniversalFont();
+
+            if (font == null)
+            {
+                Debug.LogWarning("[LanguageSwitcher] 无法获取通用字体");
+                return;
+            }
+
+            Debug.Log($"[LanguageSwitcher] 使用通用字体: {font.name}");
+
+            // 设置Caption Text（当前显示的文本）
+            if (languageDropdown.captionText != null)
+            {
+                languageDropdown.captionText.font = font;
+                Debug.Log("[LanguageSwitcher] 已设置Caption字体");
+            }
+
+            // 设置Item Text Template（下拉项模板）
+            if (languageDropdown.itemText != null)
+            {
+                languageDropdown.itemText.font = font;
+                Debug.Log("[LanguageSwitcher] 已设置Item模板字体");
+            }
+
+            // ⭐ 如果下拉菜单的Template已经存在，也需要设置
+            Transform template = languageDropdown.transform.Find("Template");
+            if (template != null)
+            {
+                TextMeshProUGUI[] allTexts = template.GetComponentsInChildren<TextMeshProUGUI>(true);
+                foreach (var text in allTexts)
+                {
+                    text.font = font;
+                }
+                Debug.Log($"[LanguageSwitcher] 已设置Template中的 {allTexts.Length} 个文本组件字体");
+            }
         }
 
         /// <summary>

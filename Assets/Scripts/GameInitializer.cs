@@ -41,6 +41,9 @@ namespace ThreeKingdoms
         {
             Debug.Log("========== 初始化游戏 ==========");
 
+            // ⭐ 从GameConfig读取设置
+            ApplyGameConfig();
+
             // 创建玩家
             CreatePlayers();
 
@@ -57,8 +60,49 @@ namespace ThreeKingdoms
                 BattleUI.Instance.InitializePlayers(BattleManager.Instance.players, localPlayer);
             }
 
+            // ⭐ 创建出牌动画管理器
+            EnsurePlayedCardDisplayManager();
+
             // 延迟开始游戏
             Invoke(nameof(StartBattle), 1f);
+        }
+
+        /// <summary>
+        /// ⭐ 从GameConfig应用设置
+        /// </summary>
+        private void ApplyGameConfig()
+        {
+            if (GameConfig.Instance != null)
+            {
+                Debug.Log("========== 从GameConfig读取设置 ==========");
+
+                // 读取玩家数量
+                if (GameConfig.Instance.playerCount > 0)
+                {
+                    playerCount = GameConfig.Instance.playerCount;
+                    Debug.Log($"玩家数量: {playerCount}");
+                }
+
+                // 读取AI难度
+                defaultAILevel = GameConfig.Instance.aiDifficulty;
+                Debug.Log($"AI难度: {GameConfig.Instance.GetAIDifficultyName()} (等级 {defaultAILevel})");
+
+                // 读取选择的武将
+                if (GameConfig.Instance.selectedGeneral != null)
+                {
+                    Debug.Log($"玩家选择的武将: {GameConfig.Instance.selectedGeneral.generalName}");
+                }
+                else
+                {
+                    Debug.LogWarning("未选择武将，将随机分配");
+                }
+
+                Debug.Log("==========================================");
+            }
+            else
+            {
+                Debug.LogWarning("GameConfig未找到，使用默认设置");
+            }
         }
 
         /// <summary>
@@ -68,21 +112,34 @@ namespace ThreeKingdoms
         {
             List<Player> players = new List<Player>();
 
-            // ⭐ 尝试获取武将数据
-            List<DatabaseModule.GeneralData> selectedGenerals = null;
+            // ⭐ 获取玩家在GameSetup选择的武将
+            GeneralData playerSelectedGeneral = GameConfig.Instance?.selectedGeneral;
+
+            // ⭐ 获取其他AI玩家的武将数据
+            List<DatabaseModule.GeneralData> aiGenerals = null;
             if (useGeneralData && DatabaseModule.GeneralDatabase.Instance != null)
             {
                 int availableCount = GeneralDatabase.Instance.GetGeneralCount();
                 if (availableCount > 0)
                 {
-                    selectedGenerals = GeneralDatabase.Instance.GetRandomGenerals(playerCount, false);
-                    Debug.Log($"从数据库选择了 {selectedGenerals.Count} 个武将");
+                    // 获取除玩家选择武将外的其他武将给AI使用
+                    aiGenerals = GeneralDatabase.Instance.GetRandomGenerals(playerCount - 1, false);
+
+                    // 如果玩家选择了武将，确保AI不会重复选到
+                    if (playerSelectedGeneral != null && aiGenerals != null)
+                    {
+                        aiGenerals.RemoveAll(g => g.generalId == playerSelectedGeneral.generalId);
+                    }
+
+                    Debug.Log($"为AI选择了 {aiGenerals?.Count ?? 0} 个武将");
                 }
                 else
                 {
                     Debug.LogWarning("武将数据库为空，将使用默认配置");
                 }
             }
+
+            int aiGeneralIndex = 0;
 
             for (int i = 0; i < playerCount; i++)
             {
@@ -103,28 +160,57 @@ namespace ThreeKingdoms
                 if (player != null)
                 {
                     // 设置基础信息
-                    player.playerName = $"玩家{i + 1}";
+                    player.playerName = (i == 0) ? "你" : $"AI{i}";
 
-                    // ⭐ 使用武将数据初始化（如果有）
-                    if (selectedGenerals != null && i < selectedGenerals.Count && selectedGenerals[i] != null)
+                    // ⭐ 第一个玩家使用GameConfig中选择的武将
+                    if (i == 0)
                     {
-                        // 使用武将数据
-                        player.InitializeFromGeneralData(selectedGenerals[i]);
-                        Debug.Log($"✓ {player.playerName} 使用武将: {player.generalName} [{player.faction}] HP:{player.maxHP}");
+                        if (playerSelectedGeneral != null)
+                        {
+                            player.InitializeFromGeneralData(playerSelectedGeneral);
+                            Debug.Log($"✓ {player.playerName} 使用选择的武将: {player.generalName} [{player.faction}] HP:{player.maxHP}");
+                        }
+                        else
+                        {
+                            // 没有选择武将，随机分配一个
+                            if (aiGenerals != null && aiGenerals.Count > 0)
+                            {
+                                player.InitializeFromGeneralData(aiGenerals[0]);
+                                aiGenerals.RemoveAt(0);
+                                Debug.Log($"✓ {player.playerName} 随机分配武将: {player.generalName} [{player.faction}] HP:{player.maxHP}");
+                            }
+                            else
+                            {
+                                player.generalName = GetRandomGeneralName(i);
+                                player.faction = (Faction)(i % 4);
+                                player.maxHP = Random.Range(3, 5);
+                                player.currentHP = player.maxHP;
+                                Debug.LogWarning($"⚠ {player.playerName} 使用默认配置: {player.generalName}");
+                            }
+                        }
+
+                        // 第一个玩家是人类
+                        player.isAI = false;
+                        Debug.Log($"创建人类玩家: {player.playerName} ({player.generalName}) - HP:{player.maxHP}");
                     }
                     else
                     {
-                        // 使用默认配置
-                        player.generalName = GetRandomGeneralName(i);
-                        player.faction = (Faction)(i % 4);
-                        player.maxHP = Random.Range(3, 5);
-                        player.currentHP = player.maxHP;
-                        Debug.LogWarning($"⚠ {player.playerName} 使用默认配置: {player.generalName}");
-                    }
+                        // ⭐ AI玩家使用随机武将
+                        if (aiGenerals != null && aiGeneralIndex < aiGenerals.Count && aiGenerals[aiGeneralIndex] != null)
+                        {
+                            player.InitializeFromGeneralData(aiGenerals[aiGeneralIndex]);
+                            aiGeneralIndex++;
+                            Debug.Log($"✓ {player.playerName} 使用武将: {player.generalName} [{player.faction}] HP:{player.maxHP}");
+                        }
+                        else
+                        {
+                            player.generalName = GetRandomGeneralName(i);
+                            player.faction = (Faction)(i % 4);
+                            player.maxHP = Random.Range(3, 5);
+                            player.currentHP = player.maxHP;
+                            Debug.LogWarning($"⚠ {player.playerName} 使用默认配置: {player.generalName}");
+                        }
 
-                    // ⭐ AI设置: 第一个玩家是人类,其他都是AI
-                    if (i > 0)
-                    {
                         // 设置为AI玩家
                         player.isAI = true;
 
@@ -132,23 +218,17 @@ namespace ThreeKingdoms
                         AIPlayer aiController = playerObj.AddComponent<AIPlayer>();
                         aiController.controlledPlayer = player;
 
-                        // AI配置
-                        aiController.aiLevel = defaultAILevel;      // 使用Inspector设置的AI等级
-                        aiController.thinkingTime = aiThinkingTime; // 使用Inspector设置的思考时间
-                        aiController.attackWeight = 1.0f;           // 攻击倾向
-                        aiController.healWeight = 1.5f;             // 治疗倾向
-                        aiController.saveWeight = 0.8f;             // 保牌倾向
+                        // ⭐ AI配置 - 使用从GameConfig读取的难度
+                        aiController.aiLevel = defaultAILevel;
+                        aiController.thinkingTime = aiThinkingTime;
+                        aiController.attackWeight = 1.0f;
+                        aiController.healWeight = 1.5f;
+                        aiController.saveWeight = 0.8f;
 
                         // 关联AI控制器
                         player.aiController = aiController;
 
                         Debug.Log($"创建AI玩家: {player.playerName} ({player.generalName}) - HP:{player.maxHP} [AI等级:{aiController.aiLevel}]");
-                    }
-                    else
-                    {
-                        // 第一个玩家是人类
-                        player.isAI = false;
-                        Debug.Log($"创建人类玩家: {player.playerName} ({player.generalName}) - HP:{player.maxHP}");
                     }
 
                     players.Add(player);
@@ -175,6 +255,32 @@ namespace ThreeKingdoms
             };
 
             return generalNames[index % generalNames.Length];
+        }
+
+        /// <summary>
+        /// ⭐ 确保PlayedCardDisplayManager存在
+        /// </summary>
+        private void EnsurePlayedCardDisplayManager()
+        {
+            if (PlayedCardDisplayManager.Instance == null)
+            {
+                // 创建PlayedCardDisplayManager
+                GameObject displayManagerObj = new GameObject("PlayedCardDisplayManager");
+
+                // 如果有Canvas，作为Canvas的子对象
+                Canvas canvas = FindObjectOfType<Canvas>();
+                if (canvas != null)
+                {
+                    displayManagerObj.transform.SetParent(canvas.transform, false);
+                }
+
+                displayManagerObj.AddComponent<PlayedCardDisplayManager>();
+                Debug.Log("[GameInitializer] 创建了 PlayedCardDisplayManager");
+            }
+            else
+            {
+                Debug.Log("[GameInitializer] PlayedCardDisplayManager 已存在");
+            }
         }
 
         /// <summary>

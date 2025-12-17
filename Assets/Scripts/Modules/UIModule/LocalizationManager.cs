@@ -213,6 +213,8 @@ namespace ThreeKingdoms
             // 响应消息
             AddTranslation("msg_dodge_required", "请出【闪】", "Play [Dodge]", "[섬]을 내세요");
             AddTranslation("msg_slash_required", "请出【杀】", "Play [Slash]", "[살]을 내세요");
+            AddTranslation("msg_peach_required", "请出【桃】", "Play [Peach]", "[도]를 내세요");
+            AddTranslation("msg_response_required", "请响应", "Please respond", "응답하세요");
             AddTranslation("msg_responded_dodge", "{0} 打出了【闪】", "{0} played [Dodge]", "{0}이(가) [섬]을 냄");
             AddTranslation("msg_responded_slash", "{0} 打出了【杀】", "{0} played [Slash]", "{0}이(가) [살]을 냄");
             AddTranslation("msg_no_dodge", "{0} 没有【闪】", "{0} has no [Dodge]", "{0}은(는) [섬]이 없음");
@@ -262,7 +264,57 @@ namespace ThreeKingdoms
             AddTranslation("ui_hard", "高", "hard", "어려움");
             AddTranslation("ui_selected", "已选择", "Selected", "선택됨");
             AddTranslation("ui_please_select_general", "请选择武将", "Please select general", "캐릭터를 선택하세요");
-                        
+
+            // ==================== 杀的限制消息 ====================
+            AddTranslation("msg_slash_limit_reached", "本回合已无法再使用杀", "Cannot use Slash anymore this turn", "이번 턴에 더 이상 [살]을 사용할 수 없습니다");
+            AddTranslation("msg_target_out_of_range", "目标不在攻击范围内（距离:{0}, 范围:{1}）", "Target out of range (Distance:{0}, Range:{1})", "대상이 공격 범위 밖 (거리:{0}, 범위:{1})");
+
+            // ==================== 技能名称 ====================
+            AddTranslation("skill_rende", "仁德", "Benevolence", "인덕");
+            AddTranslation("skill_wusheng", "武圣", "Warrior Saint", "무성");
+            AddTranslation("skill_paoxiao", "咆哮", "Roar", "포효");
+            AddTranslation("skill_jianxiong", "奸雄", "Villainous Hero", "간웅");
+            AddTranslation("skill_zhiheng", "制衡", "Balance of Power", "제형");
+
+            // 技能描述
+            AddTranslation("skill_rende_desc", "出牌阶段，你可以将任意数量的手牌交给其他角色。", "During your play phase, you may give any number of hand cards to other characters.", "출패 단계에 패를 다른 캐릭터에게 줄 수 있습니다.");
+            AddTranslation("skill_wusheng_desc", "你可以将一张红色牌当【杀】使用或打出。", "You may use or play a red card as [Slash].", "빨간 카드를 [살]로 사용할 수 있습니다.");
+            AddTranslation("skill_paoxiao_desc", "锁定技，你使用【杀】无次数限制。", "Compulsory, you have no limit on the number of [Slash] you can use.", "강제 효과, [살] 사용 횟수 제한 없음.");
+            AddTranslation("skill_jianxiong_desc", "当你受到伤害后，你可以获得造成伤害的牌。", "After you take damage, you may obtain the card that caused the damage.", "데미지를 입은 후 해당 카드를 얻을 수 있습니다.");
+            AddTranslation("skill_zhiheng_desc", "出牌阶段限一次，你可以弃置任意数量的牌，然后摸等量的牌。", "Once per play phase, you may discard any number of cards, then draw the same amount.", "출패 단계 1회, 카드를 버리고 같은 수만큼 뽑습니다.");
+
+            // ==================== 新增本地化文本 ====================
+
+            // 主菜单
+            AddTranslation("msg_story_mode_coming_soon", "故事模式开发中，敬请期待！", "Story mode coming soon!", "스토리 모드 개발 중입니다!");
+            AddTranslation("msg_settings_coming_soon", "设置功能开发中，敬请期待！", "Settings coming soon!", "설정 기능 개발 중입니다!");
+
+            // 战斗UI - 选择相关
+            AddTranslation("ui_card_selected", "已选择", "Selected", "선택됨");
+            AddTranslation("ui_target", "目标", "Target", "대상");
+            AddTranslation("ui_play_card", "出牌", "Play", "출패");
+
+            // 战斗UI - 响应相关
+            AddTranslation("msg_complete_response_first", "请先完成响应!", "Please complete response first!", "먼저 응답을 완료하세요!");
+            AddTranslation("msg_end_play_phase", "结束出牌阶段", "End play phase", "출패 단계 종료");
+            AddTranslation("msg_responded_card", "{0} 打出了【{1}】", "{0} played [{1}]", "{0}이(가) [{1}]을(를) 냈습니다");
+            AddTranslation("msg_no_response", "{0} 没有响应", "{0} did not respond", "{0}이(가) 응답하지 않았습니다");
+            AddTranslation("msg_need_card", "需要出【{0}】", "Need to play [{0}]", "[{0}]을(를) 내야 합니다");
+
+            // 战斗UI - 卡牌使用限制
+            AddTranslation("msg_no_cards_to_obtain", "目标没有可获得的牌!", "Target has no cards to obtain!", "대상에게 얻을 카드가 없습니다!");
+            AddTranslation("msg_no_cards_to_discard", "目标没有可弃置的牌!", "Target has no cards to discard!", "대상에게 버릴 카드가 없습니다!");
+            AddTranslation("msg_nullification_only_response", "【无懈可击】只能在响应锦囊牌时使用", "[Nullification] can only be used to counter trick cards", "[무해가격]은 계략 카드에 대응할 때만 사용 가능");
+            AddTranslation("msg_delayed_trick_not_implemented", "延时锦囊暂未实现", "Delayed tricks not implemented yet", "지연 계략 미구현");
+
+            // 阶段和阵营
+            AddTranslation("phase_unknown", "未知阶段", "Unknown Phase", "알 수 없는 단계");
+            AddTranslation("faction_unknown", "未知", "Unknown", "알 수 없음");
+
+            // ⭐ 弃牌系统
+            AddTranslation("msg_discard_prompt", "请选择 {0} 张牌弃置", "Please select {0} card(s) to discard", "{0}장의 카드를 버리세요");
+            AddTranslation("msg_discard_progress", "请选择要弃置的牌 ({0}/{1})", "Select cards to discard ({0}/{1})", "버릴 카드를 선택하세요 ({0}/{1})");
+
             Debug.Log($"[LocalizationManager] 本地化初始化完成，当前语言：{currentLanguage}");
         }
 

@@ -46,6 +46,9 @@ namespace ThreeKingdoms.AI
 
             while (continuePlay && actionCount < maxActions)
             {
+                // ⭐ 等待任何响应完成后再继续
+                yield return StartCoroutine(WaitForResponseComplete());
+
                 actionCount++;
 
                 // 决定下一步行动
@@ -63,7 +66,10 @@ namespace ThreeKingdoms.AI
                 if (success)
                 {
                     Debug.Log($"[AI] {controlledPlayer.playerName} 执行了: {action.GetDescription()}");
+
+                    // ⭐ 执行完后等待响应完成（如果触发了响应）
                     yield return new WaitForSeconds(0.5f); // 行动间隔
+                    yield return StartCoroutine(WaitForResponseComplete());
                 }
                 else
                 {
@@ -72,9 +78,25 @@ namespace ThreeKingdoms.AI
                 }
             }
 
+            // ⭐ 确保所有响应都完成后再结束
+            yield return StartCoroutine(WaitForResponseComplete());
+
             // 结束出牌阶段
             Debug.Log($"[AI] {controlledPlayer.playerName} 结束出牌");
             BattleManager.Instance.EndPlayPhase();
+        }
+
+        /// <summary>
+        /// ⭐ 等待响应完成
+        /// </summary>
+        private IEnumerator WaitForResponseComplete()
+        {
+            // 检查BattleUI是否正在等待响应
+            while (UI.BattleUI.Instance != null && UI.BattleUI.Instance.IsWaitingForResponse())
+            {
+                Debug.Log($"[AI] {controlledPlayer.playerName} 等待响应完成...");
+                yield return new WaitForSeconds(0.3f);
+            }
         }
 
         /// <summary>
@@ -129,11 +151,15 @@ namespace ThreeKingdoms.AI
                         break;
 
                     case "杀":
-                        // 寻找可攻击的目标
-                        var targets = GetAttackTargets();
-                        foreach (var target in targets)
+                        // ⭐ 检查是否还能使用杀
+                        if (controlledPlayer.CanUseSlash())
                         {
-                            actions.Add(new AIAction(AIActionType.UseSlash, card, target));
+                            // 寻找攻击范围内的目标
+                            var targets = GetSlashTargets();
+                            foreach (var target in targets)
+                            {
+                                actions.Add(new AIAction(AIActionType.UseSlash, card, target));
+                            }
                         }
                         break;
 
@@ -345,7 +371,7 @@ namespace ThreeKingdoms.AI
         }
 
         /// <summary>
-        /// 获取可攻击的目标
+        /// 获取可攻击的目标（所有存活敌人）
         /// </summary>
         private List<Player> GetAttackTargets()
         {
@@ -360,6 +386,15 @@ namespace ThreeKingdoms.AI
             }
 
             return targets;
+        }
+
+        /// <summary>
+        /// ⭐ 获取杀的有效目标（考虑攻击范围）
+        /// </summary>
+        private List<Player> GetSlashTargets()
+        {
+            // 使用Player类的方法获取攻击范围内的目标
+            return controlledPlayer.GetValidSlashTargets();
         }
 
         /// <summary>

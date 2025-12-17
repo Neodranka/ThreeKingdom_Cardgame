@@ -15,6 +15,8 @@ namespace ThreeKingdoms.UI
         private static TMP_FontAsset chineseFont;
         private static TMP_FontAsset koreanFont;
         private static TMP_FontAsset englishFont;
+        private static TMP_FontAsset universalFont; // ⭐ 通用字体（支持所有语言）
+        private static bool fallbacksSetup = false;
 
         /// <summary>
         /// 获取默认字体
@@ -108,17 +110,101 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
+        /// ⭐ 获取通用字体（支持中文、英文、韩文）
+        /// 通过设置字体回退链来支持所有语言
+        /// </summary>
+        public static TMP_FontAsset GetUniversalFont()
+        {
+            if (universalFont != null)
+            {
+                return universalFont;
+            }
+
+            // 首先尝试加载专门的通用CJK字体
+            universalFont = Resources.Load<TMP_FontAsset>("TextMesh Pro/Fonts/NotoSansCJK SDF");
+            if (universalFont == null)
+            {
+                universalFont = Resources.Load<TMP_FontAsset>("Fonts/NotoSansCJK SDF");
+            }
+
+            if (universalFont != null)
+            {
+                Debug.Log("[TMPFontHelper] 成功加载通用CJK字体");
+                return universalFont;
+            }
+
+            // 如果没有通用字体，使用中文字体作为主字体，并设置韩文字体作为回退
+            TMP_FontAsset cnFont = GetChineseFont();
+            TMP_FontAsset krFont = GetKoreanFontDirect(); // 直接获取，避免递归
+
+            if (cnFont != null)
+            {
+                universalFont = cnFont;
+                SetupFallbackFonts(universalFont, krFont);
+                Debug.Log("[TMPFontHelper] 使用中文字体作为通用字体，已设置韩文回退");
+            }
+            else if (krFont != null)
+            {
+                universalFont = krFont;
+                Debug.Log("[TMPFontHelper] 使用韩文字体作为通用字体");
+            }
+            else
+            {
+                universalFont = GetDefaultFont();
+                Debug.LogWarning("[TMPFontHelper] 无法找到CJK字体，使用默认字体");
+            }
+
+            return universalFont;
+        }
+
+        /// <summary>
+        /// ⭐ 直接获取韩文字体（避免递归调用）
+        /// </summary>
+        private static TMP_FontAsset GetKoreanFontDirect()
+        {
+            return Resources.Load<TMP_FontAsset>("TextMesh Pro/Fonts/KoreanFont SDF");
+        }
+
+        /// <summary>
+        /// ⭐ 设置字体回退链
+        /// </summary>
+        private static void SetupFallbackFonts(TMP_FontAsset mainFont, TMP_FontAsset fallbackFont)
+        {
+            if (mainFont == null || fallbackFont == null || mainFont == fallbackFont)
+            {
+                return;
+            }
+
+            // 检查回退列表是否已经包含该字体
+            if (mainFont.fallbackFontAssetTable == null)
+            {
+                mainFont.fallbackFontAssetTable = new List<TMP_FontAsset>();
+            }
+
+            if (!mainFont.fallbackFontAssetTable.Contains(fallbackFont))
+            {
+                mainFont.fallbackFontAssetTable.Add(fallbackFont);
+                Debug.Log($"[TMPFontHelper] 已添加回退字体: {fallbackFont.name} -> {mainFont.name}");
+            }
+        }
+
+        /// <summary>
         /// 根据语言获取对应字体
+        /// ⭐ 改进：使用带回退的字体，避免方块字问题
         /// </summary>
         public static TMP_FontAsset GetFontForLanguage(ThreeKingdoms.Language language)
         {
+            // ⭐ 确保回退字体已设置
+            EnsureFallbacksSetup();
+
             switch (language)
             {
                 case ThreeKingdoms.Language.Chinese:
                     return GetChineseFont();
 
                 case ThreeKingdoms.Language.Korean:
-                    return GetKoreanFont();
+                    // ⭐ 韩文使用通用字体（已设置中文回退）
+                    return GetKoreanFontWithFallback();
 
                 case ThreeKingdoms.Language.English:
                     return GetEnglishFont();
@@ -126,6 +212,59 @@ namespace ThreeKingdoms.UI
                 default:
                     return GetDefaultFont();
             }
+        }
+
+        /// <summary>
+        /// ⭐ 获取带回退的韩文字体
+        /// </summary>
+        private static TMP_FontAsset GetKoreanFontWithFallback()
+        {
+            TMP_FontAsset krFont = GetKoreanFont();
+
+            // 确保韩文字体有中文回退
+            if (krFont != null && krFont != GetDefaultFont())
+            {
+                TMP_FontAsset cnFont = GetChineseFont();
+                if (cnFont != null && cnFont != GetDefaultFont())
+                {
+                    SetupFallbackFonts(krFont, cnFont);
+                }
+            }
+
+            return krFont;
+        }
+
+        /// <summary>
+        /// ⭐ 确保所有字体都设置了回退
+        /// </summary>
+        private static void EnsureFallbacksSetup()
+        {
+            if (fallbacksSetup) return;
+
+            // 中文字体 -> 韩文回退
+            TMP_FontAsset cnFont = GetChineseFont();
+            TMP_FontAsset krFont = GetKoreanFontDirect();
+
+            if (cnFont != null && cnFont != GetDefaultFont() && krFont != null)
+            {
+                SetupFallbackFonts(cnFont, krFont);
+            }
+
+            // 韩文字体 -> 中文回退
+            if (krFont != null && cnFont != null && cnFont != GetDefaultFont())
+            {
+                if (krFont.fallbackFontAssetTable == null)
+                {
+                    krFont.fallbackFontAssetTable = new List<TMP_FontAsset>();
+                }
+                if (!krFont.fallbackFontAssetTable.Contains(cnFont))
+                {
+                    krFont.fallbackFontAssetTable.Add(cnFont);
+                    Debug.Log($"[TMPFontHelper] 已为韩文字体添加中文回退");
+                }
+            }
+
+            fallbacksSetup = true;
         }
 
         /// <summary>
@@ -205,6 +344,8 @@ namespace ThreeKingdoms.UI
             chineseFont = null;
             koreanFont = null;
             englishFont = null;
+            universalFont = null;
+            fallbacksSetup = false;
 
             Debug.Log("[TMPFontHelper] 字体缓存已清除");
         }

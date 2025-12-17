@@ -343,7 +343,20 @@ namespace ThreeKingdoms.UI
             BattleUI battleUI = FindObjectOfType<BattleUI>();
             if (battleUI != null)
             {
-                battleUI.OnCardSelected(this);
+                // 如果正在等待弃牌，调用弃牌选中方法
+                if (battleUI.IsWaitingForDiscard())
+                {
+                    battleUI.OnDiscardCardSelected(this);
+                }
+                // 如果正在等待响应，调用响应选中方法
+                else if (battleUI.IsWaitingForResponse())
+                {
+                    battleUI.OnResponseCardSelected(this);
+                }
+                else
+                {
+                    battleUI.OnCardSelected(this);
+                }
             }
         }
 

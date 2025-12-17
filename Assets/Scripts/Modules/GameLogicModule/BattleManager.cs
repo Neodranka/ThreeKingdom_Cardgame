@@ -93,6 +93,9 @@ namespace ThreeKingdoms
             Debug.Log($"========== 第 {turnCount} 回合 ==========");
             Debug.Log($"当前玩家: {currentPlayer.playerName}");
 
+            // ⭐ 重置当前玩家的回合状态
+            currentPlayer.ResetTurnState();
+
             // 更新UI
             UpdateUI();
 
@@ -179,6 +182,14 @@ namespace ThreeKingdoms
         private void DiscardPhase()
         {
             Debug.Log("【弃牌阶段】");
+            StartCoroutine(DiscardPhaseCoroutine());
+        }
+
+        /// <summary>
+        /// ⭐ 弃牌阶段协程（支持玩家选择）
+        /// </summary>
+        private IEnumerator DiscardPhaseCoroutine()
+        {
             Player currentPlayer = GetCurrentPlayer();
 
             int handCardLimit = currentPlayer.GetHandCardLimit();
@@ -186,15 +197,38 @@ namespace ThreeKingdoms
 
             if (cardsToDiscard > 0)
             {
-                Debug.Log($"{currentPlayer.playerName} 需要弃置 {cardsToDiscard} 张牌");
+                Debug.Log($"{currentPlayer.playerName} 需要弃置 {cardsToDiscard} 张牌（手牌{currentPlayer.handCards.Count}，上限{handCardLimit}）");
 
-                // 自动弃牌(实际应该由玩家选择)
-                for (int i = 0; i < cardsToDiscard && currentPlayer.handCards.Count > 0; i++)
+                // ⭐ 使用UI让玩家选择弃牌
+                if (UI.BattleUI.Instance != null)
                 {
-                    Card card = currentPlayer.handCards[0];
-                    currentPlayer.DiscardCard(card);
-                    DeckManager.Instance.DiscardCard(card);
+                    bool discardComplete = false;
+
+                    UI.BattleUI.Instance.RequestDiscard(currentPlayer, cardsToDiscard, (discardedCards) =>
+                    {
+                        discardComplete = true;
+                    });
+
+                    // 等待弃牌完成
+                    while (!discardComplete)
+                    {
+                        yield return null;
+                    }
                 }
+                else
+                {
+                    // 没有UI时自动弃牌（弃置最前面的牌）
+                    for (int i = 0; i < cardsToDiscard && currentPlayer.handCards.Count > 0; i++)
+                    {
+                        Card card = currentPlayer.handCards[0];
+                        currentPlayer.DiscardCard(card);
+                        DeckManager.Instance.DiscardCard(card);
+                    }
+                    Debug.Log($"{currentPlayer.playerName} 自动弃置了 {cardsToDiscard} 张牌");
+                }
+
+                // 更新UI
+                UpdateUI();
             }
 
             NextPhase();
@@ -320,47 +354,182 @@ namespace ThreeKingdoms
         }
 
         /// <summary>
+        /// 检查是否可以使用杀
+        /// </summary>
+        /// <param name="user">使用者</param>
+        /// <param name="target">目标</param>
+        /// <param name="errorMessage">错误信息输出</param>
+        /// <returns>是否可以使用</returns>
+        public bool CanUseSlash(Player user, Player target, out string errorMessage)
+        {
+            errorMessage = "";
+
+            // 检查杀的使用次数
+            if (!user.CanUseSlash())
+            {
+                errorMessage = "本回合已无法再使用杀";
+                return false;
+            }
+
+            // 检查目标是否在攻击范围内
+            if (!user.IsInAttackRange(target))
+            {
+                int distance = user.GetDistanceTo(target);
+                int range = user.GetTotalAttackRange();
+                errorMessage = $"目标不在攻击范围内（距离:{distance}, 攻击范围:{range}）";
+                return false;
+            }
+
+            // 检查目标是否存活
+            if (!target.isAlive)
+            {
+                errorMessage = "目标已阵亡";
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// 使用【杀】
         /// </summary>
         public void UseSlash(Player user, Player target, Card slashCard)
         {
+            // 检查是否可以使用杀
+            if (!CanUseSlash(user, target, out string errorMessage))
+            {
+                Debug.LogWarning($"无法使用杀: {errorMessage}");
+                if (UI.BattleUI.Instance != null)
+                {
+                    UI.BattleUI.Instance.ShowMessage(errorMessage);
+                }
+                return;
+            }
+
             if (!user.PlayCard(slashCard))
             {
                 Debug.LogWarning("无法打出此牌!");
                 return;
             }
 
+            // ⭐ 增加杀的使用计数
+            user.UseSlash();
+
             Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【杀】");
 
-            // 询问目标是否出【闪】
-            bool dodged = AskForDodge(target);
+            // ⭐ 显示出牌动画（从使用者位置飞出）
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(slashCard, user, startPos);
+            }
 
+            // 先将杀牌放入弃牌堆
+            DeckManager.Instance.DiscardCard(slashCard);
+
+            // 使用协程进行异步响应
+            StartCoroutine(ProcessSlashResponse(user, target, slashCard));
+        }
+
+        /// <summary>
+        /// 处理杀的响应（协程）
+        /// </summary>
+        private IEnumerator ProcessSlashResponse(Player user, Player target, Card slashCard)
+        {
+            bool responseReceived = false;
+            bool dodged = false;
+
+            // 请求目标玩家响应
+            if (UI.BattleUI.Instance != null)
+            {
+                UI.BattleUI.Instance.RequestResponse(target, UI.ResponseType.Dodge, (responseCard) =>
+                {
+                    responseReceived = true;
+                    dodged = responseCard != null;
+
+                    if (dodged)
+                    {
+                        Debug.Log($"{target.playerName} 打出了【闪】，闪避成功");
+                    }
+                    else
+                    {
+                        Debug.Log($"{target.playerName} 没有出【闪】");
+                    }
+                });
+
+                // 等待响应
+                while (!responseReceived)
+                {
+                    yield return null;
+                }
+            }
+            else
+            {
+                // 如果没有UI，使用旧的自动逻辑
+                dodged = AutoCheckForDodge(target);
+            }
+
+            // 处理结果
             if (!dodged)
             {
                 target.TakeDamage(1, user);
 
-                // ⭐ 添加这几行
                 if (EventManager.Instance != null)
                 {
                     EventManager.Instance.TriggerPlayerDamaged(target, user, 1, slashCard);
                 }
             }
 
-            DeckManager.Instance.DiscardCard(slashCard);
+            // 更新UI
+            UpdateUI();
         }
 
         /// <summary>
-        /// 询问出【闪】
+        /// 自动检查是否有闪（AI用或无UI时）
         /// </summary>
-        private bool AskForDodge(Player player)
+        private bool AutoCheckForDodge(Player player)
         {
-            // 简化版:自动检查是否有闪
             foreach (var card in player.handCards)
             {
                 if (card.cardName == "闪")
                 {
                     player.PlayCard(card);
                     DeckManager.Instance.DiscardCard(card);
+                    Debug.Log($"{player.playerName} 自动打出了【闪】");
+
+                    // ⭐ 显示响应牌动画
+                    if (UI.PlayedCardDisplayManager.Instance != null)
+                    {
+                        Vector3? startPos = GetPlayerUIPosition(player);
+                        UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, player, startPos);
+                    }
+
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 自动检查是否有杀（AI用或无UI时）
+        /// </summary>
+        private bool AutoCheckForSlash(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "杀")
+                {
+                    player.PlayCard(card);
+                    DeckManager.Instance.DiscardCard(card);
+                    Debug.Log($"{player.playerName} 自动打出了【杀】");
+
+                    // ⭐ 显示响应牌动画
+                    if (UI.PlayedCardDisplayManager.Instance != null)
+                    {
+                        Vector3? startPos = GetPlayerUIPosition(player);
+                        UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, player, startPos);
+                    }
+
                     return true;
                 }
             }
@@ -376,6 +545,13 @@ namespace ThreeKingdoms
             {
                 Debug.LogWarning("无法打出此牌!");
                 return;
+            }
+
+            // ⭐ 显示出牌动画（从使用者位置飞出）
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(peachCard, user, startPos);
             }
 
             user.Recover(1);
@@ -397,6 +573,14 @@ namespace ThreeKingdoms
             }
 
             Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【决斗】");
+
+            // ⭐ 显示出牌动画（从使用者位置飞出）
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, user, startPos);
+            }
+
             DeckManager.Instance.DiscardCard(card);
 
             // 触发使用卡牌事件
@@ -652,6 +836,14 @@ namespace ThreeKingdoms
             }
 
             Debug.Log($"{user.playerName} 使用了【南蛮入侵】");
+
+            // ⭐ 显示出牌动画（从使用者位置飞出）
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, user, startPos);
+            }
+
             DeckManager.Instance.DiscardCard(card);
 
             // 触发使用卡牌事件
@@ -660,35 +852,62 @@ namespace ThreeKingdoms
                 EventManager.Instance.TriggerCardUsed(user, card, null);
             }
 
-            // 结算每个其他玩家
+            // 使用协程处理每个玩家的响应
+            StartCoroutine(ProcessSavageAssaultResponses(user, card));
+        }
+
+        /// <summary>
+        /// 处理南蛮入侵的响应（协程）
+        /// </summary>
+        private IEnumerator ProcessSavageAssaultResponses(Player user, Card card)
+        {
             foreach (var player in players)
             {
                 if (player == user || !player.isAlive) continue;
 
                 Debug.Log($"[南蛮入侵] {player.playerName} 需要打出【杀】");
 
-                // 检查是否有杀
-                Card slashCard = FindSlashInHand(player);
+                bool responseReceived = false;
+                bool hasSlash = false;
 
-                if (slashCard != null)
+                // 请求玩家响应
+                if (UI.BattleUI.Instance != null && !player.isAI)
                 {
-                    // 有杀，打出
-                    player.PlayCard(slashCard);
-                    DeckManager.Instance.DiscardCard(slashCard);
+                    UI.BattleUI.Instance.RequestResponse(player, UI.ResponseType.Slash, (responseCard) =>
+                    {
+                        responseReceived = true;
+                        hasSlash = responseCard != null;
+                    });
+
+                    while (!responseReceived)
+                    {
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    // AI自动响应
+                    hasSlash = AutoCheckForSlash(player);
+                    responseReceived = true;
+                }
+
+                if (hasSlash)
+                {
                     Debug.Log($"[南蛮入侵] {player.playerName} 打出了【杀】，免疫伤害");
                 }
                 else
                 {
-                    // 没有杀，受到伤害
                     Debug.Log($"[南蛮入侵] {player.playerName} 没有【杀】，受到1点伤害");
                     player.TakeDamage(1, user);
 
-                    // 触发受伤事件
                     if (EventManager.Instance != null)
                     {
                         EventManager.Instance.TriggerPlayerDamaged(player, user, 1, card);
                     }
                 }
+
+                // 短暂延迟，让玩家看到结果
+                yield return new WaitForSeconds(0.5f);
             }
 
             // 更新UI
@@ -708,6 +927,14 @@ namespace ThreeKingdoms
             }
 
             Debug.Log($"{user.playerName} 使用了【万箭齐发】");
+
+            // ⭐ 显示出牌动画（从使用者位置飞出）
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, user, startPos);
+            }
+
             DeckManager.Instance.DiscardCard(card);
 
             // 触发使用卡牌事件
@@ -716,35 +943,62 @@ namespace ThreeKingdoms
                 EventManager.Instance.TriggerCardUsed(user, card, null);
             }
 
-            // 结算每个其他玩家
+            // 使用协程处理每个玩家的响应
+            StartCoroutine(ProcessArrowBarrageResponses(user, card));
+        }
+
+        /// <summary>
+        /// 处理万箭齐发的响应（协程）
+        /// </summary>
+        private IEnumerator ProcessArrowBarrageResponses(Player user, Card card)
+        {
             foreach (var player in players)
             {
                 if (player == user || !player.isAlive) continue;
 
                 Debug.Log($"[万箭齐发] {player.playerName} 需要打出【闪】");
 
-                // 检查是否有闪
-                Card dodgeCard = FindDodgeInHand(player);
+                bool responseReceived = false;
+                bool hasDodge = false;
 
-                if (dodgeCard != null)
+                // 请求玩家响应
+                if (UI.BattleUI.Instance != null && !player.isAI)
                 {
-                    // 有闪，打出
-                    player.PlayCard(dodgeCard);
-                    DeckManager.Instance.DiscardCard(dodgeCard);
+                    UI.BattleUI.Instance.RequestResponse(player, UI.ResponseType.Dodge, (responseCard) =>
+                    {
+                        responseReceived = true;
+                        hasDodge = responseCard != null;
+                    });
+
+                    while (!responseReceived)
+                    {
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    // AI自动响应
+                    hasDodge = AutoCheckForDodge(player);
+                    responseReceived = true;
+                }
+
+                if (hasDodge)
+                {
                     Debug.Log($"[万箭齐发] {player.playerName} 打出了【闪】，免疫伤害");
                 }
                 else
                 {
-                    // 没有闪，受到伤害
                     Debug.Log($"[万箭齐发] {player.playerName} 没有【闪】，受到1点伤害");
                     player.TakeDamage(1, user);
 
-                    // 触发受伤事件
                     if (EventManager.Instance != null)
                     {
                         EventManager.Instance.TriggerPlayerDamaged(player, user, 1, card);
                     }
                 }
+
+                // 短暂延迟，让玩家看到结果
+                yield return new WaitForSeconds(0.5f);
             }
 
             // 更新UI
@@ -802,6 +1056,18 @@ namespace ThreeKingdoms
                     UI.BattleUI.Instance.UpdateCurrentPlayerIndicator(currentPlayer);
                 }
             }
+        }
+
+        /// <summary>
+        /// ⭐ 获取玩家UI的屏幕位置（用于出牌动画起点）
+        /// </summary>
+        private Vector3? GetPlayerUIPosition(Player player)
+        {
+            if (UI.BattleUI.Instance != null)
+            {
+                return UI.BattleUI.Instance.GetPlayerScreenPosition(player);
+            }
+            return null;
         }
     }
 }

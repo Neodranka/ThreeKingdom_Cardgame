@@ -51,6 +51,14 @@ namespace ThreeKingdoms
         public bool isDead = false;             // 是否死亡
         public int attackRange = 1;             // 攻击范围
 
+        [Header("回合状态")]
+        public int slashUsedThisTurn = 0;       // 本回合已使用杀的次数
+        public int maxSlashPerTurn = 1;         // 每回合最大杀次数（默认1，咆哮技能可修改）
+        public int extraAttackRange = 0;        // 额外攻击范围（由武器提供）
+
+        [Header("座位信息")]
+        public int seatIndex = -1;              // 座位索引（用于距离计算）
+
         private void Awake()
         {
             currentHP = maxHP;
@@ -265,11 +273,45 @@ namespace ThreeKingdoms
 
         /// <summary>
         /// 计算与目标的距离
+        /// 基于座位顺序，只计算存活玩家之间的距离
         /// </summary>
         public int GetDistanceTo(Player target)
         {
-            // 简化版距离计算,实际应该基于座位顺序
-            return 1;
+            if (target == null || target == this) return 0;
+            if (BattleManager.Instance == null) return 1;
+
+            // 获取所有存活玩家
+            List<Player> alivePlayers = new List<Player>();
+            foreach (var player in BattleManager.Instance.players)
+            {
+                if (player.isAlive)
+                {
+                    alivePlayers.Add(player);
+                }
+            }
+
+            if (alivePlayers.Count <= 1) return 0;
+
+            // 找到自己和目标在存活玩家中的索引
+            int myIndex = alivePlayers.IndexOf(this);
+            int targetIndex = alivePlayers.IndexOf(target);
+
+            if (myIndex == -1 || targetIndex == -1) return 999; // 找不到
+
+            // 计算双向距离（顺时针和逆时针），取较小值
+            int count = alivePlayers.Count;
+            int clockwiseDistance = (targetIndex - myIndex + count) % count;
+            int counterClockwiseDistance = (myIndex - targetIndex + count) % count;
+
+            return Mathf.Min(clockwiseDistance, counterClockwiseDistance);
+        }
+
+        /// <summary>
+        /// 获取实际攻击范围（基础范围 + 武器范围）
+        /// </summary>
+        public int GetTotalAttackRange()
+        {
+            return attackRange + extraAttackRange;
         }
 
         /// <summary>
@@ -277,7 +319,53 @@ namespace ThreeKingdoms
         /// </summary>
         public bool IsInAttackRange(Player target)
         {
-            return GetDistanceTo(target) <= attackRange;
+            return GetDistanceTo(target) <= GetTotalAttackRange();
+        }
+
+        /// <summary>
+        /// 检查是否还能使用杀
+        /// </summary>
+        public bool CanUseSlash()
+        {
+            return slashUsedThisTurn < maxSlashPerTurn;
+        }
+
+        /// <summary>
+        /// 使用杀（增加计数）
+        /// </summary>
+        public void UseSlash()
+        {
+            slashUsedThisTurn++;
+            Debug.Log($"{playerName} 本回合已使用 {slashUsedThisTurn}/{maxSlashPerTurn} 张杀");
+        }
+
+        /// <summary>
+        /// 重置回合状态（回合开始时调用）
+        /// </summary>
+        public void ResetTurnState()
+        {
+            slashUsedThisTurn = 0;
+            Debug.Log($"{playerName} 回合状态已重置");
+        }
+
+        /// <summary>
+        /// 获取可攻击的目标列表
+        /// </summary>
+        public List<Player> GetValidSlashTargets()
+        {
+            List<Player> validTargets = new List<Player>();
+
+            if (BattleManager.Instance == null) return validTargets;
+
+            foreach (var player in BattleManager.Instance.players)
+            {
+                if (player != this && player.isAlive && IsInAttackRange(player))
+                {
+                    validTargets.Add(player);
+                }
+            }
+
+            return validTargets;
         }
     }
 }
