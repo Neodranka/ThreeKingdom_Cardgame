@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe07eac2515a5a645b2ebe431034f2ff, type: 3}
+  m_Name: lvmeng
+  m_EditorClassIdentifier: 
+  generalId: lvmeng
+  generalName: "\u5415\u8499"
+  title: 
+  faction: 2
+  maxHP: 4
+  attackRange: 1
+  skills: []
+  avatar: {fileID: 0}
+  avatarPath: 
+  description: "\u58EB\u522B\u4E09\u65E5\uFF0C\u522E\u76EE\u76F8\u770B"
+  voiceLines: []

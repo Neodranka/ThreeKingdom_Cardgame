@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using System.Collections;
 using ThreeKingdoms.AI;
 
@@ -347,10 +348,127 @@ namespace ThreeKingdoms
                     Debug.Log($"========== 游戏结束! ==========");
                     Debug.Log($"获胜者: {winner.playerName}");
                 }
+
+                // ⭐ 启动游戏结束流程
+                StartCoroutine(HandleGameEnd(winner));
                 return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// ⭐ 处理游戏结束
+        /// </summary>
+        private IEnumerator HandleGameEnd(Player winner)
+        {
+            // 显示游戏结束UI
+            ShowGameOverUI(winner);
+
+            // 等待一段时间让玩家看到结果
+            yield return new WaitForSeconds(3f);
+
+            // 根据模式返回不同场景
+            NavigateAfterGameEnd();
+        }
+
+        /// <summary>
+        /// ⭐ 显示游戏结束UI
+        /// </summary>
+        private void ShowGameOverUI(Player winner)
+        {
+            // 尝试找到或创建游戏结束面板
+            GameObject gameOverPanel = GameObject.Find("GameOverPanel");
+            if (gameOverPanel == null)
+            {
+                // 创建简单的游戏结束UI
+                Canvas canvas = FindObjectOfType<Canvas>();
+                if (canvas != null)
+                {
+                    gameOverPanel = new GameObject("GameOverPanel");
+                    gameOverPanel.transform.SetParent(canvas.transform, false);
+
+                    UnityEngine.UI.Image bg = gameOverPanel.AddComponent<UnityEngine.UI.Image>();
+                    bg.color = new Color(0, 0, 0, 0.8f);
+
+                    RectTransform rt = gameOverPanel.GetComponent<RectTransform>();
+                    rt.anchorMin = Vector2.zero;
+                    rt.anchorMax = Vector2.one;
+                    rt.offsetMin = Vector2.zero;
+                    rt.offsetMax = Vector2.zero;
+
+                    // 添加文字
+                    GameObject textObj = new GameObject("GameOverText");
+                    textObj.transform.SetParent(gameOverPanel.transform, false);
+
+                    TMPro.TextMeshProUGUI text = textObj.AddComponent<TMPro.TextMeshProUGUI>();
+
+                    bool isPlayerWin = winner != null && !winner.isAI;
+                    string resultText = isPlayerWin
+                        ? (LocalizationManager.Instance?.GetText("msg_victory") ?? "胜利!")
+                        : (LocalizationManager.Instance?.GetText("msg_defeat") ?? "失败...");
+
+                    text.text = resultText;
+                    text.fontSize = 72;
+                    text.alignment = TMPro.TextAlignmentOptions.Center;
+                    text.color = isPlayerWin ? Color.yellow : Color.red;
+
+                    // 设置字体
+                    UI.TMPFontHelper.SetFontByLanguage(text);
+
+                    RectTransform textRt = textObj.GetComponent<RectTransform>();
+                    textRt.anchorMin = new Vector2(0, 0.4f);
+                    textRt.anchorMax = new Vector2(1, 0.6f);
+                    textRt.offsetMin = Vector2.zero;
+                    textRt.offsetMax = Vector2.zero;
+
+                    // 添加提示文字
+                    GameObject hintObj = new GameObject("HintText");
+                    hintObj.transform.SetParent(gameOverPanel.transform, false);
+
+                    TMPro.TextMeshProUGUI hintText = hintObj.AddComponent<TMPro.TextMeshProUGUI>();
+                    hintText.text = LocalizationManager.Instance?.GetText("msg_returning") ?? "即将返回...";
+                    hintText.fontSize = 24;
+                    hintText.alignment = TMPro.TextAlignmentOptions.Center;
+                    hintText.color = Color.white;
+                    UI.TMPFontHelper.SetFontByLanguage(hintText);
+
+                    RectTransform hintRt = hintObj.GetComponent<RectTransform>();
+                    hintRt.anchorMin = new Vector2(0, 0.25f);
+                    hintRt.anchorMax = new Vector2(1, 0.35f);
+                    hintRt.offsetMin = Vector2.zero;
+                    hintRt.offsetMax = Vector2.zero;
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 游戏结束后导航到适当场景
+        /// </summary>
+        private void NavigateAfterGameEnd()
+        {
+            // 检查是否是故事模式
+            string storyBattleId = PlayerPrefs.GetString("StoryBattleId", "");
+
+            if (!string.IsNullOrEmpty(storyBattleId))
+            {
+                // ⭐ 故事模式：返回故事模式选择界面
+                Debug.Log("[BattleManager] 故事模式战斗结束，返回StoryMode场景");
+
+                // 清除故事模式标记
+                PlayerPrefs.DeleteKey("StoryBattleId");
+                PlayerPrefs.DeleteKey("StoryPlayerGeneral");
+                PlayerPrefs.DeleteKey("StoryDifficulty");
+                PlayerPrefs.Save();
+
+                SceneManager.LoadScene("StoryMode");
+            }
+            else
+            {
+                // ⭐ 普通对战模式：返回主菜单
+                Debug.Log("[BattleManager] 普通对战结束，返回MainMenu场景");
+                SceneManager.LoadScene("MainMenu");
+            }
         }
 
         /// <summary>

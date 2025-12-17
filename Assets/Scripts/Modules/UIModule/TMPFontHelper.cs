@@ -437,5 +437,56 @@ namespace ThreeKingdoms.UI
                 tmpComponent.fontMaterial = tmpComponent.font.material;
             }
         }
+
+        /// <summary>
+        /// ⭐ 清理文本中的全角标点（转换为半角）
+        /// 解决字体缺少全角标点导致显示方块的问题
+        /// </summary>
+        public static string SanitizeFullWidthPunctuation(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+
+            // 全角标点 -> 半角标点映射
+            System.Text.StringBuilder sb = new System.Text.StringBuilder(text.Length);
+
+            foreach (char c in text)
+            {
+                switch (c)
+                {
+                    case '！': sb.Append('!'); break;    // U+FF01 -> U+0021
+                    case '？': sb.Append('?'); break;    // U+FF1F -> U+003F
+                    case '，': sb.Append(','); break;    // U+FF0C -> U+002C
+                    case '。': sb.Append('.'); break;    // U+3002 -> U+002E
+                    case '：': sb.Append(':'); break;    // U+FF1A -> U+003A
+                    case '；': sb.Append(';'); break;    // U+FF1B -> U+003B
+                    case '\u201C': sb.Append('"'); break;    // " (左双引号) -> "
+                    case '\u201D': sb.Append('"'); break;    // " (右双引号) -> "
+                    case '\u2018': sb.Append('\''); break;   // ' (左单引号) -> '
+                    case '\u2019': sb.Append('\''); break;   // ' (右单引号) -> '
+                    case '（': sb.Append('('); break;    // U+FF08 -> U+0028
+                    case '）': sb.Append(')'); break;    // U+FF09 -> U+0029
+                    case '【': sb.Append('['); break;    // U+3010 -> U+005B
+                    case '】': sb.Append(']'); break;    // U+3011 -> U+005D
+                    case '《': sb.Append('<'); break;    // U+300A -> U+003C
+                    case '》': sb.Append('>'); break;    // U+300B -> U+003E
+                    case '、': sb.Append(','); break;    // U+3001 -> U+002C
+                    case '…': sb.Append("..."); break;  // U+2026 -> ...
+                    case '—': sb.Append('-'); break;    // U+2014 -> U+002D
+                    case '～': sb.Append('~'); break;    // U+FF5E -> U+007E
+                    default: sb.Append(c); break;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// ⭐ 设置文本并自动清理全角标点
+        /// </summary>
+        public static void SetTextSafe(TextMeshProUGUI tmpComponent, string text)
+        {
+            if (tmpComponent == null) return;
+            tmpComponent.text = SanitizeFullWidthPunctuation(text);
+        }
     }
 }

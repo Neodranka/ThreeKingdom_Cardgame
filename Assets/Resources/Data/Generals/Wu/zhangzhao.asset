@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe07eac2515a5a645b2ebe431034f2ff, type: 3}
+  m_Name: zhangzhao
+  m_EditorClassIdentifier: 
+  generalId: zhangzhao
+  generalName: "\u5F20\u662D"
+  title: 
+  faction: 2
+  maxHP: 3
+  attackRange: 1
+  skills: []
+  avatar: {fileID: 0}
+  avatarPath: 
+  description: "\u4E1C\u5434\u91CD\u81E3\uFF0C\u4E3B\u548C\u6D3E\u9886\u8896"
+  voiceLines: []

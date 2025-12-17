@@ -2155,7 +2155,7 @@ MonoBehaviour:
   languageDropdown: {fileID: 796174378}
   languageButton: {fileID: 0}
   currentLanguageText: {fileID: 0}
-  languageLabelText: {fileID: 0}
+  languageLabelText: {fileID: 1958062653}
   useDropdown: 1
   enableHotkey: 1
   hotkeyCode: 108

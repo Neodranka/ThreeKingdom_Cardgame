@@ -4,6 +4,102 @@ using System.Collections.Generic;
 namespace ThreeKingdoms.DatabaseModule
 {
     /// <summary>
+    /// ⭐ 角色ID到拼音文件名映射工具
+    /// </summary>
+    public static class CharacterPinyinHelper
+    {
+        private static readonly Dictionary<string, string> pinyinMap = new Dictionary<string, string>
+        {
+            // 蜀国 (Shu)
+            {"liubei", "LiuBei"},
+            {"guanyu", "GuanYu"},
+            {"zhangfei", "ZhangFei"},
+            {"zhugeliang", "ZhuGeLiang"},
+            {"zhaoyun", "ZhaoYun"},
+            {"huangzhong", "HuangZhong"},
+            {"mifang", "MiFang"},
+            {"mifuren", "MiFuRen"},
+
+            // 吴国 (Wu)
+            {"sunquan", "SunQuan"},
+            {"zhouyu", "ZhouYu"},
+            {"lvmeng", "LvMeng"},
+            {"huanggai", "HuangGai"},
+            {"lusu", "LuSu"},
+            {"chengpu", "ChengPu"},
+            {"zhangzhao", "ZhangZhao"},
+
+            // 魏国 (Wei)
+            {"caocao", "CaoCao"},
+            {"xiahoudun", "XiaHouDun"},
+            {"xiahouyuan", "XiaHouYuan"},
+            {"zhangliao", "ZhangLiao"},
+            {"xiahoujie", "XiaHouJie"},
+            {"jianggan", "JiangGan"},
+            {"caojun_cavalry", "CaoJunQiBing"},
+            {"caojunqibing", "CaoJunQiBing"},
+
+            // 群雄 (Qun)
+            {"lvbu", "LvBu"},
+            {"dongzhuo", "DongZhuo"},
+            {"huaxiong", "HuaXiong"},
+            {"yuanshao", "YuanShao"},
+            {"yanliang", "YanLiang"},
+            {"wenchou", "WenChou"},
+            {"diaochan", "DiaoChan"},
+        };
+
+        /// <summary>
+        /// 将角色ID转换为拼音文件名格式
+        /// </summary>
+        public static string GetPinyinFileName(string generalId)
+        {
+            if (string.IsNullOrEmpty(generalId)) return generalId;
+
+            string cleanId = generalId.ToLower().Replace("_story", "");
+            if (pinyinMap.TryGetValue(cleanId, out string pinyinName))
+            {
+                return pinyinName;
+            }
+
+            // 如果映射表没有，返回首字母大写的版本
+            return char.ToUpper(cleanId[0]) + cleanId.Substring(1);
+        }
+
+        /// <summary>
+        /// 尝试多种路径加载角色头像
+        /// </summary>
+        public static Sprite LoadCharacterSprite(string generalId, Faction faction)
+        {
+            if (string.IsNullOrEmpty(generalId)) return null;
+
+            string pinyinName = GetPinyinFileName(generalId);
+            string factionName = faction.ToString();
+
+            // 尝试多种路径
+            string[] paths = new string[]
+            {
+                $"Sprites/Characters/{factionName}/{pinyinName}",   // 优先: Shu/LiuBei
+                $"Sprites/Characters/{pinyinName}",                  // 根目录: LiuBei
+                $"Sprites/Characters/{factionName}/{generalId}",    // 小写: Shu/liubei
+                $"Sprites/Characters/{generalId}",                   // 根目录小写
+            };
+
+            foreach (string path in paths)
+            {
+                Sprite sprite = Resources.Load<Sprite>(path);
+                if (sprite != null)
+                {
+                    return sprite;
+                }
+            }
+
+            Debug.LogWarning($"[CharacterPinyinHelper] 未找到头像: {generalId} (尝试路径: {paths[0]})");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// 武将数据（ScriptableObject）
     /// 用于在Unity编辑器中创建和编辑武将数据
     /// </summary>
@@ -75,15 +171,8 @@ namespace ThreeKingdoms.DatabaseModule
                 }
             }
 
-            // 最后尝试根据ID和阵营自动加载
-            string autoPath = $"Sprites/Characters/{faction}/{generalId}";
-            Sprite autoSprite = Resources.Load<Sprite>(autoPath);
-
-            if (autoSprite == null)
-            {
-                Debug.LogWarning($"[{generalName}] 未找到头像: {autoPath}，将使用备用显示");
-            }
-
+            // ⭐ 使用共享的拼音映射工具加载
+            Sprite autoSprite = CharacterPinyinHelper.LoadCharacterSprite(generalId, faction);
             return autoSprite;
         }
 

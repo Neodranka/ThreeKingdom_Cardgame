@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using ThreeKingdoms.DatabaseModule;
 
 namespace ThreeKingdoms.UI
 {
@@ -350,11 +351,14 @@ namespace ThreeKingdoms.UI
                     UseFallbackAvatar();
                 }
             }
-            // 方案3: 根据generalId自动加载
+            // 方案3: 根据generalId自动加载（使用拼音映射）
             else if (playerData.generalData != null)
             {
-                string avatarPath = $"Sprites/Characters/{playerData.faction}/{playerData.generalData.generalId}";
-                Sprite loadedSprite = Resources.Load<Sprite>(avatarPath);
+                // ⭐ 使用共享的拼音映射工具加载
+                Sprite loadedSprite = CharacterPinyinHelper.LoadCharacterSprite(
+                    playerData.generalData.generalId,
+                    playerData.faction
+                );
 
                 if (loadedSprite != null)
                 {
@@ -370,7 +374,7 @@ namespace ThreeKingdoms.UI
                 }
                 else
                 {
-                    Debug.LogWarning($"无法加载头像: {avatarPath}，使用备用方案");
+                    Debug.LogWarning($"无法加载头像: {playerData.generalData.generalId}，使用备用方案");
                     UseFallbackAvatar();
                 }
             }
