@@ -141,15 +141,13 @@ namespace ThreeKingdomsKill.UI
         }
 
         /// <summary>
-        /// 进入故事模式（暂未实现）
+        /// 进入故事模式
         /// </summary>
         private void OnStoryModeClicked()
         {
-            Debug.Log("故事模式开发中...");
-            string message = ThreeKingdoms.LocalizationManager.Instance != null
-                ? ThreeKingdoms.LocalizationManager.Instance.GetText("msg_story_mode_coming_soon")
-                : "故事模式开发中，敬请期待！";
-            ShowComingSoonMessage(message);
+            Debug.Log("进入故事模式");
+            // 加载故事模式场景
+            SceneManager.LoadScene("StoryMode");
         }
 
         /// <summary>

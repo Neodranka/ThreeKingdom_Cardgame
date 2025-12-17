@@ -125,12 +125,33 @@ namespace ThreeKingdoms.DatabaseModule
         /// </summary>
         public GeneralData GetGeneralById(string generalId)
         {
+            if (string.IsNullOrEmpty(generalId)) return null;
+
+            // ⭐ 清理ID：移除 _story 等后缀
+            string cleanId = generalId.Replace("_story", "").ToLower();
+
+            // 先尝试原始ID
             if (generalDictionary.TryGetValue(generalId, out GeneralData data))
             {
                 return data;
             }
 
-            Debug.LogWarning($"未找到武将: {generalId}");
+            // ⭐ 再尝试清理后的ID
+            if (generalDictionary.TryGetValue(cleanId, out data))
+            {
+                return data;
+            }
+
+            // ⭐ 尝试不区分大小写查找
+            foreach (var kvp in generalDictionary)
+            {
+                if (kvp.Key.ToLower() == cleanId)
+                {
+                    return kvp.Value;
+                }
+            }
+
+            Debug.LogWarning($"未找到武将: {generalId} (清理后: {cleanId})");
             return null;
         }
 

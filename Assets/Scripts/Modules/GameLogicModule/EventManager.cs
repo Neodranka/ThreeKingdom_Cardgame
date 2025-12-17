@@ -105,7 +105,7 @@ namespace ThreeKingdoms
         }
 
         // ===== 弃牌相关事件 =====
-        
+
         /// <summary>
         /// 玩家弃牌
         /// </summary>
@@ -114,6 +114,66 @@ namespace ThreeKingdoms
         public void TriggerCardDiscarded(Player player, Card card)
         {
             OnCardDiscarded?.Invoke(player, card);
+        }
+
+        // ===== 摸牌阶段事件 =====
+
+        /// <summary>
+        /// 摸牌阶段
+        /// </summary>
+        public event Action<Player> OnDrawPhase;
+
+        public void TriggerDrawPhase(Player player)
+        {
+            Debug.Log($"[事件] {player.generalName} 的摸牌阶段");
+            OnDrawPhase?.Invoke(player);
+        }
+
+        // ===== 出牌阶段事件 =====
+
+        /// <summary>
+        /// 玩家出牌（简化版，只传牌）
+        /// </summary>
+        public event Action<Player, Card> OnCardPlayed;
+
+        public void TriggerCardPlayed(Player player, Card card)
+        {
+            Debug.Log($"[事件] {player.generalName} 打出了 {card.cardName}");
+            OnCardPlayed?.Invoke(player, card);
+        }
+
+        // ===== 技能相关事件 =====
+
+        /// <summary>
+        /// 技能触发
+        /// </summary>
+        public event Action<Player, string> OnSkillTriggered;
+
+        public void TriggerSkillTriggered(Player player, string skillId)
+        {
+            Debug.Log($"[事件] {player.generalName} 发动了技能 {skillId}");
+            OnSkillTriggered?.Invoke(player, skillId);
+        }
+
+        // ===== 故事模式专用事件 =====
+
+        /// <summary>
+        /// 故事事件触发
+        /// </summary>
+        public event Action<string, string> OnStoryEventTriggered;
+
+        public void TriggerStoryEvent(string eventType, string param)
+        {
+            Debug.Log($"[故事事件] {eventType}: {param}");
+            OnStoryEventTriggered?.Invoke(eventType, param);
+        }
+
+        /// <summary>
+        /// 玩家死亡（简化版）
+        /// </summary>
+        public void TriggerPlayerDeath(Player victim)
+        {
+            TriggerPlayerDeath(victim, null);
         }
     }
 }

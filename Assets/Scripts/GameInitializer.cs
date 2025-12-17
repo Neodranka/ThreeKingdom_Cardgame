@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ThreeKingdoms.AI;
 using ThreeKingdoms.DatabaseModule;  // ⭐ 引入数据库模块
 using ThreeKingdoms.UI;
+using ThreeKingdoms.Story;  // ⭐ 引入故事模式
 using UnityEngine;
 
 namespace ThreeKingdoms
@@ -40,6 +41,15 @@ namespace ThreeKingdoms
         public void InitializeGame()
         {
             Debug.Log("========== 初始化游戏 ==========");
+
+            // ⭐ 检查是否为故事模式战斗
+            string storyBattleId = PlayerPrefs.GetString("StoryBattleId", "");
+            if (!string.IsNullOrEmpty(storyBattleId))
+            {
+                Debug.Log($"[GameInitializer] 检测到故事模式战斗: {storyBattleId}");
+                InitializeStoryBattle(storyBattleId);
+                return;
+            }
 
             // ⭐ 从GameConfig读取设置
             ApplyGameConfig();
@@ -373,5 +383,286 @@ namespace ThreeKingdoms
 
             Debug.Log("========================================");
         }
+
+        #region 故事模式战斗初始化
+
+        /// <summary>
+        /// ⭐ 初始化故事模式战斗
+        /// </summary>
+        private void InitializeStoryBattle(string battleId)
+        {
+            Debug.Log($"========== 初始化故事模式战斗: {battleId} ==========");
+
+            // 获取战斗数据
+            BattleData battleData = FindStoryBattle(battleId);
+            if (battleData == null)
+            {
+                Debug.LogError($"[GameInitializer] 找不到故事战斗数据: {battleId}");
+                // 清除故事模式标记，回退到普通模式
+                PlayerPrefs.DeleteKey("StoryBattleId");
+                ApplyGameConfig();
+                CreatePlayers();
+                FinishInitialization();
+                return;
+            }
+
+            // 创建故事模式玩家
+            CreateStoryPlayers(battleData);
+
+            // 清除故事模式标记（避免下次重复）
+            PlayerPrefs.DeleteKey("StoryBattleId");
+            PlayerPrefs.DeleteKey("StoryPlayerGeneral");
+            PlayerPrefs.DeleteKey("StoryDifficulty");
+            PlayerPrefs.Save();
+
+            // 完成初始化
+            FinishInitialization();
+
+            // ⭐ 确保 StoryBattleManager 存在
+            if (StoryBattleManager.Instance == null)
+            {
+                GameObject sbmObj = new GameObject("StoryBattleManager");
+                sbmObj.AddComponent<StoryBattleManager>();
+                Debug.Log("[GameInitializer] 创建了 StoryBattleManager");
+            }
+
+            // 启动故事战斗管理器
+            if (StoryBattleManager.Instance != null && StoryModeManager.Instance != null)
+            {
+                // ⭐ 从所有战役中搜索对应的 StoryBattle（不只是当前选中的战役）
+                StoryBattle storyBattle = FindStoryBattleFromAllCampaigns(battleId);
+
+                if (storyBattle != null)
+                {
+                    Debug.Log($"[GameInitializer] 找到 StoryBattle: {battleId}, 开场对话数: {storyBattle.openingDialogue?.Count ?? 0}");
+                    StoryBattleManager.Instance.StartBattle(storyBattle);
+                }
+                else
+                {
+                    Debug.LogWarning($"[GameInitializer] 未找到 StoryBattle: {battleId}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 从所有战役中查找 StoryBattle
+        /// </summary>
+        private StoryBattle FindStoryBattleFromAllCampaigns(string battleId)
+        {
+            if (StoryModeManager.Instance == null) return null;
+
+            var campaigns = StoryModeManager.Instance.GetAllCampaigns();
+            foreach (var campaign in campaigns)
+            {
+                if (campaign.storyBattles != null)
+                {
+                    foreach (var storyBattle in campaign.storyBattles)
+                    {
+                        if (storyBattle.battleId == battleId)
+                        {
+                            return storyBattle;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// ⭐ 查找故事战斗数据
+        /// </summary>
+        private BattleData FindStoryBattle(string battleId)
+        {
+            if (StoryModeManager.Instance == null)
+            {
+                Debug.LogWarning("[GameInitializer] StoryModeManager 不存在");
+                return null;
+            }
+
+            var campaigns = StoryModeManager.Instance.GetAllCampaigns();
+            foreach (var campaign in campaigns)
+            {
+                if (campaign.battles != null)
+                {
+                    foreach (var battle in campaign.battles)
+                    {
+                        if (battle.battleId == battleId)
+                        {
+                            return battle;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// ⭐ 创建故事模式玩家
+        /// </summary>
+        private void CreateStoryPlayers(BattleData battleData)
+        {
+            List<Player> players = new List<Player>();
+
+            // 创建玩家角色
+            Player playerCharacter = CreateStoryPlayer(
+                battleData.playerGeneralId,
+                "你",
+                false,  // 不是AI
+                Faction.Shu  // 默认蜀国，后面会根据武将数据覆盖
+            );
+            if (playerCharacter != null)
+            {
+                players.Add(playerCharacter);
+            }
+
+            // 创建敌方角色
+            int enemyIndex = 1;
+            foreach (var enemyId in battleData.enemyGeneralIds)
+            {
+                Player enemy = CreateStoryPlayer(
+                    enemyId,
+                    $"敌方{enemyIndex}",
+                    true,  // 是AI
+                    Faction.Wei  // 默认魏国
+                );
+                if (enemy != null)
+                {
+                    players.Add(enemy);
+                    enemyIndex++;
+                }
+            }
+
+            // 设置到BattleManager
+            BattleManager.Instance.players = players;
+
+            Debug.Log($"[GameInitializer] 故事模式创建了 {players.Count} 个角色");
+        }
+
+        /// <summary>
+        /// ⭐ 创建故事模式单个玩家
+        /// </summary>
+        private Player CreateStoryPlayer(string generalId, string playerName, bool isAI, Faction defaultFaction)
+        {
+            GameObject playerObj = new GameObject($"Player_{playerName}");
+            if (playerPrefab != null)
+            {
+                Destroy(playerObj);
+                playerObj = Instantiate(playerPrefab);
+                playerObj.name = $"Player_{playerName}";
+            }
+            else
+            {
+                playerObj.AddComponent<Player>();
+            }
+
+            Player player = playerObj.GetComponent<Player>();
+            if (player == null)
+            {
+                player = playerObj.AddComponent<Player>();
+            }
+
+            player.playerName = playerName;
+            player.isAI = isAI;
+
+            // 尝试从数据库加载武将数据
+            GeneralData generalData = null;
+            if (GeneralDatabase.Instance != null)
+            {
+                generalData = GeneralDatabase.Instance.GetGeneralById(generalId);
+                if (generalData == null)
+                {
+                    // 尝试通过名称查找
+                    generalData = GeneralDatabase.Instance.GetGeneralByName(generalId);
+                }
+            }
+
+            if (generalData != null)
+            {
+                player.InitializeFromGeneralData(generalData);
+                Debug.Log($"✓ 故事模式 {playerName}: {player.generalName} [{player.faction}] HP:{player.maxHP}");
+            }
+            else
+            {
+                // 使用默认配置
+                player.generalName = GetChineseGeneralName(generalId);
+                player.faction = defaultFaction;
+                player.maxHP = 4;
+                player.currentHP = player.maxHP;
+                Debug.LogWarning($"⚠ 故事模式 {playerName}: 未找到武将数据 '{generalId}'，使用默认配置");
+            }
+
+            // 如果是AI，添加AI控制器
+            if (isAI)
+            {
+                AIPlayer aiController = playerObj.AddComponent<AIPlayer>();
+                aiController.controlledPlayer = player;
+                aiController.aiLevel = defaultAILevel;
+                aiController.thinkingTime = aiThinkingTime;
+                player.aiController = aiController;
+            }
+
+            return player;
+        }
+
+        /// <summary>
+        /// ⭐ 获取武将中文名
+        /// </summary>
+        private string GetChineseGeneralName(string generalId)
+        {
+            // 映射表
+            Dictionary<string, string> nameMap = new Dictionary<string, string>
+            {
+                // 蜀国
+                {"liubei", "刘备"}, {"guanyu", "关羽"}, {"zhangfei", "张飞"},
+                {"zhugeliang", "诸葛亮"}, {"zhaoyun", "赵云"}, {"huangzhong", "黄忠"},
+                // 魏国
+                {"caocao", "曹操"}, {"xiahoudun", "夏侯惇"}, {"xiahouyuan", "夏侯渊"},
+                {"zhangliao", "张辽"}, {"xuzhu", "许褚"}, {"simayi", "司马懿"},
+                // 吴国
+                {"sunquan", "孙权"}, {"zhouyu", "周瑜"}, {"lvmeng", "吕蒙"},
+                {"huanggai", "黄盖"}, {"ganning", "甘宁"}, {"luxun", "陆逊"},
+                // 群雄
+                {"lvbu", "吕布"}, {"dongzhuo", "董卓"}, {"huaxiong", "华雄"},
+                {"yuanshao", "袁绍"}, {"yanliang", "颜良"}, {"wenchou", "文丑"},
+                {"diaochan", "貂蝉"}, {"huatuo", "华佗"}
+            };
+
+            string lowerKey = generalId.ToLower().Replace("_story", "").Replace("_", "");
+            if (nameMap.TryGetValue(lowerKey, out string name))
+            {
+                return name;
+            }
+
+            return generalId;
+        }
+
+        /// <summary>
+        /// ⭐ 完成初始化（公共部分）
+        /// </summary>
+        private void FinishInitialization()
+        {
+            // 初始化牌堆
+            if (DeckManager.Instance != null)
+            {
+                DeckManager.Instance.InitializeDeck();
+            }
+
+            // 创建UI
+            if (BattleUI.Instance != null && BattleManager.Instance.players.Count > 0)
+            {
+                Player localPlayer = BattleManager.Instance.players[0];
+                BattleUI.Instance.InitializePlayers(BattleManager.Instance.players, localPlayer);
+            }
+
+            // 确保PlayedCardDisplayManager存在
+            EnsurePlayedCardDisplayManager();
+
+            // 延迟开始游戏
+            Invoke(nameof(StartBattle), 1f);
+        }
+
+        #endregion
     }
 }

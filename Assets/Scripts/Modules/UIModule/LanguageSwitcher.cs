@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace ThreeKingdoms.UI
@@ -23,13 +24,20 @@ namespace ThreeKingdoms.UI
         [SerializeField] private bool enableHotkey = true; // 是否启用快捷键
         [SerializeField] private KeyCode hotkeyCode = KeyCode.L; // 快捷键（默认L键）
 
+        private bool isInitialized = false;
+        private int frameCheckCount = 0; // ⭐ 用于限制LateUpdate检查次数
+
         private void Start()
         {
-            InitializeLanguageSwitcher();
+            // 使用协程延迟初始化，确保LocalizationManager已就绪
+            StartCoroutine(DelayedInitialize());
         }
 
         private void OnEnable()
         {
+            // ⭐ 重置帧检查计数器
+            frameCheckCount = 0;
+
             // ⭐ 监听LocalizationManager的语言切换事件
             // 先移除再添加，避免重复绑定
             if (ThreeKingdoms.LocalizationManager.Instance != null)
@@ -38,6 +46,120 @@ namespace ThreeKingdoms.UI
                 ThreeKingdoms.LocalizationManager.Instance.OnLanguageChanged += OnLanguageChangedFromManager;
 
                 Debug.Log("[LanguageSwitcher] 已监听LocalizationManager事件");
+
+                // ⭐ 每次OnEnable都确保事件正确绑定
+                if (useDropdown && languageDropdown != null)
+                {
+                    // ⭐ 检查选项是否正确
+                    bool needsInit = languageDropdown.options.Count == 0 ||
+                                    languageDropdown.options.Count != 3 ||
+                                    (languageDropdown.options.Count > 0 && languageDropdown.options[0].text != "中文");
+
+                    if (needsInit)
+                    {
+                        Debug.Log($"[LanguageSwitcher] OnEnable: Dropdown选项异常 (count={languageDropdown.options.Count}), 立即初始化");
+                        InitializeDropdown();
+                        isInitialized = true;
+                    }
+                    else
+                    {
+                        // ⭐ 即使选项正确，也要确保事件监听器已绑定
+                        EnsureDropdownEventBound();
+                    }
+                }
+            }
+            else
+            {
+                Debug.Log("[LanguageSwitcher] OnEnable: LocalizationManager尚未就绪");
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 确保Dropdown事件已绑定
+        /// </summary>
+        private void EnsureDropdownEventBound()
+        {
+            if (languageDropdown == null) return;
+
+            // 移除再添加，确保只有一个监听器
+            languageDropdown.onValueChanged.RemoveListener(OnLanguageChanged);
+            languageDropdown.onValueChanged.AddListener(OnLanguageChanged);
+
+            // 同步当前语言值
+            if (ThreeKingdoms.LocalizationManager.Instance != null)
+            {
+                ThreeKingdoms.Language currentLang = ThreeKingdoms.LocalizationManager.Instance.GetCurrentLanguage();
+                if (languageDropdown.value != (int)currentLang)
+                {
+                    languageDropdown.SetValueWithoutNotify((int)currentLang);
+                    languageDropdown.RefreshShownValue();
+                }
+            }
+
+            Debug.Log("[LanguageSwitcher] 已确保Dropdown事件绑定");
+        }
+
+        /// <summary>
+        /// ⭐ 延迟初始化，等待LocalizationManager就绪
+        /// </summary>
+        private IEnumerator DelayedInitialize()
+        {
+            // 等待LocalizationManager实例可用
+            float waitTime = 0f;
+            while (ThreeKingdoms.LocalizationManager.Instance == null && waitTime < 2f)
+            {
+                yield return null;
+                waitTime += Time.deltaTime;
+            }
+
+            if (ThreeKingdoms.LocalizationManager.Instance == null)
+            {
+                Debug.LogWarning("[LanguageSwitcher] LocalizationManager未找到，无法初始化语言切换器");
+                yield break;
+            }
+
+            // 再等一帧确保LocalizationManager完全初始化
+            yield return null;
+
+            InitializeLanguageSwitcher();
+            isInitialized = true;
+        }
+
+        /// <summary>
+        /// ⭐ 刷新Dropdown状态（场景切换后调用）
+        /// </summary>
+        private void RefreshDropdown()
+        {
+            if (languageDropdown == null) return;
+            if (ThreeKingdoms.LocalizationManager.Instance == null) return;
+
+            // ⭐ 检查选项是否正确（检查第一个选项是否是"中文"）
+            bool optionsValid = languageDropdown.options.Count == 3 &&
+                               languageDropdown.options[0].text == "中文" &&
+                               languageDropdown.options[1].text == "English" &&
+                               languageDropdown.options[2].text == "한국어";
+
+            if (!optionsValid)
+            {
+                Debug.Log($"[LanguageSwitcher] Dropdown选项异常 (count={languageDropdown.options.Count}), 重新初始化");
+                InitializeDropdown();
+            }
+            else
+            {
+                // 只同步当前值
+                ThreeKingdoms.Language currentLang = ThreeKingdoms.LocalizationManager.Instance.GetCurrentLanguage();
+                languageDropdown.onValueChanged.RemoveAllListeners();
+                languageDropdown.value = (int)currentLang;
+                languageDropdown.RefreshShownValue();
+
+                // ⭐ 更新Caption文本
+                if (languageDropdown.captionText != null)
+                {
+                    languageDropdown.captionText.text = languageDropdown.options[(int)currentLang].text;
+                }
+
+                languageDropdown.onValueChanged.AddListener(OnLanguageChanged);
+                Debug.Log($"[LanguageSwitcher] Dropdown已同步: {currentLang}");
             }
         }
 
@@ -83,10 +205,24 @@ namespace ThreeKingdoms.UI
             // 同步UI显示
             if (useDropdown && languageDropdown != null)
             {
+                // ⭐ 确保选项正确
+                if (languageDropdown.options.Count != 3 || languageDropdown.options[0].text != "中文")
+                {
+                    InitializeDropdown();
+                    return;
+                }
+
                 // 暂时移除监听，避免循环触发
-                languageDropdown.onValueChanged.RemoveListener(OnLanguageChanged);
+                languageDropdown.onValueChanged.RemoveAllListeners();
                 languageDropdown.value = (int)newLanguage;
                 languageDropdown.RefreshShownValue();
+
+                // ⭐ 更新Caption文本
+                if (languageDropdown.captionText != null && languageDropdown.options.Count > (int)newLanguage)
+                {
+                    languageDropdown.captionText.text = languageDropdown.options[(int)newLanguage].text;
+                }
+
                 languageDropdown.onValueChanged.AddListener(OnLanguageChanged);
             }
             else if (!useDropdown && languageButton != null)
@@ -116,6 +252,26 @@ namespace ThreeKingdoms.UI
             }
         }
 
+        private void LateUpdate()
+        {
+            // ⭐ 只在前10帧检查，避免性能问题
+            if (frameCheckCount >= 10) return;
+            frameCheckCount++;
+
+            // ⭐ 安全检查：确保dropdown选项始终正确
+            if (useDropdown && languageDropdown != null && ThreeKingdoms.LocalizationManager.Instance != null)
+            {
+                // 如果选项不正确，重新初始化
+                if (languageDropdown.options.Count != 3 ||
+                    (languageDropdown.options.Count > 0 && languageDropdown.options[0].text != "中文"))
+                {
+                    Debug.LogWarning($"[LanguageSwitcher] LateUpdate(frame {frameCheckCount})检测到Dropdown选项异常，重新初始化");
+                    InitializeDropdown();
+                    isInitialized = true;
+                }
+            }
+        }
+
         /// <summary>
         /// 初始化下拉菜单方式
         /// </summary>
@@ -127,40 +283,51 @@ namespace ThreeKingdoms.UI
                 return;
             }
 
-            // ⭐ 只移除OnLanguageChanged监听器，不用RemoveAllListeners()
-            // RemoveAllListeners()会破坏dropdown的内部监听器
-            languageDropdown.onValueChanged.RemoveListener(OnLanguageChanged);
+            Debug.Log("[LanguageSwitcher] 开始初始化下拉菜单...");
 
-            // ⭐ 先设置字体，再添加选项
-            // 设置一个支持所有语言的字体（使用中文字体，因为它通常包含更多字符）
+            // ⭐ 移除所有监听器，稍后重新添加
+            languageDropdown.onValueChanged.RemoveAllListeners();
+
+            // ⭐ 先设置字体
             SetDropdownFont();
 
-            // 清空并添加语言选项
+            // ⭐ 强制清空所有选项
+            languageDropdown.options.Clear();
             languageDropdown.ClearOptions();
 
-            List<string> options = new List<string>
+            // ⭐ 添加语言选项
+            List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>
             {
-                "中文",
-                "English",
-                "한국어"
+                new TMP_Dropdown.OptionData("中文"),
+                new TMP_Dropdown.OptionData("English"),
+                new TMP_Dropdown.OptionData("한국어")
             };
+            languageDropdown.options = options;
 
-            languageDropdown.AddOptions(options);
-
-            // 设置当前语言
+            // ⭐ 设置当前语言
+            int langIndex = 0;
             if (ThreeKingdoms.LocalizationManager.Instance != null)
             {
                 ThreeKingdoms.Language currentLang = ThreeKingdoms.LocalizationManager.Instance.GetCurrentLanguage();
-                languageDropdown.value = (int)currentLang;
-                languageDropdown.RefreshShownValue();
+                langIndex = (int)currentLang;
+                Debug.Log($"[LanguageSwitcher] 当前语言: {currentLang} (index={langIndex})");
+            }
 
-                Debug.Log($"[LanguageSwitcher] 设置Dropdown当前值: {currentLang} ({(int)currentLang})");
+            // ⭐ 设置值并强制刷新
+            languageDropdown.value = langIndex;
+            languageDropdown.RefreshShownValue();
+
+            // ⭐ 更新Caption文本
+            if (languageDropdown.captionText != null)
+            {
+                languageDropdown.captionText.text = options[langIndex].text;
+                Debug.Log($"[LanguageSwitcher] Caption文本设置为: {options[langIndex].text}");
             }
 
             // ⭐ 添加新的监听器
             languageDropdown.onValueChanged.AddListener(OnLanguageChanged);
 
-            Debug.Log("[LanguageSwitcher] 下拉菜单初始化完成");
+            Debug.Log($"[LanguageSwitcher] 下拉菜单初始化完成, 选项数: {languageDropdown.options.Count}");
         }
 
         /// <summary>
