@@ -1696,4 +1696,293 @@ namespace ThreeKingdoms.DatabaseModule.Skills.Story
             return "出牌阶段，你可以失去1点体力，然后摸两张牌。";
         }
     }
+
+    // ==================== 赤壁之战v2 新增技能 ====================
+
+    /// <summary>
+    /// 诘难（虞翻）
+    /// 回合开始时，可令一名敌方角色弃置一张手牌
+    /// 用于舌战群儒关卡
+    /// </summary>
+    public class JienanSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart += OnTurnStart;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart -= OnTurnStart;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            if (!CanTrigger()) return;
+
+            // 选择一名有手牌的敌方角色
+            var enemies = GetAliveEnemies();
+            Player target = null;
+            foreach (var enemy in enemies)
+            {
+                if (enemy.handCards.Count > 0)
+                {
+                    target = enemy;
+                    break;
+                }
+            }
+
+            if (target == null) return;
+
+            Log($"{Owner.generalName} 发动了【诘难】");
+
+            // 令目标弃置一张手牌
+            if (target.handCards.Count > 0)
+            {
+                int index = Random.Range(0, target.handCards.Count);
+                Card card = target.handCards[index];
+                target.DiscardCard(card);
+                Log($"{target.generalName} 被迫弃置了 {card.cardName}");
+            }
+
+            EventManager.Instance?.TriggerStoryEvent("skill_jienan", Owner.generalName);
+        }
+
+        private void OnTurnStart(Player player)
+        {
+            if (player == Owner)
+            {
+                Trigger();
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "回合开始时，可令一名敌方角色弃置一张手牌。";
+        }
+    }
+
+    /// <summary>
+    /// 水战（蔡瑁）
+    /// 锁定技，你使用【杀】造成的伤害+1，
+    /// 你的手牌上限+1
+    /// 用于蒋干盗书关卡
+    /// </summary>
+    public class ShuizhanSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            // 手牌上限增加在初始化时处理
+            if (Owner != null)
+            {
+                Owner.handCardLimit = Owner.currentHP + 1;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            // 清理
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 锁定技，被动生效
+        }
+
+        /// <summary>
+        /// 获取杀的伤害加成
+        /// </summary>
+        public int GetSlashDamageBonus()
+        {
+            return 1;
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，你使用【杀】造成的伤害+1，手牌上限+1。";
+        }
+    }
+
+    /// <summary>
+    /// 北人（曹军水兵）- 锁定技
+    /// 你的手牌上限-1，你使用【杀】时需弃置一张牌
+    /// 代表北方士兵不习水战的弱点
+    /// 用于江上对峙关卡
+    /// </summary>
+    public class BeirenSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            // 手牌上限减少
+            if (Owner != null)
+            {
+                Owner.handCardLimit = Mathf.Max(1, Owner.currentHP - 1);
+            }
+
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnCardPlayed += OnCardPlayed;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnCardPlayed -= OnCardPlayed;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 锁定技，被动生效
+        }
+
+        private void OnCardPlayed(Player player, Card card)
+        {
+            if (player == Owner && CardNameHelper.IsSlash(card))
+            {
+                // 使用杀时额外弃一张牌
+                if (Owner.handCards.Count > 0)
+                {
+                    int index = Random.Range(0, Owner.handCards.Count);
+                    Card discard = Owner.handCards[index];
+                    Owner.DiscardCard(discard);
+                    Log($"{Owner.generalName} 因【北人】弃置了 {discard.cardName}");
+                }
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，你的手牌上限-1，你使用【杀】时需额外弃置一张牌。";
+        }
+    }
+
+    /// <summary>
+    /// 咆哮（张飞）
+    /// 出牌阶段，你使用【杀】无次数限制
+    /// </summary>
+    public class PaoxiaoSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart += OnTurnStart;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart -= OnTurnStart;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            if (!CanTrigger()) return;
+
+            // 设置无限出杀
+            if (Owner != null)
+            {
+                Owner.maxSlashPerTurn = 999;
+                Log($"{Owner.generalName} 的【咆哮】生效，本回合出杀无限制");
+            }
+        }
+
+        private void OnTurnStart(Player player)
+        {
+            if (player == Owner)
+            {
+                Trigger();
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "出牌阶段，你使用【杀】无次数限制。";
+        }
+    }
+
+    /// <summary>
+    /// 义绝（关羽）
+    /// 当你使用【杀】对目标角色造成伤害时，可令其弃置一张牌
+    /// </summary>
+    public class YijueSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnPlayerDamaged += OnPlayerDamaged;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnPlayerDamaged -= OnPlayerDamaged;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 效果在OnPlayerDamaged中处理
+        }
+
+        private void OnPlayerDamaged(Player victim, Player source, int damage, Card card)
+        {
+            if (source == Owner && card != null && CardNameHelper.IsSlash(card))
+            {
+                if (victim.isAlive && victim.handCards.Count > 0)
+                {
+                    // 令目标弃置一张牌
+                    int index = Random.Range(0, victim.handCards.Count);
+                    Card discard = victim.handCards[index];
+                    victim.DiscardCard(discard);
+                    Log($"{Owner.generalName} 发动【义绝】，{victim.generalName} 弃置了 {discard.cardName}");
+                }
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "当你使用【杀】对目标角色造成伤害时，可令其弃置一张牌。";
+        }
+    }
 }

@@ -363,6 +363,18 @@ namespace ThreeKingdoms
         /// </summary>
         private IEnumerator HandleGameEnd(Player winner)
         {
+            // ⭐ 如果是故事模式，完全跳过BattleManager的游戏结束处理
+            // StoryBattleManager会处理对话和场景跳转
+            string storyBattleId = PlayerPrefs.GetString("StoryBattleId", "");
+            bool isStoryMode = !string.IsNullOrEmpty(storyBattleId);
+
+            var storyBattleManager = FindObjectOfType<StoryBattleManager>();
+            if (storyBattleManager != null || isStoryMode)
+            {
+                Debug.Log($"[BattleManager] 故事模式战斗(StoryBattleId={storyBattleId})，由StoryBattleManager处理游戏结束流程");
+                yield break; // StoryBattleManager会处理对话和场景跳转
+            }
+
             // 显示游戏结束UI
             ShowGameOverUI(winner);
 
@@ -448,6 +460,9 @@ namespace ThreeKingdoms
         /// </summary>
         private void NavigateAfterGameEnd()
         {
+            Debug.Log("[BattleManager] NavigateAfterGameEnd 被调用!");
+            Debug.Log($"[BattleManager] 调用堆栈:\n{System.Environment.StackTrace}");
+
             // 检查是否是故事模式
             string storyBattleId = PlayerPrefs.GetString("StoryBattleId", "");
 

@@ -131,12 +131,13 @@ namespace ThreeKingdoms.Story
     /// </summary>
     public enum VictoryType
     {
-        DefeatAllEnemies,       // 击败所有敌人
-        DefeatTarget,           // 击败特定目标
-        SurviveTurns,           // 存活N回合
-        AccumulateMarks,        // 累积特定标记
-        ProtectAlly,            // 保护友军存活
-        Custom                  // 自定义条件
+        DefeatAllEnemies,           // 击败所有敌人
+        DefeatTarget,               // 击败特定目标
+        SurviveTurns,               // 存活N回合
+        AccumulateMarks,            // 累积特定标记
+        ProtectAlly,                // 保护友军存活
+        DefeatAllEnemiesOrSurvive,  // 击败所有敌人或存活N回合
+        Custom                      // 自定义条件
     }
 
     /// <summary>
@@ -161,12 +162,14 @@ namespace ThreeKingdoms.Story
     /// </summary>
     public enum DefeatType
     {
-        PlayerDeath,            // 玩家死亡
-        AllyDeath,              // 特定友军死亡
-        AllAlliesDeath,         // 我方全灭
-        ExceedCount,            // 超过特定次数
-        TurnLimitExceeded,      // 超过回合限制
-        Custom                  // 自定义条件
+        PlayerDeath,                // 玩家死亡
+        AllyDeath,                  // 特定友军死亡
+        AllAlliesDeath,             // 我方全灭
+        ExceedCount,                // 超过特定次数
+        TurnLimitExceeded,          // 超过回合限制
+        PlayerDeathOrExceedCount,   // 玩家死亡或超过特定次数
+        PlayerDeathOrAllAlliesDeath,// 玩家死亡或我方全灭
+        Custom                      // 自定义条件
     }
 
     /// <summary>

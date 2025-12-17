@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"$word = New-Object -ComObject Word.Application; $doc = $word.Documents.Open(''C:\\Users\\user\\Desktop\\TP\\ThreeKingdom_Cardgame\\赤壁a.docx''); $doc.Content.Text; $doc.Close(); $word.Quit()\")",
+      "Bash(unzip:*)"
+    ]
+  }
+}

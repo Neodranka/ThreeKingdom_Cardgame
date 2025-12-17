@@ -36,6 +36,7 @@ namespace ThreeKingdoms.Story
         [Header("状态")]
         public bool isBattleActive = false;
         public bool isDialogueShowing = false;
+        private bool battleEndHandled = false;  // ⭐ 防止重复处理游戏结束
 
         // ⭐ 开场对话状态
         private bool openingDialogueShown = false;
@@ -273,6 +274,7 @@ namespace ThreeKingdoms.Story
             // ⭐ 重置开场对话状态
             openingDialogueShown = false;
             pendingOpeningDialogue = null;
+            battleEndHandled = false;  // ⭐ 重置游戏结束处理标志
 
             // 重置事件触发状态
             foreach (var evt in battle.events)
@@ -1337,7 +1339,8 @@ namespace ThreeKingdoms.Story
         /// </summary>
         public void CheckVictoryCondition()
         {
-            if (!isBattleActive || currentBattle?.victoryCondition == null) return;
+            // ⭐ 防止重复检查 - 如果已处理过游戏结束或战斗不活跃，直接返回
+            if (!isBattleActive || battleEndHandled || currentBattle?.victoryCondition == null) return;
 
             bool victory = false;
             var condition = currentBattle.victoryCondition;
@@ -1376,6 +1379,20 @@ namespace ThreeKingdoms.Story
                     if (victory) Debug.Log($"[StoryBattle] 胜利条件达成: 保护 {condition.targetCharacterId} 存活并击败所有敌人");
                     break;
 
+                case VictoryType.DefeatAllEnemiesOrSurvive:
+                    // 击败所有敌人或存活N回合
+                    bool allDefeated = AreAllEnemiesDefeated();
+                    bool survivedTurns = currentRound >= condition.targetTurn;
+                    victory = allDefeated || survivedTurns;
+                    if (victory)
+                    {
+                        if (allDefeated)
+                            Debug.Log("[StoryBattle] 胜利条件达成: 击败所有敌人");
+                        else
+                            Debug.Log($"[StoryBattle] 胜利条件达成: 存活 {condition.targetTurn} 回合");
+                    }
+                    break;
+
                 default:
                     break;
             }
@@ -1391,7 +1408,8 @@ namespace ThreeKingdoms.Story
         /// </summary>
         public void CheckDefeatCondition()
         {
-            if (!isBattleActive || currentBattle?.defeatCondition == null) return;
+            // ⭐ 防止重复检查 - 如果已处理过游戏结束或战斗不活跃，直接返回
+            if (!isBattleActive || battleEndHandled || currentBattle?.defeatCondition == null) return;
 
             bool defeat = false;
             var condition = currentBattle.defeatCondition;
@@ -1435,6 +1453,54 @@ namespace ThreeKingdoms.Story
                 case DefeatType.TurnLimitExceeded:
                     defeat = currentBattle.turnLimit > 0 && currentRound > currentBattle.turnLimit;
                     if (defeat) Debug.Log($"[StoryBattle] 失败条件达成: 超过回合限制 {currentBattle.turnLimit}");
+                    break;
+
+                case DefeatType.PlayerDeathOrExceedCount:
+                    // 玩家死亡或超过特定次数（如蒋干盗书）
+                    if (playerCharacter == null && currentBattle?.allies != null && currentBattle.allies.Count > 0)
+                    {
+                        playerCharacter = FindPlayer(currentBattle.allies[0].characterId);
+                    }
+                    if (playerCharacter == null && BattleManager.Instance?.players.Count > 0)
+                    {
+                        playerCharacter = BattleManager.Instance.players[0];
+                    }
+                    bool playerDead = playerCharacter != null && !playerCharacter.isAlive;
+                    bool exceedCount = false;
+                    if (eventCounts.TryGetValue("hand_viewed_huanggai", out int viewCount))
+                    {
+                        exceedCount = viewCount >= condition.maxCount;
+                    }
+                    defeat = playerDead || exceedCount;
+                    if (defeat)
+                    {
+                        if (playerDead)
+                            Debug.Log($"[StoryBattle] 失败条件达成: 主角 {playerCharacter?.generalName} 死亡");
+                        else
+                            Debug.Log($"[StoryBattle] 失败条件达成: 计数达到 {viewCount}");
+                    }
+                    break;
+
+                case DefeatType.PlayerDeathOrAllAlliesDeath:
+                    // 玩家死亡或我方全灭
+                    if (playerCharacter == null && currentBattle?.allies != null && currentBattle.allies.Count > 0)
+                    {
+                        playerCharacter = FindPlayer(currentBattle.allies[0].characterId);
+                    }
+                    if (playerCharacter == null && BattleManager.Instance?.players.Count > 0)
+                    {
+                        playerCharacter = BattleManager.Instance.players[0];
+                    }
+                    bool mainPlayerDead = playerCharacter != null && !playerCharacter.isAlive;
+                    bool allAlliesDead = AreAllAlliesDefeated();
+                    defeat = mainPlayerDead || allAlliesDead;
+                    if (defeat)
+                    {
+                        if (mainPlayerDead)
+                            Debug.Log($"[StoryBattle] 失败条件达成: 主角 {playerCharacter?.generalName} 死亡");
+                        else
+                            Debug.Log("[StoryBattle] 失败条件达成: 我方全灭");
+                    }
                     break;
 
                 default:
@@ -1533,21 +1599,38 @@ namespace ThreeKingdoms.Story
             if (BattleManager.Instance == null) return null;
             if (string.IsNullOrEmpty(characterId)) return null;
 
-            string cleanId = characterId.ToLower().Replace("_story", "");
+            string cleanId = characterId.ToLower().Replace("_story", "").Replace("_", "");
 
             foreach (var player in BattleManager.Instance.players)
             {
-                string playerName = player.generalName?.ToLower() ?? "";
-                string playerId = player.generalName?.ToLower().Replace("_story", "") ?? "";
+                // ⭐ 检查 generalData.generalId
+                if (player.generalData != null)
+                {
+                    string dataId = player.generalData.generalId?.ToLower().Replace("_story", "").Replace("_", "") ?? "";
+                    if (dataId == cleanId || dataId.Contains(cleanId) || cleanId.Contains(dataId))
+                    {
+                        return player;
+                    }
+                }
 
-                // 更宽松的匹配
-                if (playerName.Contains(cleanId) || cleanId.Contains(playerName) ||
-                    playerId.Contains(cleanId) || cleanId.Contains(playerId) ||
-                    playerName == cleanId || playerId == cleanId)
+                // 检查中文名匹配
+                string playerName = player.generalName ?? "";
+                string expectedChinese = GetChineseNameFromParam(characterId);
+
+                if (!string.IsNullOrEmpty(expectedChinese) && playerName == expectedChinese)
+                {
+                    return player;
+                }
+
+                // 检查英文名匹配
+                string playerNameLower = playerName.ToLower().Replace("_story", "").Replace("_", "");
+                if (playerNameLower == cleanId || playerNameLower.Contains(cleanId) || cleanId.Contains(playerNameLower))
                 {
                     return player;
                 }
             }
+
+            Debug.LogWarning($"[StoryBattle] FindPlayer 找不到角色: {characterId}");
             return null;
         }
 
@@ -1557,42 +1640,98 @@ namespace ThreeKingdoms.Story
 
         private void OnVictory()
         {
+            // ⭐ 防止重复调用
+            if (battleEndHandled)
+            {
+                Debug.Log("[StoryBattle] OnVictory: 已处理过游戏结束，跳过");
+                return;
+            }
+            battleEndHandled = true;
+
             Debug.Log("[StoryBattle] 胜利！");
             isBattleActive = false;
+
+            // ⭐ 使用协程处理胜利，以便等待任何正在进行的对话完成
+            StartCoroutine(HandleVictorySequence());
+        }
+
+        /// <summary>
+        /// ⭐ 处理胜利序列 - 等待现有对话完成后显示胜利对话
+        /// </summary>
+        private IEnumerator HandleVictorySequence()
+        {
+            // ⭐ 等待任何正在进行的对话完成
+            if (isDialogueShowing)
+            {
+                Debug.Log("[StoryBattle] 等待现有对话完成...");
+                yield return new WaitUntil(() => !isDialogueShowing);
+                Debug.Log("[StoryBattle] 现有对话已完成");
+                // 等待一帧确保状态稳定
+                yield return null;
+            }
 
             // 显示胜利对白
             if (currentBattle?.victoryDialogue != null && currentBattle.victoryDialogue.Count > 0)
             {
-                StartCoroutine(ShowDialogueSequence(currentBattle.victoryDialogue, () =>
-                {
-                    // 标记战斗完成
-                    MarkBattleCompleted();
-                }));
+                Debug.Log($"[StoryBattle] 开始显示胜利对话，共 {currentBattle.victoryDialogue.Count} 句");
+                yield return StartCoroutine(ShowDialogueSequence(currentBattle.victoryDialogue, null));
+                Debug.Log("[StoryBattle] 胜利对话完成，准备标记战斗完成");
             }
             else
             {
-                MarkBattleCompleted();
+                Debug.Log("[StoryBattle] 没有胜利对话，直接标记完成");
             }
+
+            // 标记战斗完成
+            MarkBattleCompleted();
         }
 
         private void OnDefeat()
         {
+            // ⭐ 防止重复调用
+            if (battleEndHandled)
+            {
+                Debug.Log("[StoryBattle] OnDefeat: 已处理过游戏结束，跳过");
+                return;
+            }
+            battleEndHandled = true;
+
             Debug.Log("[StoryBattle] 失败！");
             isBattleActive = false;
+
+            // ⭐ 使用协程处理失败，以便等待任何正在进行的对话完成
+            StartCoroutine(HandleDefeatSequence());
+        }
+
+        /// <summary>
+        /// ⭐ 处理失败序列 - 等待现有对话完成后显示失败对话
+        /// </summary>
+        private IEnumerator HandleDefeatSequence()
+        {
+            // ⭐ 等待任何正在进行的对话完成
+            if (isDialogueShowing)
+            {
+                Debug.Log("[StoryBattle] 等待现有对话完成...");
+                yield return new WaitUntil(() => !isDialogueShowing);
+                Debug.Log("[StoryBattle] 现有对话已完成");
+                // 等待一帧确保状态稳定
+                yield return null;
+            }
 
             // 显示失败对白
             if (currentBattle?.defeatDialogue != null && currentBattle.defeatDialogue.Count > 0)
             {
-                StartCoroutine(ShowDialogueSequence(currentBattle.defeatDialogue, () =>
-                {
-                    // 返回故事模式界面
-                    ReturnToStoryMode();
-                }));
+                Debug.Log($"[StoryBattle] 开始显示失败对话，共 {currentBattle.defeatDialogue.Count} 句");
+                yield return StartCoroutine(ShowDialogueSequence(currentBattle.defeatDialogue, null));
+                Debug.Log("[StoryBattle] 失败对话完成，准备返回故事模式");
             }
             else
             {
-                ReturnToStoryMode();
+                Debug.Log("[StoryBattle] 没有失败对话，直接返回");
             }
+
+            // 返回故事模式界面
+            ReturnToStoryMode();
         }
 
         private void MarkBattleCompleted()
@@ -1614,6 +1753,8 @@ namespace ThreeKingdoms.Story
 
         private void ReturnToStoryMode()
         {
+            Debug.Log($"[StoryBattle] ReturnToStoryMode 被调用! isDialogueShowing={isDialogueShowing}");
+            Debug.Log($"[StoryBattle] 调用堆栈:\n{System.Environment.StackTrace}");
             UnityEngine.SceneManagement.SceneManager.LoadScene("StoryMode");
         }
 
@@ -1641,6 +1782,13 @@ namespace ThreeKingdoms.Story
         public IEnumerator ShowDialogueSequence(List<Dialogue> dialogues, System.Action onComplete)
         {
             Debug.Log($"[StoryBattle] ShowDialogueSequence 开始，共 {dialogues?.Count ?? 0} 句对话");
+
+            // ⭐ 防止重复启动对话序列
+            if (isDialogueShowing)
+            {
+                Debug.LogWarning("[StoryBattle] 对话序列已在运行中，跳过重复调用!");
+                yield break;
+            }
 
             if (dialogues == null || dialogues.Count == 0)
             {
@@ -1697,14 +1845,20 @@ namespace ThreeKingdoms.Story
 
             Debug.Log("[StoryBattle] 开始显示对话内容...");
 
+            int dialogueIndex = 0;
             foreach (var dialogue in dialogues)
             {
+                dialogueIndex++;
+                Debug.Log($"[StoryBattle] 显示第 {dialogueIndex}/{dialogues.Count} 句对话: {dialogue.contentKey}");
+
                 ShowDialogue(dialogue);
 
                 // ⭐ 等待玩家点击（带冷却时间）
                 waitingForClick = true;
                 clickCooldown = CLICK_COOLDOWN_TIME;  // 重置冷却
+                Debug.Log($"[StoryBattle] 等待玩家点击... (cooldown={CLICK_COOLDOWN_TIME}s)");
                 yield return new WaitUntil(() => !waitingForClick);
+                Debug.Log($"[StoryBattle] 第 {dialogueIndex} 句对话点击确认");
 
                 // ⭐ 等待一帧确保输入被清除
                 yield return null;

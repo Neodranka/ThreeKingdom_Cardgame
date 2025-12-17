@@ -57,6 +57,13 @@ namespace ThreeKingdoms.DatabaseModule
             {"yaowu", typeof(Skills.Story.YaowuSkill)},                 // 耀武
             {"qiezhan", typeof(Skills.Story.QiezhanSkill)},             // 怯战
             {"fenlie", typeof(Skills.Story.FenlieSkill)},               // 分裂
+
+            // 赤壁之战v2新增
+            {"jienan", typeof(Skills.Story.JienanSkill)},               // 诘难（虞翻）
+            {"shuizhan", typeof(Skills.Story.ShuizhanSkill)},           // 水战（蔡瑁）
+            {"beiren", typeof(Skills.Story.BeirenSkill)},               // 北人（曹军水兵）
+            {"paoxiao_story", typeof(Skills.Story.PaoxiaoSkill)},       // 咆哮（张飞-故事版）
+            {"yijue", typeof(Skills.Story.YijueSkill)},                 // 义绝（关羽）
         };
 
         // 技能ID到技能名称的映射
@@ -77,6 +84,10 @@ namespace ThreeKingdoms.DatabaseModule
             {"yuanhu", "援护"}, {"shijiu", "嗜酒"}, {"shouliang", "守粮"},
             {"xiaoji_passive", "消极"}, {"fuji", "伏击"}, {"chongzhen", "冲阵"},
             {"yaowu", "耀武"}, {"qiezhan", "怯战"}, {"fenlie", "分裂"},
+
+            // 赤壁之战v2新增
+            {"jienan", "诘难"}, {"shuizhan", "水战"}, {"beiren", "北人"},
+            {"paoxiao_story", "咆哮"}, {"yijue", "义绝"},
         };
 
         /// <summary>

@@ -319,6 +319,12 @@ namespace ThreeKingdoms
             }
             skills.Clear();
 
+            // ⭐ 触发死亡事件（用于胜负条件检测）
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerPlayerDeath(this, killer);
+            }
+
             NotifyUIUpdate();
         }
 
