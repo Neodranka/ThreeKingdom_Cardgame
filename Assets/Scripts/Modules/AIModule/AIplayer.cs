@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using ThreeKingdoms.Story;
 
 namespace ThreeKingdoms.AI
 {
@@ -202,11 +203,11 @@ namespace ThreeKingdoms.AI
         }
 
         /// <summary>
-        /// 简单AI选择(优先治疗>攻击>结束)
+        /// ⭐ 简单AI选择(优先治疗>攻击>结束) - 考虑故事模式规则
         /// </summary>
         private AIAction ChooseActionSimple(List<AIAction> actions)
         {
-            // 优先级: 濒死治疗 > 普通治疗 > 攻击 > 结束
+            // 优先级: 濒死治疗 > 普通治疗 > 攻击敌人 > AOE > 结束
 
             // 1. 如果快死了,优先用桃
             if (controlledPlayer.currentHP <= 1)
@@ -222,9 +223,12 @@ namespace ThreeKingdoms.AI
                 if (heal != null && Random.value < 0.7f) return heal;
             }
 
-            // 3. 攻击最弱的敌人
-            var attacks = actions.Where(a => a.actionType == AIActionType.UseSlash ||
-                                             a.actionType == AIActionType.UseDuel).ToList();
+            // 3. ⭐ 攻击敌人（只攻击敌人，不攻击盟友）
+            var attacks = actions.Where(a =>
+                (a.actionType == AIActionType.UseSlash || a.actionType == AIActionType.UseDuel) &&
+                a.target != null && !IsAlly(a.target)
+            ).ToList();
+
             if (attacks.Count > 0)
             {
                 // 攻击HP最少的敌人
@@ -232,10 +236,14 @@ namespace ThreeKingdoms.AI
                 return attack;
             }
 
-            // 4. 使用AOE技能
-            var aoe = actions.FirstOrDefault(a => a.actionType == AIActionType.UseSavageAssault ||
-                                                  a.actionType == AIActionType.UseArrowBarrage);
-            if (aoe != null && Random.value < 0.5f) return aoe;
+            // 4. ⭐ 使用AOE技能（只在有敌人时使用）
+            var enemies = GetAliveEnemies();
+            if (enemies.Count > 0)
+            {
+                var aoe = actions.FirstOrDefault(a => a.actionType == AIActionType.UseSavageAssault ||
+                                                      a.actionType == AIActionType.UseArrowBarrage);
+                if (aoe != null && Random.value < 0.5f) return aoe;
+            }
 
             // 5. 结束
             return new AIAction(AIActionType.EndPhase);
@@ -272,7 +280,7 @@ namespace ThreeKingdoms.AI
         }
 
         /// <summary>
-        /// 评估行动得分
+        /// ⭐ 评估行动得分 - 考虑故事模式盟友/敌人
         /// </summary>
         private float EvaluateAction(AIAction action)
         {
@@ -290,6 +298,21 @@ namespace ThreeKingdoms.AI
                 case AIActionType.UseDuel:
                     if (action.target != null)
                     {
+                        // ⭐ 检查目标是否是盟友 - 盟友不应该攻击
+                        if (IsAlly(action.target))
+                        {
+                            score = -1000f; // 强烈不建议攻击盟友
+                            break;
+                        }
+
+                        // ⭐ 检查目标是否可以被攻击
+                        if (StoryBattleManager.Instance != null &&
+                            !StoryBattleManager.Instance.IsTargetAttackable(controlledPlayer, action.target))
+                        {
+                            score = -1000f; // 不能攻击受保护的目标
+                            break;
+                        }
+
                         // 优先攻击低HP敌人
                         float targetHpPercent = (float)action.target.currentHP / action.target.maxHP;
                         score = (1f - targetHpPercent) * 80f * attackWeight;
@@ -304,14 +327,31 @@ namespace ThreeKingdoms.AI
 
                 case AIActionType.UseSavageAssault:
                 case AIActionType.UseArrowBarrage:
-                    // AOE价值 = 敌人数量 * 平均威胁
+                    // ⭐ AOE价值 = 敌人数量 - 盟友数量（AOE会伤害盟友）
                     int enemyCount = GetAliveEnemies().Count;
-                    score = enemyCount * 30f * attackWeight;
+                    int allyCount = GetAliveAllies().Count - 1; // 排除自己
+                    score = (enemyCount - allyCount * 0.5f) * 30f * attackWeight;
+
+                    // 如果盟友比敌人多，不建议使用AOE
+                    if (allyCount > enemyCount)
+                    {
+                        score -= 50f;
+                    }
                     break;
 
                 case AIActionType.UsePeachGarden:
-                    // 考虑需要治疗的角色数量
-                    score = 40f * healWeight;
+                    // ⭐ 考虑需要治疗的盟友数量
+                    int healCount = 0;
+                    if (controlledPlayer.currentHP < controlledPlayer.maxHP) healCount++;
+
+                    foreach (var ally in GetAliveAllies())
+                    {
+                        if (ally != controlledPlayer && ally.currentHP < ally.maxHP)
+                        {
+                            healCount++;
+                        }
+                    }
+                    score = healCount * 40f * healWeight;
                     break;
 
                 case AIActionType.EndPhase:
@@ -371,12 +411,28 @@ namespace ThreeKingdoms.AI
         }
 
         /// <summary>
-        /// 获取可攻击的目标（所有存活敌人）
+        /// ⭐ 获取可攻击的目标（考虑故事模式规则）
         /// </summary>
         private List<Player> GetAttackTargets()
         {
             List<Player> targets = new List<Player>();
 
+            // ⭐ 优先使用StoryBattleManager的规则检查
+            if (StoryBattleManager.Instance != null && StoryBattleManager.Instance.isBattleActive)
+            {
+                // 只攻击敌人，不攻击盟友
+                foreach (var player in BattleManager.Instance.players)
+                {
+                    if (player != controlledPlayer && player.isAlive &&
+                        StoryBattleManager.Instance.IsTargetAttackable(controlledPlayer, player))
+                    {
+                        targets.Add(player);
+                    }
+                }
+                return targets;
+            }
+
+            // 回退逻辑：普通模式下攻击所有非自己的存活玩家
             foreach (var player in BattleManager.Instance.players)
             {
                 if (player != controlledPlayer && player.isAlive)
@@ -389,24 +445,65 @@ namespace ThreeKingdoms.AI
         }
 
         /// <summary>
-        /// ⭐ 获取杀的有效目标（考虑攻击范围）
+        /// ⭐ 获取杀的有效目标（考虑攻击范围和故事模式规则）
         /// </summary>
         private List<Player> GetSlashTargets()
         {
-            // 使用Player类的方法获取攻击范围内的目标
+            // ⭐ 优先使用StoryBattleManager的规则检查
+            if (StoryBattleManager.Instance != null && StoryBattleManager.Instance.isBattleActive)
+            {
+                return StoryBattleManager.Instance.GetValidAttackTargets(controlledPlayer);
+            }
+
+            // 回退逻辑：使用Player类的方法获取攻击范围内的目标
             return controlledPlayer.GetValidSlashTargets();
         }
 
         /// <summary>
-        /// 获取存活的敌人
+        /// ⭐ 获取存活的敌人（区分故事模式盟友/敌人）
         /// </summary>
         private List<Player> GetAliveEnemies()
         {
+            // ⭐ 优先使用StoryBattleManager的敌人列表
+            if (StoryBattleManager.Instance != null && StoryBattleManager.Instance.isBattleActive)
+            {
+                return StoryBattleManager.Instance.GetEnemyPlayers();
+            }
+
             return GetAttackTargets();
         }
 
         /// <summary>
-        /// 判断是否应该使用桃园结义
+        /// ⭐ 获取存活的盟友
+        /// </summary>
+        private List<Player> GetAliveAllies()
+        {
+            if (StoryBattleManager.Instance != null && StoryBattleManager.Instance.isBattleActive)
+            {
+                return StoryBattleManager.Instance.GetAllyPlayers();
+            }
+
+            // 回退逻辑：只返回自己
+            return new List<Player> { controlledPlayer };
+        }
+
+        /// <summary>
+        /// ⭐ 检查是否是盟友
+        /// </summary>
+        private bool IsAlly(Player other)
+        {
+            if (other == null || other == controlledPlayer) return false;
+
+            if (StoryBattleManager.Instance != null && StoryBattleManager.Instance.isBattleActive)
+            {
+                return StoryBattleManager.Instance.IsAlly(controlledPlayer, other);
+            }
+
+            return controlledPlayer.faction == other.faction;
+        }
+
+        /// <summary>
+        /// ⭐ 判断是否应该使用桃园结义（考虑盟友）
         /// </summary>
         private bool ShouldUsePeachGarden()
         {
@@ -416,8 +513,54 @@ namespace ThreeKingdoms.AI
                 return true;
             }
 
-            // 或者有队友HP很低(简化版,没有阵营判断)
+            // ⭐ 检查盟友是否需要治疗
+            var allies = GetAliveAllies();
+            foreach (var ally in allies)
+            {
+                if (ally != controlledPlayer && ally.currentHP < ally.maxHP * 0.5f)
+                {
+                    return true;
+                }
+            }
+
             return false;
+        }
+
+        /// <summary>
+        /// ⭐ 获取需要治疗的盟友（濒死优先）
+        /// </summary>
+        private Player GetAllyNeedingHeal()
+        {
+            var allies = GetAliveAllies();
+
+            // 优先救濒死的盟友
+            foreach (var ally in allies)
+            {
+                if (ally != controlledPlayer && ally.currentHP <= 0)
+                {
+                    // 检查是否可以对盟友使用桃
+                    if (StoryBattleManager.Instance == null ||
+                        StoryBattleManager.Instance.CanUsePeachOn(controlledPlayer, ally))
+                    {
+                        return ally;
+                    }
+                }
+            }
+
+            // 然后是HP很低的盟友
+            foreach (var ally in allies)
+            {
+                if (ally != controlledPlayer && ally.currentHP <= ally.maxHP * 0.3f)
+                {
+                    if (StoryBattleManager.Instance == null ||
+                        StoryBattleManager.Instance.CanUsePeachOn(controlledPlayer, ally))
+                    {
+                        return ally;
+                    }
+                }
+            }
+
+            return null;
         }
     }
 

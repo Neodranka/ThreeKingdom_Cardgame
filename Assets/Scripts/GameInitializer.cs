@@ -393,21 +393,29 @@ namespace ThreeKingdoms
         {
             Debug.Log($"========== 初始化故事模式战斗: {battleId} ==========");
 
-            // 获取战斗数据
-            BattleData battleData = FindStoryBattle(battleId);
-            if (battleData == null)
-            {
-                Debug.LogError($"[GameInitializer] 找不到故事战斗数据: {battleId}");
-                // 清除故事模式标记，回退到普通模式
-                PlayerPrefs.DeleteKey("StoryBattleId");
-                ApplyGameConfig();
-                CreatePlayers();
-                FinishInitialization();
-                return;
-            }
+            // ⭐ 优先从所有战役中搜索 StoryBattle（新格式）
+            StoryBattle storyBattle = FindStoryBattleFromAllCampaigns(battleId);
 
-            // 创建故事模式玩家
-            CreateStoryPlayers(battleData);
+            if (storyBattle != null)
+            {
+                // 使用新的StoryBattle格式创建玩家（包含完整的技能信息）
+                CreateStoryPlayersFromStoryBattle(storyBattle);
+            }
+            else
+            {
+                // 回退到旧的BattleData格式
+                BattleData battleData = FindStoryBattle(battleId);
+                if (battleData == null)
+                {
+                    Debug.LogError($"[GameInitializer] 找不到故事战斗数据: {battleId}");
+                    PlayerPrefs.DeleteKey("StoryBattleId");
+                    ApplyGameConfig();
+                    CreatePlayers();
+                    FinishInitialization();
+                    return;
+                }
+                CreateStoryPlayers(battleData);
+            }
 
             // 清除故事模式标记（避免下次重复）
             PlayerPrefs.DeleteKey("StoryBattleId");
@@ -427,20 +435,10 @@ namespace ThreeKingdoms
             }
 
             // 启动故事战斗管理器
-            if (StoryBattleManager.Instance != null && StoryModeManager.Instance != null)
+            if (StoryBattleManager.Instance != null && storyBattle != null)
             {
-                // ⭐ 从所有战役中搜索对应的 StoryBattle（不只是当前选中的战役）
-                StoryBattle storyBattle = FindStoryBattleFromAllCampaigns(battleId);
-
-                if (storyBattle != null)
-                {
-                    Debug.Log($"[GameInitializer] 找到 StoryBattle: {battleId}, 开场对话数: {storyBattle.openingDialogue?.Count ?? 0}");
-                    StoryBattleManager.Instance.StartBattle(storyBattle);
-                }
-                else
-                {
-                    Debug.LogWarning($"[GameInitializer] 未找到 StoryBattle: {battleId}");
-                }
+                Debug.Log($"[GameInitializer] 启动 StoryBattle: {battleId}, 开场对话数: {storyBattle.openingDialogue?.Count ?? 0}");
+                StoryBattleManager.Instance.StartBattle(storyBattle);
             }
         }
 
@@ -499,7 +497,156 @@ namespace ThreeKingdoms
         }
 
         /// <summary>
-        /// ⭐ 创建故事模式玩家
+        /// ⭐ 从StoryBattle创建故事模式玩家（新格式，包含完整技能信息）
+        /// </summary>
+        private void CreateStoryPlayersFromStoryBattle(StoryBattle storyBattle)
+        {
+            List<Player> players = new List<Player>();
+
+            // 创建我方角色
+            if (storyBattle.allies != null)
+            {
+                int allyIndex = 0;
+                foreach (var allyConfig in storyBattle.allies)
+                {
+                    string playerName = allyConfig.isPlayer ? "你" : $"友方{allyIndex + 1}";
+                    Player ally = CreateStoryPlayerFromBattleCharacter(
+                        allyConfig,
+                        playerName,
+                        !allyConfig.isPlayer,  // 非玩家控制的是AI
+                        true  // 是我方
+                    );
+                    if (ally != null)
+                    {
+                        players.Add(ally);
+                        allyIndex++;
+                    }
+                }
+            }
+
+            // 创建敌方角色
+            if (storyBattle.enemies != null)
+            {
+                int enemyIndex = 1;
+                foreach (var enemyConfig in storyBattle.enemies)
+                {
+                    Player enemy = CreateStoryPlayerFromBattleCharacter(
+                        enemyConfig,
+                        $"敌方{enemyIndex}",
+                        true,  // 敌方都是AI
+                        false  // 是敌方
+                    );
+                    if (enemy != null)
+                    {
+                        players.Add(enemy);
+                        enemyIndex++;
+                    }
+                }
+            }
+
+            // 设置到BattleManager
+            BattleManager.Instance.players = players;
+
+            Debug.Log($"[GameInitializer] 故事模式创建了 {players.Count} 个角色（我方:{storyBattle.allies?.Count ?? 0}, 敌方:{storyBattle.enemies?.Count ?? 0}）");
+        }
+
+        /// <summary>
+        /// ⭐ 从BattleCharacter配置创建玩家
+        /// </summary>
+        private Player CreateStoryPlayerFromBattleCharacter(BattleCharacter config, string playerName, bool isAI, bool isAlly)
+        {
+            GameObject playerObj = new GameObject($"Player_{playerName}");
+            if (playerPrefab != null)
+            {
+                Destroy(playerObj);
+                playerObj = Instantiate(playerPrefab);
+                playerObj.name = $"Player_{playerName}";
+            }
+            else
+            {
+                playerObj.AddComponent<Player>();
+            }
+
+            Player player = playerObj.GetComponent<Player>();
+            if (player == null)
+            {
+                player = playerObj.AddComponent<Player>();
+            }
+
+            player.playerName = playerName;
+            player.isAI = isAI;
+
+            // 设置基础属性
+            player.generalName = LocalizationManager.Instance?.GetText(config.nameKey) ?? GetChineseGeneralName(config.characterId);
+            player.maxHP = config.maxHP > 0 ? config.maxHP : 4;
+            player.currentHP = player.maxHP;
+
+            // 根据角色ID推断阵营
+            player.faction = InferFactionFromCharacterId(config.characterId, isAlly);
+
+            // ⭐ 使用SkillFactory从技能ID列表创建技能
+            if (config.skillIds != null && config.skillIds.Count > 0)
+            {
+                var createdSkills = DatabaseModule.SkillFactory.CreateSkills(config.skillIds, player);
+                player.skills.AddRange(createdSkills);
+                Debug.Log($"✓ {player.generalName} 初始化了 {createdSkills.Count} 个技能: [{string.Join(", ", config.skillIds)}]");
+            }
+            else
+            {
+                Debug.Log($"✓ {player.generalName} 没有配置技能");
+            }
+
+            Debug.Log($"✓ 故事模式 {playerName}: {player.generalName} [{player.faction}] HP:{player.maxHP}");
+
+            // 如果是AI，添加AI控制器
+            if (isAI)
+            {
+                AIPlayer aiController = playerObj.AddComponent<AIPlayer>();
+                aiController.controlledPlayer = player;
+                aiController.aiLevel = defaultAILevel;
+                aiController.thinkingTime = aiThinkingTime;
+                player.aiController = aiController;
+            }
+
+            return player;
+        }
+
+        /// <summary>
+        /// ⭐ 根据角色ID推断阵营
+        /// </summary>
+        private Faction InferFactionFromCharacterId(string characterId, bool isAlly)
+        {
+            string cleanId = characterId.ToLower().Replace("_story", "");
+
+            // 蜀国角色
+            if (cleanId.Contains("liubei") || cleanId.Contains("guanyu") || cleanId.Contains("zhangfei") ||
+                cleanId.Contains("zhugeliang") || cleanId.Contains("zhaoyun") || cleanId.Contains("huangzhong"))
+            {
+                return Faction.Shu;
+            }
+
+            // 吴国角色
+            if (cleanId.Contains("sunquan") || cleanId.Contains("zhouyu") || cleanId.Contains("lvmeng") ||
+                cleanId.Contains("huanggai") || cleanId.Contains("lusu") || cleanId.Contains("chengpu") ||
+                cleanId.Contains("zhangzhao"))
+            {
+                return Faction.Wu;
+            }
+
+            // 魏国角色
+            if (cleanId.Contains("caocao") || cleanId.Contains("xiahoudun") || cleanId.Contains("xiahouyuan") ||
+                cleanId.Contains("zhangliao") || cleanId.Contains("xiahoujie") || cleanId.Contains("jianggan") ||
+                cleanId.Contains("caojun"))
+            {
+                return Faction.Wei;
+            }
+
+            // 群雄
+            return Faction.Qun;
+        }
+
+        /// <summary>
+        /// ⭐ 创建故事模式玩家（旧格式兼容）
         /// </summary>
         private void CreateStoryPlayers(BattleData battleData)
         {

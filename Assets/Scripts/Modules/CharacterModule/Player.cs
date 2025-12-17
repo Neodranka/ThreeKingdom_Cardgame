@@ -49,6 +49,7 @@ namespace ThreeKingdoms
         [Header("状态")]
         public bool isAlive = true;             // 是否存活
         public bool isDead = false;             // 是否死亡
+        public bool isNearDeath = false;        // ⭐ 是否处于濒死状态
         public int attackRange = 1;             // 攻击范围
 
         [Header("回合状态")]
@@ -169,10 +170,72 @@ namespace ThreeKingdoms
 
             if (currentHP <= 0)
             {
-                Die(source);
+                // ⭐ 进入濒死状态，由BattleManager处理求桃流程
+                EnterNearDeath(source);
             }
 
             NotifyUIUpdate();
+        }
+
+        /// <summary>
+        /// ⭐ 进入濒死状态
+        /// </summary>
+        public void EnterNearDeath(Player killer = null)
+        {
+            if (isNearDeath || isDead) return;
+
+            isNearDeath = true;
+            Debug.Log($"{playerName} 进入濒死状态！需要 {1 - currentHP} 张桃救回");
+
+            // 通知BattleManager处理濒死流程
+            if (BattleManager.Instance != null)
+            {
+                BattleManager.Instance.StartCoroutine(
+                    BattleManager.Instance.ProcessNearDeath(this, killer)
+                );
+            }
+            else
+            {
+                // 如果没有BattleManager，直接死亡
+                ExecuteDeath(killer);
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 濒死被救（使用桃恢复1点体力）
+        /// </summary>
+        public void SaveFromNearDeath(Player savior)
+        {
+            if (!isNearDeath) return;
+
+            currentHP = Mathf.Min(currentHP + 1, maxHP);
+            Debug.Log($"{playerName} 被 {savior?.playerName ?? "某人"} 用【桃】救回，当前体力:{currentHP}");
+
+            // 如果体力恢复到1或以上，脱离濒死
+            if (currentHP > 0)
+            {
+                isNearDeath = false;
+                Debug.Log($"{playerName} 脱离濒死状态");
+            }
+
+            NotifyUIUpdate();
+        }
+
+        /// <summary>
+        /// ⭐ 执行死亡（濒死未被救时调用）
+        /// </summary>
+        public void ExecuteDeath(Player killer = null)
+        {
+            isNearDeath = false;
+            Die(killer);
+        }
+
+        /// <summary>
+        /// ⭐ 获取脱离濒死所需的桃数量
+        /// </summary>
+        public int GetPeachesNeeded()
+        {
+            return Mathf.Max(0, 1 - currentHP);
         }
 
         /// <summary>

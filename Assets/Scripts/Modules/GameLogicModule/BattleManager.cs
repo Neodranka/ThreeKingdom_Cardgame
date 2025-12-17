@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using ThreeKingdoms.AI;
+using ThreeKingdoms.Story;
 
 namespace ThreeKingdoms
 {
@@ -1187,5 +1188,244 @@ namespace ThreeKingdoms
             }
             return null;
         }
+
+        #region 濒死处理
+
+        /// <summary>
+        /// ⭐ 处理濒死求桃流程
+        /// </summary>
+        public IEnumerator ProcessNearDeath(Player dyingPlayer, Player killer)
+        {
+            Debug.Log($"[濒死] {dyingPlayer.playerName} 进入濒死状态，需要 {dyingPlayer.GetPeachesNeeded()} 张桃");
+
+            // 添加濒死日志
+            if (UI.BattleUI.Instance != null)
+            {
+                UI.BattleUI.Instance.AddLog($"{dyingPlayer.playerName} 进入濒死状态！");
+            }
+
+            // 循环直到脱离濒死或确认死亡
+            while (dyingPlayer.isNearDeath && dyingPlayer.currentHP <= 0)
+            {
+                bool saved = false;
+
+                // 从濒死玩家开始，按座位顺序询问每个玩家
+                int startIndex = players.IndexOf(dyingPlayer);
+                if (startIndex < 0) startIndex = 0;
+
+                for (int i = 0; i < players.Count; i++)
+                {
+                    int playerIndex = (startIndex + i) % players.Count;
+                    Player askPlayer = players[playerIndex];
+
+                    if (!askPlayer.isAlive) continue;
+
+                    // 检查该玩家是否有桃
+                    bool hasPeach = HasPeachCard(askPlayer);
+                    if (!hasPeach) continue;
+
+                    Debug.Log($"[濒死] 询问 {askPlayer.playerName} 是否使用【桃】救 {dyingPlayer.playerName}");
+
+                    bool responseReceived = false;
+                    bool usedPeach = false;
+
+                    if (askPlayer.isAI)
+                    {
+                        // AI决策：是否救人
+                        usedPeach = AIDecideSaveDyingPlayer(askPlayer, dyingPlayer);
+                        responseReceived = true;
+
+                        if (usedPeach)
+                        {
+                            Card peachCard = FindPeachCard(askPlayer);
+                            if (peachCard != null)
+                            {
+                                askPlayer.PlayCard(peachCard);
+                                DeckManager.Instance.DiscardCard(peachCard);
+
+                                // 显示出牌动画
+                                if (UI.PlayedCardDisplayManager.Instance != null)
+                                {
+                                    Vector3? startPos = GetPlayerUIPosition(askPlayer);
+                                    UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(peachCard, askPlayer, startPos);
+                                }
+
+                                Debug.Log($"[濒死] {askPlayer.playerName} 使用【桃】救了 {dyingPlayer.playerName}");
+
+                                if (UI.BattleUI.Instance != null)
+                                {
+                                    UI.BattleUI.Instance.AddLog($"{askPlayer.playerName} 使用【桃】救了 {dyingPlayer.playerName}");
+                                }
+                            }
+                        }
+
+                        yield return new WaitForSeconds(0.5f);
+                    }
+                    else
+                    {
+                        // 人类玩家，显示求桃界面
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            // 设置濒死目标信息
+                            UI.BattleUI.Instance.SetNearDeathTarget(dyingPlayer);
+
+                            UI.BattleUI.Instance.RequestResponse(askPlayer, UI.ResponseType.Peach, (responseCard) =>
+                            {
+                                responseReceived = true;
+                                usedPeach = responseCard != null;
+                            });
+
+                            // 等待响应
+                            while (!responseReceived)
+                            {
+                                yield return null;
+                            }
+
+                            // 清除濒死目标
+                            UI.BattleUI.Instance.SetNearDeathTarget(null);
+                        }
+                        else
+                        {
+                            // 无UI时自动决策
+                            usedPeach = AutoCheckForPeach(askPlayer);
+                            responseReceived = true;
+                        }
+                    }
+
+                    if (usedPeach)
+                    {
+                        dyingPlayer.SaveFromNearDeath(askPlayer);
+                        saved = true;
+
+                        // 如果还需要更多桃（HP仍<=0），继续循环
+                        if (dyingPlayer.currentHP > 0)
+                        {
+                            break; // 已救活，退出询问循环
+                        }
+                    }
+                }
+
+                // 如果这一轮没人救，玩家死亡
+                if (!saved || dyingPlayer.currentHP <= 0)
+                {
+                    if (dyingPlayer.currentHP <= 0)
+                    {
+                        Debug.Log($"[濒死] 无人救援，{dyingPlayer.playerName} 死亡");
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            UI.BattleUI.Instance.AddLog($"无人救援，{dyingPlayer.playerName} 阵亡！");
+                        }
+                        dyingPlayer.ExecuteDeath(killer);
+                    }
+                    break;
+                }
+            }
+
+            // 更新UI
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// ⭐ 检查玩家是否有桃
+        /// </summary>
+        private bool HasPeachCard(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "桃")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 查找玩家手牌中的桃
+        /// </summary>
+        private Card FindPeachCard(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "桃")
+                {
+                    return card;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ⭐ AI决定是否救濒死玩家
+        /// </summary>
+        private bool AIDecideSaveDyingPlayer(Player aiPlayer, Player dyingPlayer)
+        {
+            // 检查是否是自己濒死
+            if (aiPlayer == dyingPlayer)
+            {
+                // 自己濒死，一定救
+                return true;
+            }
+
+            // 检查是否是盟友
+            bool isAlly = false;
+
+            // 优先使用故事模式的盟友判断
+            if (StoryBattleManager.Instance != null && StoryBattleManager.Instance.isBattleActive)
+            {
+                isAlly = StoryBattleManager.Instance.IsAlly(aiPlayer, dyingPlayer);
+
+                // 检查是否有禁止对盟友用桃的规则
+                if (isAlly && !StoryBattleManager.Instance.CanUsePeachOn(aiPlayer, dyingPlayer))
+                {
+                    Debug.Log($"[AI] {aiPlayer.playerName} 因规则限制无法对盟友 {dyingPlayer.playerName} 使用桃");
+                    return false;
+                }
+            }
+            else
+            {
+                // 普通模式：同阵营是盟友
+                isAlly = aiPlayer.faction == dyingPlayer.faction;
+            }
+
+            if (isAlly)
+            {
+                // 盟友濒死，80%概率救（考虑保留桃给自己）
+                bool shouldSave = Random.value < 0.8f;
+                Debug.Log($"[AI] {aiPlayer.playerName} {(shouldSave ? "决定救" : "决定不救")} 盟友 {dyingPlayer.playerName}");
+                return shouldSave;
+            }
+            else
+            {
+                // 敌人濒死，不救
+                Debug.Log($"[AI] {aiPlayer.playerName} 不救敌人 {dyingPlayer.playerName}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 自动检查并使用桃（无UI时的备用逻辑）
+        /// </summary>
+        private bool AutoCheckForPeach(Player player)
+        {
+            Card peach = FindPeachCard(player);
+            if (peach != null)
+            {
+                player.PlayCard(peach);
+                DeckManager.Instance.DiscardCard(peach);
+                Debug.Log($"{player.playerName} 自动使用了【桃】");
+
+                if (UI.PlayedCardDisplayManager.Instance != null)
+                {
+                    Vector3? startPos = GetPlayerUIPosition(player);
+                    UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(peach, player, startPos);
+                }
+
+                return true;
+            }
+            return false;
+        }
+
+        #endregion
     }
 }

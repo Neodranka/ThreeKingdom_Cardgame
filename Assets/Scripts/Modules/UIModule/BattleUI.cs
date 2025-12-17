@@ -1180,6 +1180,37 @@ namespace ThreeKingdoms.UI
             return isWaitingForResponse;
         }
 
+        /// <summary>
+        /// ⭐ 当前濒死的玩家（用于显示求桃提示）
+        /// </summary>
+        private Player nearDeathTarget = null;
+
+        /// <summary>
+        /// ⭐ 设置濒死目标（用于显示谁需要被救）
+        /// </summary>
+        public void SetNearDeathTarget(Player dyingPlayer)
+        {
+            nearDeathTarget = dyingPlayer;
+
+            // 更新响应面板提示
+            if (responsePromptText != null && dyingPlayer != null)
+            {
+                string prompt = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetTextFormatted("msg_peach_for_player", dyingPlayer.playerName)
+                    : $"请出【桃】救 {dyingPlayer.playerName}";
+                responsePromptText.text = prompt;
+                TMPFontHelper.SetFontByLanguage(responsePromptText);
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取当前濒死目标
+        /// </summary>
+        public Player GetNearDeathTarget()
+        {
+            return nearDeathTarget;
+        }
+
         #endregion
 
         #region 弃牌系统

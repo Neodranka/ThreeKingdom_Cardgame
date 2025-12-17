@@ -1054,4 +1054,646 @@ namespace ThreeKingdoms.DatabaseModule.Skills.Story
             return "摸牌阶段，你可以改为获取至多两名角色各一张手牌。";
         }
     }
+
+    // ==================== 官渡之战/讨董之战 专属技能 ====================
+
+    /// <summary>
+    /// 动摇（军心动摇）- 锁定技
+    /// 回合开始时，令所有盟友随机弃置一张手牌
+    /// </summary>
+    public class DongyaoSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart += OnTurnStart;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart -= OnTurnStart;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            if (!CanTrigger()) return;
+
+            Log($"{Owner.generalName} 的【动摇】发动");
+
+            // 让所有友方（包括自己除外）随机弃牌
+            var allies = GetAliveAllies();
+            foreach (var ally in allies)
+            {
+                if (ally != Owner && ally.handCards.Count > 0)
+                {
+                    int index = Random.Range(0, ally.handCards.Count);
+                    Card card = ally.handCards[index];
+                    ally.DiscardCard(card);
+                    Log($"{ally.generalName} 被迫弃置了 {card.cardName}");
+                }
+            }
+        }
+
+        private void OnTurnStart(Player player)
+        {
+            if (player == Owner)
+            {
+                Trigger();
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，回合开始时，令所有盟友随机弃置一张手牌。";
+        }
+    }
+
+    /// <summary>
+    /// 消耗（粮草隐患）- 锁定技
+    /// 回合结束时，所有盟友手牌上限-1（本回合）
+    /// </summary>
+    public class XiaohaoSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnEnd += OnTurnEnd;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnEnd -= OnTurnEnd;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            if (!CanTrigger()) return;
+
+            Log($"{Owner.generalName} 的【消耗】发动");
+
+            // 令所有盟友多弃一张牌
+            var allies = GetAliveAllies();
+            foreach (var ally in allies)
+            {
+                if (ally != Owner && ally.handCards.Count > ally.currentHP)
+                {
+                    int index = Random.Range(0, ally.handCards.Count);
+                    Card card = ally.handCards[index];
+                    ally.DiscardCard(card);
+                    Log($"{ally.generalName} 因粮草消耗额外弃置了 {card.cardName}");
+                }
+            }
+        }
+
+        private void OnTurnEnd(Player player)
+        {
+            if (player == Owner)
+            {
+                Trigger();
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，回合结束时，所有盟友须额外弃一张牌。";
+        }
+    }
+
+    /// <summary>
+    /// 献策（许攸）
+    /// 出牌阶段限一次，可弃一张牌令一名角色摸两张牌
+    /// </summary>
+    public class XianceSkill : SkillBase
+    {
+        private bool usedThisTurn = false;
+
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart += OnTurnStart;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart -= OnTurnStart;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return !usedThisTurn && Owner != null && Owner.isAlive && Owner.handCards.Count > 0;
+        }
+
+        public override void Trigger()
+        {
+            if (!CanTrigger()) return;
+
+            // 选择目标：优先给友方
+            Player target = SelectTarget();
+            if (target == null) return;
+
+            // 弃一张牌
+            if (Owner.handCards.Count > 0)
+            {
+                int index = Random.Range(0, Owner.handCards.Count);
+                Card discard = Owner.handCards[index];
+                Owner.DiscardCard(discard);
+            }
+
+            Log($"{Owner.generalName} 发动了【献策】");
+
+            // 目标摸两张牌
+            var cards = DeckManager.Instance?.DrawCards(2);
+            if (cards != null && cards.Count > 0)
+            {
+                target.DrawCards(cards);
+            }
+            Log($"{target.generalName} 摸了两张牌");
+
+            usedThisTurn = true;
+            EventManager.Instance?.TriggerStoryEvent("skill_xiancelue", Owner.generalName);
+        }
+
+        private Player SelectTarget()
+        {
+            var allies = GetAliveAllies();
+            if (allies.Length > 0)
+            {
+                // 优先给血最少的友军
+                Player best = allies[0];
+                foreach (var ally in allies)
+                {
+                    if (ally.currentHP < best.currentHP)
+                        best = ally;
+                }
+                return best;
+            }
+            return Owner;
+        }
+
+        private void OnTurnStart(Player player)
+        {
+            if (player == Owner)
+            {
+                usedThisTurn = false;
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "出牌阶段限一次，你可以弃一张牌，令一名角色摸两张牌。";
+        }
+    }
+
+    /// <summary>
+    /// 援护（曹洪）
+    /// 当一名友方角色受到伤害时，你可以弃一张牌令伤害-1
+    /// </summary>
+    public class YuanhuSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnPlayerDamaged += OnPlayerDamaged;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnPlayerDamaged -= OnPlayerDamaged;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive && Owner.handCards.Count > 0;
+        }
+
+        public override void Trigger()
+        {
+            // 触发在OnPlayerDamaged中处理
+        }
+
+        private void OnPlayerDamaged(Player victim, Player source, int damage, Card card)
+        {
+            if (!CanTrigger()) return;
+
+            // 检查受伤者是否是友军
+            if (victim != Owner && victim.faction == Owner.faction && victim.isAlive)
+            {
+                // 50%概率发动
+                if (Random.value < 0.5f && Owner.handCards.Count > 0)
+                {
+                    int index = Random.Range(0, Owner.handCards.Count);
+                    Card discard = Owner.handCards[index];
+                    Owner.DiscardCard(discard);
+
+                    Log($"{Owner.generalName} 发动了【援护】，弃置 {discard.cardName}");
+
+                    // 回复1点体力代替减伤（简化处理）
+                    if (victim.isAlive)
+                    {
+                        victim.Recover(1);
+                        Log($"{victim.generalName} 减免了1点伤害");
+                    }
+                }
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "当一名友方角色受到伤害时，你可以弃一张牌令伤害-1。";
+        }
+    }
+
+    /// <summary>
+    /// 嗜酒（淳于琼）- 锁定技
+    /// 你的手牌上限-1，当你受到火焰伤害时，伤害+1
+    /// </summary>
+    public class ShijiuSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            // 手牌上限减少在初始化时处理
+            if (Owner != null)
+            {
+                Owner.handCardLimit = Mathf.Max(0, Owner.currentHP - 1);
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            // 恢复手牌上限（如果需要）
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 嗜酒是锁定技，效果在其他地方处理
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，你的手牌上限-1。当你受到火焰伤害时，伤害+1。";
+        }
+    }
+
+    /// <summary>
+    /// 守粮（袁军守将）
+    /// 你不能成为【杀】以外的牌的目标
+    /// </summary>
+    public class ShouliangSkill : SkillBase
+    {
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 守粮是锁定技，效果在目标选择时检查
+        }
+
+        /// <summary>
+        /// 检查是否可以成为某牌的目标
+        /// </summary>
+        public bool CanBeTargetOf(Card card)
+        {
+            if (card == null) return true;
+            return CardNameHelper.IsSlash(card);
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，你不能成为【杀】以外的牌的目标。";
+        }
+    }
+
+    /// <summary>
+    /// 消极（诸侯观望）- 锁定技
+    /// 你不能主动使用牌
+    /// </summary>
+    public class XiaojiPassiveSkill : SkillBase
+    {
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 消极是锁定技，效果是不能主动出牌
+        }
+
+        /// <summary>
+        /// 检查是否可以使用牌
+        /// </summary>
+        public bool CanPlayCard()
+        {
+            return false;
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，你不能主动使用牌。";
+        }
+    }
+
+    /// <summary>
+    /// 伏击（徐荣）
+    /// 当你对一名角色造成伤害时，若其未受伤，伤害+1
+    /// </summary>
+    public class FujiSkill : SkillBase
+    {
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 伏击效果在伤害计算时处理
+        }
+
+        /// <summary>
+        /// 计算伏击伤害加成
+        /// </summary>
+        public int GetDamageBonus(Player target)
+        {
+            if (target != null && target.currentHP == target.maxHP)
+            {
+                Log($"{Owner.generalName} 的【伏击】发动，对未受伤目标伤害+1");
+                return 1;
+            }
+            return 0;
+        }
+
+        public override string GetDescription()
+        {
+            return "当你对一名未受伤的角色造成伤害时，伤害+1。";
+        }
+    }
+
+    /// <summary>
+    /// 冲阵（西凉骑兵）
+    /// 当你对一名已受伤的角色造成伤害时，伤害+1
+    /// </summary>
+    public class ChongzhenSkill : SkillBase
+    {
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 冲阵效果在伤害计算时处理
+        }
+
+        /// <summary>
+        /// 计算冲阵伤害加成
+        /// </summary>
+        public int GetDamageBonus(Player target)
+        {
+            if (target != null && target.currentHP < target.maxHP)
+            {
+                Log($"{Owner.generalName} 的【冲阵】发动，对已受伤目标伤害+1");
+                return 1;
+            }
+            return 0;
+        }
+
+        public override string GetDescription()
+        {
+            return "当你对一名已受伤的角色造成伤害时，伤害+1。";
+        }
+    }
+
+    /// <summary>
+    /// 耀武（华雄）
+    /// 出牌阶段，你使用【杀】无次数限制
+    /// 当你使用【杀】造成伤害后，可摸一张牌
+    /// </summary>
+    public class YaowuSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart += OnTurnStart;
+                EventManager.Instance.OnPlayerDamaged += OnPlayerDamaged;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart -= OnTurnStart;
+                EventManager.Instance.OnPlayerDamaged -= OnPlayerDamaged;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 设置无限出杀
+            if (Owner != null)
+            {
+                Owner.maxSlashPerTurn = 999;
+            }
+        }
+
+        private void OnTurnStart(Player player)
+        {
+            if (player == Owner)
+            {
+                Trigger();
+            }
+        }
+
+        private void OnPlayerDamaged(Player victim, Player source, int damage, Card card)
+        {
+            if (source == Owner && card != null && CardNameHelper.IsSlash(card))
+            {
+                // 造成伤害后摸牌
+                var cards = DeckManager.Instance?.DrawCards(1);
+                if (cards != null && cards.Count > 0)
+                {
+                    Owner.DrawCards(cards);
+                    Log($"{Owner.generalName} 【耀武】发动，摸了一张牌");
+                }
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "你使用【杀】无次数限制。当你使用【杀】造成伤害后，可摸一张牌。";
+        }
+    }
+
+    /// <summary>
+    /// 怯战（胡轸）- 锁定技
+    /// 当你的体力值小于等于2时，你不能使用【杀】
+    /// </summary>
+    public class QiezhanSkill : SkillBase
+    {
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            // 怯战是锁定技，效果在出牌时检查
+        }
+
+        /// <summary>
+        /// 检查是否可以使用杀
+        /// </summary>
+        public bool CanUseSlash()
+        {
+            if (Owner != null && Owner.currentHP <= 2)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，当你的体力值小于等于2时，你不能使用【杀】。";
+        }
+    }
+
+    /// <summary>
+    /// 分裂（联军内斗）- 锁定技
+    /// 回合开始时，所有角色（包括自己）失去1点体力
+    /// </summary>
+    public class FenlieSkill : SkillBase
+    {
+        protected override void RegisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart += OnTurnStart;
+            }
+        }
+
+        protected override void UnregisterEvents()
+        {
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart -= OnTurnStart;
+            }
+        }
+
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive;
+        }
+
+        public override void Trigger()
+        {
+            if (!CanTrigger()) return;
+
+            Log($"{Owner.generalName} 的【分裂】发动");
+
+            // 所有角色失去1点体力
+            var allPlayers = GetAlivePlayers();
+            foreach (var player in allPlayers)
+            {
+                if (player.isAlive)
+                {
+                    player.TakeDamage(1, null);
+                    Log($"{player.generalName} 因联军内斗失去1点体力");
+                }
+            }
+        }
+
+        private void OnTurnStart(Player player)
+        {
+            if (player == Owner)
+            {
+                Trigger();
+            }
+        }
+
+        public override string GetDescription()
+        {
+            return "锁定技，回合开始时，所有角色失去1点体力。";
+        }
+    }
+
+    /// <summary>
+    /// 苦肉（黄盖 - 普通版）
+    /// 出牌阶段，你可以失去1点体力，然后摸2张牌
+    /// </summary>
+    public class KurouSkill : SkillBase
+    {
+        protected override bool CheckTriggerCondition()
+        {
+            return Owner != null && Owner.isAlive && Owner.currentHP > 1;
+        }
+
+        public override void Trigger()
+        {
+            if (!CanTrigger()) return;
+
+            Log($"{Owner.generalName} 发动了【苦肉】");
+
+            // 失去1点体力
+            Owner.TakeDamage(1, null);
+
+            // 摸2张牌
+            var cards = DeckManager.Instance?.DrawCards(2);
+            if (cards != null && cards.Count > 0)
+            {
+                Owner.DrawCards(cards);
+            }
+            Log($"摸了2张牌");
+
+            EventManager.Instance?.TriggerStoryEvent("skill_kurou", Owner.generalName);
+        }
+
+        public override string GetDescription()
+        {
+            return "出牌阶段，你可以失去1点体力，然后摸两张牌。";
+        }
+    }
 }
