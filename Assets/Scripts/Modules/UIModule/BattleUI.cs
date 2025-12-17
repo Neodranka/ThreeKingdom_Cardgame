@@ -15,7 +15,8 @@ namespace ThreeKingdoms.UI
         None,
         Dodge,      // 响应杀，需要出闪
         Slash,      // 响应决斗/南蛮，需要出杀
-        Peach       // 濒死求桃
+        Peach,      // 濒死求桃
+        Nullify     // 响应锦囊，需要出无懈可击
     }
 
     /// <summary>
@@ -887,6 +888,7 @@ namespace ThreeKingdoms.UI
                     ResponseType.Dodge => "msg_dodge_required",
                     ResponseType.Slash => "msg_slash_required",
                     ResponseType.Peach => "msg_peach_required",
+                    ResponseType.Nullify => "msg_nullify_required",
                     _ => "msg_response_required"
                 };
 
@@ -901,6 +903,7 @@ namespace ThreeKingdoms.UI
                         ResponseType.Dodge => "请出【闪】",
                         ResponseType.Slash => "请出【杀】",
                         ResponseType.Peach => "请出【桃】",
+                        ResponseType.Nullify => "请出【无懈可击】",
                         _ => "请响应"
                     };
                 }
@@ -1030,12 +1033,29 @@ namespace ThreeKingdoms.UI
                 ResponseType.Dodge => "闪",
                 ResponseType.Slash => "杀",
                 ResponseType.Peach => "桃",
+                ResponseType.Nullify => "无懈可击",
                 _ => ""
             };
+
+            // ⭐ 检查是否有龙胆技能
+            bool hasLongdan = GetLongdanSkill(player) != null;
+            string alternateCardName = "";
+            if (hasLongdan)
+            {
+                if (responseType == ResponseType.Dodge)
+                    alternateCardName = "杀"; // 杀可以当闪用
+                else if (responseType == ResponseType.Slash)
+                    alternateCardName = "闪"; // 闪可以当杀用
+            }
 
             foreach (var cardUI in handCardUIs)
             {
                 bool canRespond = cardUI.cardData.cardName == requiredCardName;
+                // ⭐ 龙胆：可以用杀当闪或用闪当杀
+                if (!canRespond && hasLongdan && !string.IsNullOrEmpty(alternateCardName))
+                {
+                    canRespond = cardUI.cardData.cardName == alternateCardName;
+                }
                 cardUI.SetInteractable(canRespond);
             }
         }
@@ -1154,14 +1174,23 @@ namespace ThreeKingdoms.UI
         /// </summary>
         private Card FindResponseCard(Player player, ResponseType responseType)
         {
+            // ⭐ 胆裂技能检查：处于胆裂状态不能使用或打出闪
+            if (responseType == ResponseType.Dodge && IsDanlieActive(player))
+            {
+                Debug.Log($"[胆裂] {player.generalName} 处于胆裂状态，不能使用或打出【闪】");
+                return null;
+            }
+
             string requiredCardName = responseType switch
             {
                 ResponseType.Dodge => "闪",
                 ResponseType.Slash => "杀",
                 ResponseType.Peach => "桃",
+                ResponseType.Nullify => "无懈可击",
                 _ => ""
             };
 
+            // 先查找原始卡牌
             foreach (var card in player.handCards)
             {
                 if (card.cardName == requiredCardName)
@@ -1169,7 +1198,75 @@ namespace ThreeKingdoms.UI
                     return card;
                 }
             }
+
+            // ⭐ 检查龙胆技能：杀当闪，闪当杀
+            var longdanSkill = GetLongdanSkill(player);
+            if (longdanSkill != null)
+            {
+                if (responseType == ResponseType.Dodge)
+                {
+                    // 需要闪时，检查是否有杀可以当闪用
+                    foreach (var card in player.handCards)
+                    {
+                        if (card.cardName == "杀")
+                        {
+                            Debug.Log($"[龙胆] {player.generalName} 将【杀】当【闪】使用");
+                            return card;
+                        }
+                    }
+                }
+                else if (responseType == ResponseType.Slash)
+                {
+                    // 需要杀时，检查是否有闪可以当杀用
+                    foreach (var card in player.handCards)
+                    {
+                        if (card.cardName == "闪")
+                        {
+                            Debug.Log($"[龙胆] {player.generalName} 将【闪】当【杀】使用");
+                            return card;
+                        }
+                    }
+                }
+            }
+
             return null;
+        }
+
+        /// <summary>
+        /// ⭐ 获取玩家的龙胆技能
+        /// </summary>
+        private ThreeKingdoms.DatabaseModule.Skills.Story.LongdanSkill GetLongdanSkill(Player player)
+        {
+            if (player == null || player.skills == null) return null;
+
+            foreach (var skill in player.skills)
+            {
+                if (skill is ThreeKingdoms.DatabaseModule.Skills.Story.LongdanSkill longdan)
+                {
+                    return longdan;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ⭐ 检查玩家是否处于胆裂状态（不能使用或打出闪）
+        /// </summary>
+        private bool IsDanlieActive(Player player)
+        {
+            if (player == null || player.skills == null) return false;
+
+            foreach (var skill in player.skills)
+            {
+                if (skill is ThreeKingdoms.DatabaseModule.Skills.Story.DanlieSkill danlie)
+                {
+                    if (danlie.IsDanlieActive())
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /// <summary>

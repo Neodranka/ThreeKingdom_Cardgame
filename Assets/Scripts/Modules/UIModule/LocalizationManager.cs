@@ -115,6 +115,17 @@ namespace ThreeKingdoms
             // 锦囊牌 - 延时锦囊
             AddTranslation("card_indulgence", "乐不思蜀", "Indulgence", "락불사촉");
             AddTranslation("card_lightning", "闪电", "Lightning", "번개");
+            AddTranslation("card_supply_shortage", "兵粮寸断", "Supply Shortage", "병량촌단");
+
+            // 判定相关消息
+            AddTranslation("msg_judgment", "{0} 进行【{1}】的判定", "{0} judging for [{1}]", "{0}이(가) [{1}]에 대해 판정");
+            AddTranslation("msg_judgment_result", "判定结果：{0}{1}", "Judgment result: {0}{1}", "판정 결과: {0}{1}");
+            AddTranslation("msg_indulgence_effect", "{0} 乐不思蜀生效，跳过出牌阶段", "{0}'s Indulgence takes effect, skip play phase", "{0}의 락불사촉 효과 발동, 출패 단계 건너뜀");
+            AddTranslation("msg_indulgence_miss", "{0} 乐不思蜀未生效", "{0}'s Indulgence missed", "{0}의 락불사촉 무효화");
+            AddTranslation("msg_lightning_hit", "闪电击中 {0}，受到3点雷电伤害", "Lightning struck {0}, dealing 3 damage", "번개가 {0}에게 적중, 3 피해");
+            AddTranslation("msg_lightning_miss", "闪电未击中，传递给下家", "Lightning missed, passing to next player", "번개 빗나감, 다음 플레이어에게 전달");
+            AddTranslation("msg_supply_shortage_effect", "{0} 兵粮寸断生效，跳过摸牌阶段", "{0}'s Supply Shortage takes effect, skip draw phase", "{0}의 병량촌단 효과 발동, 드로우 단계 건너뜀");
+            AddTranslation("msg_supply_shortage_miss", "{0} 兵粮寸断未生效", "{0}'s Supply Shortage missed", "{0}의 병량촌단 무효화");
 
             // 装备牌 - 武器
             AddTranslation("card_qinggang_sword", "青釭剑", "Qinggang Sword", "청강검");
@@ -214,6 +225,7 @@ namespace ThreeKingdoms
             AddTranslation("msg_dodge_required", "请出【闪】", "Play [Dodge]", "[섬]을 내세요");
             AddTranslation("msg_slash_required", "请出【杀】", "Play [Slash]", "[살]을 내세요");
             AddTranslation("msg_peach_required", "请出【桃】", "Play [Peach]", "[도]를 내세요");
+            AddTranslation("msg_nullify_required", "是否使用【无懈可击】？", "Use [Nullification]?", "[무효화]를 사용하시겠습니까?");
             AddTranslation("msg_peach_for_player", "请出【桃】救 {0}", "Play [Peach] to save {0}", "[도]를 내서 {0}을(를) 구하세요");
             AddTranslation("msg_near_death", "{0} 进入濒死状态！", "{0} is dying!", "{0}이(가) 빈사 상태!");
             AddTranslation("msg_saved_by_peach", "{0} 被 {1} 用【桃】救回", "{0} was saved by {1}'s [Peach]", "{0}이(가) {1}의 [도]로 구출됨");
@@ -222,6 +234,11 @@ namespace ThreeKingdoms
             AddTranslation("msg_responded_slash", "{0} 打出了【杀】", "{0} played [Slash]", "{0}이(가) [살]을 냄");
             AddTranslation("msg_no_dodge", "{0} 没有【闪】", "{0} has no [Dodge]", "{0}은(는) [섬]이 없음");
             AddTranslation("msg_no_slash", "{0} 没有【杀】", "{0} has no [Slash]", "{0}은(는) [살]이 없음");
+
+            // 无懈可击消息
+            AddTranslation("msg_nullify_trick", "{0} 使用【无懈可击】抵消【{1}】", "{0} used [Nullification] to cancel [{1}]", "{0}이(가) [무효화]로 [{1}]을(를) 무효화함");
+            AddTranslation("msg_nullify_counter", "{0} 使用【无懈可击】反制", "{0} used [Nullification] to counter", "{0}이(가) [무효화]로 반제함");
+            AddTranslation("msg_nullify_failed", "{0} 的【无懈可击】被反制", "{0}'s [Nullification] was countered", "{0}의 [무효화]가 반제됨");
 
             // 错误/警告消息
             AddTranslation("msg_cannot_use", "不能使用此牌", "Cannot use this card", "이 카드를 사용할 수 없음");
