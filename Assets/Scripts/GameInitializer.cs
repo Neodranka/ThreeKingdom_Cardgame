@@ -576,6 +576,18 @@ namespace ThreeKingdoms
             player.playerName = playerName;
             player.isAI = isAI;
 
+            // ⭐ 尝试从GeneralDatabase加载武将数据（用于头像等）
+            string cleanCharacterId = config.characterId.Replace("_story", "");
+            GeneralData generalData = null;
+            if (GeneralDatabase.Instance != null)
+            {
+                generalData = GeneralDatabase.Instance.GetGeneralById(cleanCharacterId);
+                if (generalData == null)
+                {
+                    generalData = GeneralDatabase.Instance.GetGeneralById(config.characterId);
+                }
+            }
+
             // 设置基础属性
             player.generalName = LocalizationManager.Instance?.GetText(config.nameKey) ?? GetChineseGeneralName(config.characterId);
             player.maxHP = config.maxHP > 0 ? config.maxHP : 4;
@@ -583,6 +595,19 @@ namespace ThreeKingdoms
 
             // 根据角色ID推断阵营
             player.faction = InferFactionFromCharacterId(config.characterId, isAlly);
+
+            // ⭐ 设置generalData用于头像加载
+            if (generalData != null)
+            {
+                player.generalData = generalData;
+                Debug.Log($"✓ {player.generalName} 从数据库加载了武将数据");
+            }
+            else
+            {
+                // 创建临时的GeneralData用于头像加载
+                player.generalData = CreateTemporaryGeneralData(config.characterId, player.generalName, player.faction, player.maxHP);
+                Debug.Log($"✓ {player.generalName} 使用临时武将数据");
+            }
 
             // ⭐ 使用SkillFactory从技能ID列表创建技能
             if (config.skillIds != null && config.skillIds.Count > 0)
@@ -609,6 +634,24 @@ namespace ThreeKingdoms
             }
 
             return player;
+        }
+
+        /// <summary>
+        /// ⭐ 创建临时的GeneralData用于头像加载
+        /// </summary>
+        private GeneralData CreateTemporaryGeneralData(string characterId, string generalName, Faction faction, int maxHP)
+        {
+            GeneralData tempData = ScriptableObject.CreateInstance<GeneralData>();
+            tempData.generalId = characterId.Replace("_story", "");
+            tempData.generalName = generalName;
+            tempData.faction = faction;
+            tempData.maxHP = maxHP;
+
+            // 设置头像路径（使用阵营/拼音格式）
+            string pinyinName = DatabaseModule.CharacterPinyinHelper.GetPinyinFileName(characterId);
+            tempData.avatarPath = $"{faction}/{pinyinName}";
+
+            return tempData;
         }
 
         /// <summary>
