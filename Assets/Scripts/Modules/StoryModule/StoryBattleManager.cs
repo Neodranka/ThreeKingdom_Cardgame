@@ -483,6 +483,133 @@ namespace ThreeKingdoms.Story
                     Debug.Log("[规则] 禁止对盟友使用桃");
                     break;
 
+                // ==================== 讨董之战新增规则 ====================
+
+                case RuleType.HealOnKill:
+                    // 击杀后回复体力（救民）
+                    markers["heal_on_kill"] = rule.value > 0 ? rule.value : 1;
+                    Debug.Log($"[规则] 击杀后全体回复{markers["heal_on_kill"]}点体力");
+                    break;
+
+                case RuleType.FirstSlashUndodgeable:
+                    // 首次杀不可闪避（酒尚温）
+                    string fsuTarget = rule.targetId ?? "player";
+                    markers[$"first_slash_undodgeable_{fsuTarget}"] = 1;
+                    Debug.Log($"[规则] {fsuTarget}首次使用杀不可闪避");
+                    break;
+
+                case RuleType.TemporaryHPBonus:
+                    // 临时体力加成（一骑当千）- 会在指定回合后消失
+                    {
+                        string thbTarget = rule.targetId ?? "enemies";
+                        int bonusHP = rule.value > 0 ? rule.value : 3;
+                        int removeRound = 3;
+                        if (!string.IsNullOrEmpty(rule.extraInfo) && int.TryParse(rule.extraInfo, out int parsedRound))
+                        {
+                            removeRound = parsedRound;
+                        }
+                        markers[$"temp_hp_bonus_{thbTarget}"] = bonusHP;
+                        markers[$"temp_hp_remove_round_{thbTarget}"] = removeRound;
+                        // 立即应用HP加成
+                        List<Player> thbTargets = GetTargetPlayers(thbTarget);
+                        foreach (var player in thbTargets)
+                        {
+                            player.maxHP += bonusHP;
+                            player.currentHP += bonusHP;
+                        }
+                        Debug.Log($"[规则] {thbTarget}临时+{bonusHP}体力，第{removeRound}回合后移除");
+                    }
+                    break;
+
+                case RuleType.DoubleDamage:
+                    // 伤害翻倍（绝世武力）
+                    {
+                        string ddTarget = rule.targetId ?? "enemies";
+                        int ddRound = rule.triggerTurn > 0 ? rule.triggerTurn : 1;
+                        markers[$"double_damage_{ddTarget}"] = ddRound;
+                        Debug.Log($"[规则] 第{ddRound}回合{ddTarget}伤害翻倍");
+                    }
+                    break;
+
+                case RuleType.ReinforcementOnRound:
+                    // 指定回合增援（逐步增援）
+                    markers["reinforcement_active"] = 1;
+                    if (!string.IsNullOrEmpty(rule.extraInfo))
+                    {
+                        // 格式: "guanyu_story:2,liubei:3"
+                        markers["reinforcement_data"] = 1; // 标记有增援数据
+                        Debug.Log($"[规则] 逐步增援配置: {rule.extraInfo}");
+                    }
+                    break;
+
+                case RuleType.AttackRangeBonus:
+                    // 攻击距离加成（西凉铁骑）
+                    {
+                        string arbTarget = rule.targetId ?? "enemies";
+                        int arbValue = rule.value > 0 ? rule.value : 1;
+                        List<Player> arbTargets = GetTargetPlayers(arbTarget);
+                        foreach (var player in arbTargets)
+                        {
+                            player.attackRange += arbValue;
+                        }
+                        Debug.Log($"[规则] {arbTarget}攻击距离+{arbValue}");
+                    }
+                    break;
+
+                case RuleType.EscapeOnDeath:
+                    // 死亡时逃跑（挟天子西遁）
+                    {
+                        string eodTarget = rule.targetId ?? "";
+                        if (!string.IsNullOrEmpty(eodTarget))
+                        {
+                            markers[$"escape_on_death_{eodTarget}"] = 1;
+                            Debug.Log($"[规则] {eodTarget}濒死时将逃跑而非死亡");
+                        }
+                    }
+                    break;
+
+                case RuleType.ReduceHandLimit:
+                    // 减少手牌上限（军心崩溃）
+                    {
+                        string rhlTarget = rule.targetId ?? "enemies";
+                        int rhlValue = rule.value != 0 ? rule.value : -1;
+                        List<Player> rhlTargets = GetTargetPlayers(rhlTarget);
+                        foreach (var player in rhlTargets)
+                        {
+                            player.handCardLimit += rhlValue;
+                            if (player.handCardLimit < 0) player.handCardLimit = 0;
+                        }
+                        Debug.Log($"[规则] {rhlTarget}手牌上限{rhlValue}");
+                    }
+                    break;
+
+                case RuleType.RandomDamage:
+                    // 随机伤害（饥疲交迫）- 每回合结束50%概率失去1HP
+                    markers["random_damage_chance"] = rule.value > 0 ? rule.value : 50;
+                    markers["random_damage_target"] = rule.targetId == "enemies" ? 1 : 0;
+                    Debug.Log($"[规则] 敌方每回合结束{markers["random_damage_chance"]}%概率失去1体力");
+                    break;
+
+                case RuleType.DamageIncrease:
+                    // 伤害增加（士气低迷）- 概率额外受到1点伤害
+                    markers["damage_increase_chance"] = rule.value > 0 ? rule.value : 30;
+                    markers["damage_increase_target"] = rule.targetId == "allies" ? 1 : 0;
+                    Debug.Log($"[规则] 我方受伤害{markers["damage_increase_chance"]}%概率+1");
+                    break;
+
+                case RuleType.DamageBonus:
+                    // 特定目标伤害加成（复仇之战）
+                    {
+                        string dbAttacker = rule.targetId ?? "";
+                        string dbTarget = rule.extraInfo ?? "";
+                        if (!string.IsNullOrEmpty(dbAttacker) && !string.IsNullOrEmpty(dbTarget))
+                        {
+                            markers[$"damage_bonus_{dbAttacker}_to_{dbTarget}"] = rule.value > 0 ? rule.value : 1;
+                            Debug.Log($"[规则] {dbAttacker}对{dbTarget}伤害+{rule.value}");
+                        }
+                    }
+                    break;
+
                 case RuleType.Custom:
                     // ⭐ 自定义规则处理
                     ApplyCustomRule(rule);
@@ -1417,12 +1544,125 @@ namespace ThreeKingdoms.Story
                 }
             }
 
+            // ⭐ 处理增援角色（虎牢关血战：关羽R2加入，刘备R3加入）
+            ProcessReinforcements();
+
+            // ⭐ 处理临时HP加成移除（一骑当千）
+            ProcessTemporaryHPBonusRemoval();
+
             // 触发回合开始事件
             TriggerEvents(EventTrigger.OnRoundStart, currentRound.ToString());
 
             // 检查胜负条件
             CheckVictoryCondition();
             CheckDefeatCondition();
+        }
+
+        /// <summary>
+        /// 处理增援角色加入
+        /// </summary>
+        private void ProcessReinforcements()
+        {
+            if (currentBattle?.reinforcements == null || currentBattle.reinforcements.Count == 0) return;
+
+            foreach (var reinforcement in currentBattle.reinforcements)
+            {
+                if (reinforcement.roundNumber == currentRound && reinforcement.character != null)
+                {
+                    Debug.Log($"[增援] 第{currentRound}回合，{reinforcement.character.nameKey} 加入战斗！");
+
+                    // 创建增援角色
+                    if (BattleManager.Instance != null)
+                    {
+                        // 获取角色数据
+                        var charData = StoryCharacterDatabase.Instance?.GetCharacter(reinforcement.character.characterId);
+                        if (charData != null)
+                        {
+                            // 创建新玩家 GameObject 和 Player 组件
+                            GameObject playerObj = new GameObject($"Player_{charData.nameKey}_Reinforcement");
+                            Player newPlayer = playerObj.AddComponent<Player>();
+
+                            newPlayer.generalName = LocalizationManager.Instance?.GetText(charData.nameKey) ?? charData.nameKey;
+                            newPlayer.faction = charData.faction;
+                            newPlayer.maxHP = charData.maxHP;
+                            newPlayer.currentHP = charData.maxHP;
+                            newPlayer.isAlive = true;
+                            newPlayer.isAI = true;  // 增援默认为AI控制
+
+                            // 添加技能
+                            if (charData.skills != null && charData.skills.Count > 0)
+                            {
+                                newPlayer.skills = new List<DatabaseModule.ISkill>();
+                                foreach (var skillId in charData.skills)
+                                {
+                                    var skill = SkillFactory.CreateSkill(skillId, newPlayer);
+                                    if (skill != null)
+                                    {
+                                        newPlayer.skills.Add(skill);
+                                    }
+                                }
+                            }
+
+                            // 发初始手牌
+                            for (int i = 0; i < 4; i++)
+                            {
+                                var card = DeckManager.Instance?.DrawCard();
+                                if (card != null) newPlayer.DrawCard(card);
+                            }
+
+                            // 添加到战斗
+                            BattleManager.Instance.players.Add(newPlayer);
+
+                            // 触发增援事件
+                            TriggerEvents(EventTrigger.OnReinforcementJoin, reinforcement.character.characterId);
+
+                            Debug.Log($"[增援] {newPlayer.generalName} 已加入战斗，HP:{newPlayer.currentHP}/{newPlayer.maxHP}");
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 处理临时HP加成移除（一骑当千）
+        /// </summary>
+        private void ProcessTemporaryHPBonusRemoval()
+        {
+            List<string> keysToRemove = new List<string>();
+
+            foreach (var kvp in markers)
+            {
+                if (kvp.Key.StartsWith("temp_hp_remove_round_"))
+                {
+                    string targetId = kvp.Key.Replace("temp_hp_remove_round_", "");
+                    int removeRound = kvp.Value;
+
+                    if (currentRound > removeRound)
+                    {
+                        // 需要移除临时HP加成
+                        if (markers.TryGetValue($"temp_hp_bonus_{targetId}", out int bonusHP))
+                        {
+                            List<Player> targets = GetTargetPlayers(targetId);
+                            foreach (var player in targets)
+                            {
+                                player.maxHP -= bonusHP;
+                                if (player.currentHP > player.maxHP)
+                                    player.currentHP = player.maxHP;
+                                Debug.Log($"[规则] {player.generalName}的临时+{bonusHP}体力效果消失");
+                            }
+
+                            keysToRemove.Add(kvp.Key);
+                            keysToRemove.Add($"temp_hp_bonus_{targetId}");
+                        }
+                    }
+                }
+            }
+
+            // 清理已处理的标记
+            foreach (var key in keysToRemove)
+            {
+                markers.Remove(key);
+            }
         }
 
         private void OnPlayerDamaged(Player victim, Player source, int damage, Card card)

@@ -57,6 +57,10 @@ namespace ThreeKingdoms
         public int maxSlashPerTurn = 1;         // 每回合最大杀次数（默认1，咆哮技能可修改）
         public int extraAttackRange = 0;        // 额外攻击范围（由武器提供）
 
+        [Header("马匹距离修正")]
+        public int defensiveHorseBonus = 0;     // ⭐ +1马：他人计算与你距离+1
+        public int offensiveHorseBonus = 0;     // ⭐ -1马：你计算与他人距离-1
+
         [Header("座位信息")]
         public int seatIndex = -1;              // 座位索引（用于距离计算）
 
@@ -343,6 +347,9 @@ namespace ThreeKingdoms
         /// <summary>
         /// 计算与目标的距离
         /// 基于座位顺序，只计算存活玩家之间的距离
+        /// ⭐ 考虑马的距离修正：
+        /// - 自己的-1马：减少计算距离
+        /// - 目标的+1马：增加计算距离
         /// </summary>
         public int GetDistanceTo(Player target)
         {
@@ -372,7 +379,14 @@ namespace ThreeKingdoms
             int clockwiseDistance = (targetIndex - myIndex + count) % count;
             int counterClockwiseDistance = (myIndex - targetIndex + count) % count;
 
-            return Mathf.Min(clockwiseDistance, counterClockwiseDistance);
+            int baseDistance = Mathf.Min(clockwiseDistance, counterClockwiseDistance);
+
+            // ⭐ 应用马的距离修正
+            // 自己的-1马减少距离，目标的+1马增加距离
+            int finalDistance = baseDistance - offensiveHorseBonus + target.defensiveHorseBonus;
+
+            // 距离最小为1（不能为0或负数，除非是自己）
+            return Mathf.Max(1, finalDistance);
         }
 
         /// <summary>
@@ -389,6 +403,112 @@ namespace ThreeKingdoms
         public bool IsInAttackRange(Player target)
         {
             return GetDistanceTo(target) <= GetTotalAttackRange();
+        }
+
+        /// <summary>
+        /// ⭐ 装备一张装备牌
+        /// </summary>
+        public Card Equip(Card equipmentCard)
+        {
+            if (equipmentCard == null || equipmentCard.cardType != CardType.Equipment)
+            {
+                Debug.LogWarning($"{playerName} 尝试装备非装备牌");
+                return null;
+            }
+
+            Card oldEquipment = null;
+
+            // 检查是否有同类型装备需要替换
+            for (int i = equipments.Count - 1; i >= 0; i--)
+            {
+                if (equipments[i].equipmentType == equipmentCard.equipmentType)
+                {
+                    oldEquipment = equipments[i];
+                    equipments.RemoveAt(i);
+                    Debug.Log($"{playerName} 替换装备: {oldEquipment.cardName} -> {equipmentCard.cardName}");
+                    break;
+                }
+            }
+
+            // 装备新装备
+            equipments.Add(equipmentCard);
+
+            // 应用装备效果
+            ApplyEquipmentEffect(equipmentCard, true);
+
+            Debug.Log($"{playerName} 装备了 {equipmentCard.cardName}");
+
+            return oldEquipment; // 返回被替换的旧装备（进弃牌堆）
+        }
+
+        /// <summary>
+        /// ⭐ 卸载一张装备牌
+        /// </summary>
+        public bool Unequip(Card equipmentCard)
+        {
+            if (equipmentCard == null || !equipments.Contains(equipmentCard))
+            {
+                return false;
+            }
+
+            equipments.Remove(equipmentCard);
+            ApplyEquipmentEffect(equipmentCard, false);
+
+            Debug.Log($"{playerName} 卸载了 {equipmentCard.cardName}");
+            return true;
+        }
+
+        /// <summary>
+        /// ⭐ 应用/移除装备效果
+        /// </summary>
+        private void ApplyEquipmentEffect(Card equipment, bool isEquipping)
+        {
+            int modifier = isEquipping ? 1 : -1;
+
+            switch (equipment.equipmentType)
+            {
+                case EquipmentType.Weapon:
+                    extraAttackRange += equipment.equipmentValue * modifier;
+                    Debug.Log($"{playerName} 攻击范围变为 {GetTotalAttackRange()}");
+                    break;
+
+                case EquipmentType.DefensiveHorse:
+                    defensiveHorseBonus += equipment.equipmentValue * modifier;
+                    Debug.Log($"{playerName} 防御距离+{defensiveHorseBonus}");
+                    break;
+
+                case EquipmentType.OffensiveHorse:
+                    offensiveHorseBonus += equipment.equipmentValue * modifier;
+                    Debug.Log($"{playerName} 进攻距离-{offensiveHorseBonus}");
+                    break;
+
+                case EquipmentType.Armor:
+                    // 防具效果待实现
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取指定类型的装备
+        /// </summary>
+        public Card GetEquipment(EquipmentType type)
+        {
+            foreach (var eq in equipments)
+            {
+                if (eq.equipmentType == type)
+                {
+                    return eq;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ⭐ 检查是否有指定类型的装备
+        /// </summary>
+        public bool HasEquipment(EquipmentType type)
+        {
+            return GetEquipment(type) != null;
         }
 
         /// <summary>

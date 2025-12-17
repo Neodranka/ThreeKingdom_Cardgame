@@ -64,6 +64,22 @@ namespace ThreeKingdoms.DatabaseModule
             {"beiren", typeof(Skills.Story.BeirenSkill)},               // 北人（曹军水兵）
             {"paoxiao_story", typeof(Skills.Story.PaoxiaoSkill)},       // 咆哮（张飞-故事版）
             {"yijue", typeof(Skills.Story.YijueSkill)},                 // 义绝（关羽）
+
+            // ==================== 官渡之战/讨董之战 v2 新增 ====================
+            {"weiwu", typeof(Skills.Story.WeiWuSkill)},                 // 威武（颜良）
+            {"qiangjian", typeof(Skills.Story.QiangJianSkill)},         // 强健（文丑）
+            {"duobian", typeof(Skills.Story.DuoBianSkill)},             // 多变（张郃）
+            {"mashu", typeof(Skills.Story.MaShuSkill)},                 // 马术（高览/袁军骑将）
+            {"duanliang", typeof(Skills.Story.DuanLiangSkill)},         // 断粮（徐晃）
+            {"yingming", typeof(Skills.Story.YingMingSkill)},           // 英明（淳于琼）
+            {"qiji", typeof(Skills.Story.QiJiSkill)},                   // 齐击（袁绍）
+            {"yaowu_v2", typeof(Skills.Story.YaoWuV2Skill)},            // 耀武v2（华雄-讨董版）
+            {"wushuang", typeof(Skills.Story.WuShuangSkill)},           // 无双（吕布）
+            {"yinghun", typeof(Skills.Story.YingHunSkill)},             // 英魂（孙坚）
+            {"xueyi", typeof(Skills.Story.XueYiSkill)},                 // 血裔（袁绍-讨董版）
+            {"jiuchiroulin", typeof(Skills.Story.JiuChiRouLinSkill)},   // 酒池肉林（董卓）
+            {"jielve", typeof(Skills.Story.JieLveSkill)},               // 劫掠（李傕）
+            {"xiongbao", typeof(Skills.Story.XiongBaoSkill)},           // 凶暴（郭汜）
         };
 
         // 技能ID到技能名称的映射
@@ -88,6 +104,13 @@ namespace ThreeKingdoms.DatabaseModule
             // 赤壁之战v2新增
             {"jienan", "诘难"}, {"shuizhan", "水战"}, {"beiren", "北人"},
             {"paoxiao_story", "咆哮"}, {"yijue", "义绝"},
+
+            // 官渡之战/讨董之战 v2 新增
+            {"weiwu", "威武"}, {"qiangjian", "强健"}, {"duobian", "多变"},
+            {"mashu", "马术"}, {"duanliang", "断粮"}, {"yingming", "英明"},
+            {"qiji", "齐击"}, {"yaowu_v2", "耀武"}, {"wushuang", "无双"},
+            {"yinghun", "英魂"}, {"xueyi", "血裔"}, {"jiuchiroulin", "酒池肉林"},
+            {"jielve", "劫掠"}, {"xiongbao", "凶暴"},
         };
 
         // ⭐ 技能ID到技能类型的映射（主动/被动/触发）
@@ -125,6 +148,27 @@ namespace ThreeKingdoms.DatabaseModule
             {"zhuhe", SkillType.Trigger},       // 主和
             {"jienan", SkillType.Trigger},      // 诘难
             {"daoshu", SkillType.Trigger},      // 盗书
+
+            // ==================== 官渡之战/讨董之战 v2 新增 ====================
+            // 主动技能
+            {"duanliang", SkillType.Active},    // 断粮
+            {"qiji", SkillType.Active},         // 齐击
+            {"yinghun", SkillType.Active},      // 英魂
+            {"jiuchiroulin", SkillType.Active}, // 酒池肉林
+            {"weiwu", SkillType.Active},        // 威武（主动转化+被动少摸）
+            {"qiangjian", SkillType.Active},    // 强健
+
+            // 被动技能
+            {"duobian", SkillType.Passive},     // 多变
+            {"mashu", SkillType.Passive},       // 马术
+            {"yingming", SkillType.Passive},    // 英明
+            {"wushuang", SkillType.Passive},    // 无双
+
+            // 触发技能
+            {"yaowu_v2", SkillType.Trigger},    // 耀武v2
+            {"xueyi", SkillType.Trigger},       // 血裔
+            {"jielve", SkillType.Trigger},      // 劫掠
+            {"xiongbao", SkillType.Trigger},    // 凶暴
         };
 
         /// <summary>
