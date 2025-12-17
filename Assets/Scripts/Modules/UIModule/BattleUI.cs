@@ -15,7 +15,8 @@ namespace ThreeKingdoms.UI
         None,
         Dodge,      // 响应杀，需要出闪
         Slash,      // 响应决斗/南蛮，需要出杀
-        Peach       // 濒死求桃
+        Peach,      // 濒死求桃
+        Nullify     // 响应锦囊，需要出无懈可击
     }
 
     /// <summary>
@@ -395,7 +396,18 @@ namespace ThreeKingdoms.UI
                 string selectedLabel = LocalizationManager.Instance != null
                     ? LocalizationManager.Instance.GetText("ui_card_selected")
                     : "已选择";
-                ShowMessage($"{selectedLabel}: {cardName}");
+
+                // ⭐ 龙胆技能提示：选中闪牌时显示可以当杀使用
+                Player currentPlayer = BattleManager.Instance?.GetCurrentPlayer();
+                if (selectedCard.cardData.cardName == "闪" && currentPlayer != null && GetLongdanSkill(currentPlayer) != null)
+                {
+                    string longdanHint = GetLocalizedText("msg_longdan_hint", "【龙胆】可选择目标当杀使用");
+                    ShowMessage($"{selectedLabel}: {cardName} - {longdanHint}");
+                }
+                else
+                {
+                    ShowMessage($"{selectedLabel}: {cardName}");
+                }
             }
             else
             {
@@ -467,10 +479,30 @@ namespace ThreeKingdoms.UI
                     break;
 
                 case "桃":
+                    // ⭐ 赤壁之战：单骑断桥规则检查（张飞不能使用桃）
+                    if (Story.StoryBattleManager.Instance != null && !Story.StoryBattleManager.Instance.CanUsePeach(user))
+                    {
+                        ShowMessage(GetLocalizedText("msg_no_peach_rule", "【单骑断桥】不能使用桃！"));
+                        return;
+                    }
                     UsePeach(user, card);
                     break;
 
                 case "闪":
+                    // ⭐ 龙胆技能：可以将闪当杀使用
+                    if (GetLongdanSkill(user) != null)
+                    {
+                        if (selectedTarget == null)
+                        {
+                            ShowMessage(GetLocalizedText("msg_select_target", "请选择目标!"));
+                            return;
+                        }
+                        // 使用龙胆将闪当杀
+                        Debug.Log($"[龙胆] {user.generalName} 将【闪】当【杀】使用，攻击 {selectedTarget.generalName}");
+                        AddLocalizedLog("msg_longdan_dodge_as_slash", user.playerName, selectedTarget.playerName);
+                        UseSlashWithCard(user, selectedTarget, card); // 使用闪牌作为杀
+                        break;
+                    }
                     ShowMessage(GetLocalizedText("msg_dodge_only_response", "【闪】只能在响应【杀】时使用"));
                     return;
 
@@ -546,10 +578,59 @@ namespace ThreeKingdoms.UI
                     ShowMessage(GetLocalizedText("msg_nullification_only_response", "【无懈可击】只能在响应锦囊牌时使用"));
                     return;
 
+                // ==================== 延时锦囊 ====================
                 case "乐不思蜀":
+                    if (selectedTarget == null)
+                    {
+                        ShowMessage(GetLocalizedText("msg_select_target", "请选择目标!"));
+                        return;
+                    }
+                    // 检查目标判定区是否已有乐不思蜀
+                    if (HasDelayedTrick(selectedTarget, "乐不思蜀"))
+                    {
+                        ShowMessage(GetLocalizedText("msg_already_has_indulgence", "目标判定区已有【乐不思蜀】"));
+                        return;
+                    }
+                    BattleManager.Instance.UseIndulgence(user, selectedTarget, card);
+                    RemoveCardUI(card);
+                    AddLocalizedLog("msg_used_delayed_trick", user.playerName, CardNameHelper.GetLocalizedCardName("乐不思蜀"), selectedTarget.playerName);
+                    break;
+
                 case "闪电":
-                    ShowMessage(GetLocalizedText("msg_delayed_trick_not_implemented", "延时锦囊暂未实现"));
-                    return;
+                    // 检查自己判定区是否已有闪电
+                    if (HasDelayedTrick(user, "闪电"))
+                    {
+                        ShowMessage(GetLocalizedText("msg_already_has_lightning", "判定区已有【闪电】"));
+                        return;
+                    }
+                    BattleManager.Instance.UseLightning(user, card);
+                    RemoveCardUI(card);
+                    AddLocalizedLog("msg_used_lightning", user.playerName);
+                    break;
+
+                case "兵粮寸断":
+                    if (selectedTarget == null)
+                    {
+                        ShowMessage(GetLocalizedText("msg_select_target", "请选择目标!"));
+                        return;
+                    }
+                    // 检查距离是否为1
+                    int distance = user.GetDistanceTo(selectedTarget);
+                    if (distance > 1)
+                    {
+                        ShowMessage(GetLocalizedText("msg_supply_shortage_distance", "【兵粮寸断】只能对距离1的角色使用"));
+                        return;
+                    }
+                    // 检查目标判定区是否已有兵粮寸断
+                    if (HasDelayedTrick(selectedTarget, "兵粮寸断"))
+                    {
+                        ShowMessage(GetLocalizedText("msg_already_has_supply_shortage", "目标判定区已有【兵粮寸断】"));
+                        return;
+                    }
+                    BattleManager.Instance.UseSupplyShortage(user, selectedTarget, card);
+                    RemoveCardUI(card);
+                    AddLocalizedLog("msg_used_delayed_trick", user.playerName, CardNameHelper.GetLocalizedCardName("兵粮寸断"), selectedTarget.playerName);
+                    break;
 
                 default:
                     string cardName = CardNameHelper.GetLocalizedCardName(card.cardName);
@@ -624,6 +705,48 @@ namespace ThreeKingdoms.UI
             UpdateAllPlayerInfo();
 
             AddLocalizedLog("msg_used_card_on_target", user.playerName, target.playerName, CardNameHelper.GetLocalizedCardName("杀"));
+
+            // 播放动画
+            if (playerInfoUIs.ContainsKey(target))
+            {
+                playerInfoUIs[target].PlayDamageAnimation();
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 龙胆技能：使用任意牌当杀（用于闪当杀）
+        /// </summary>
+        private void UseSlashWithCard(Player user, Player target, Card card)
+        {
+            // 先检查是否可以使用杀（攻击范围、次数限制等）
+            if (!BattleManager.Instance.CanUseSlash(user, target, out string errorMessage))
+            {
+                if (!user.CanUseSlash())
+                {
+                    ShowLocalizedMessage("msg_slash_limit_reached");
+                }
+                else if (!user.IsInAttackRange(target))
+                {
+                    int distance = user.GetDistanceTo(target);
+                    int range = user.GetTotalAttackRange();
+                    ShowMessage(LocalizationManager.Instance?.GetTextFormatted("msg_target_out_of_range", distance, range)
+                        ?? $"目标不在攻击范围内（距离:{distance}, 范围:{range}）");
+                }
+                else
+                {
+                    ShowMessage(errorMessage);
+                }
+                return;
+            }
+
+            // 使用BattleManager处理杀的效果（传入的card实际上是闪，但当杀用）
+            BattleManager.Instance.UseSlash(user, target, card);
+
+            // 移除手牌UI
+            RemoveCardUI(card);
+
+            // 更新显示
+            UpdateAllPlayerInfo();
 
             // 播放动画
             if (playerInfoUIs.ContainsKey(target))
@@ -887,6 +1010,7 @@ namespace ThreeKingdoms.UI
                     ResponseType.Dodge => "msg_dodge_required",
                     ResponseType.Slash => "msg_slash_required",
                     ResponseType.Peach => "msg_peach_required",
+                    ResponseType.Nullify => "msg_nullify_required",
                     _ => "msg_response_required"
                 };
 
@@ -901,6 +1025,7 @@ namespace ThreeKingdoms.UI
                         ResponseType.Dodge => "请出【闪】",
                         ResponseType.Slash => "请出【杀】",
                         ResponseType.Peach => "请出【桃】",
+                        ResponseType.Nullify => "请出【无懈可击】",
                         _ => "请响应"
                     };
                 }
@@ -1030,12 +1155,29 @@ namespace ThreeKingdoms.UI
                 ResponseType.Dodge => "闪",
                 ResponseType.Slash => "杀",
                 ResponseType.Peach => "桃",
+                ResponseType.Nullify => "无懈可击",
                 _ => ""
             };
+
+            // ⭐ 检查是否有龙胆技能
+            bool hasLongdan = GetLongdanSkill(player) != null;
+            string alternateCardName = "";
+            if (hasLongdan)
+            {
+                if (responseType == ResponseType.Dodge)
+                    alternateCardName = "杀"; // 杀可以当闪用
+                else if (responseType == ResponseType.Slash)
+                    alternateCardName = "闪"; // 闪可以当杀用
+            }
 
             foreach (var cardUI in handCardUIs)
             {
                 bool canRespond = cardUI.cardData.cardName == requiredCardName;
+                // ⭐ 龙胆：可以用杀当闪或用闪当杀
+                if (!canRespond && hasLongdan && !string.IsNullOrEmpty(alternateCardName))
+                {
+                    canRespond = cardUI.cardData.cardName == alternateCardName;
+                }
                 cardUI.SetInteractable(canRespond);
             }
         }
@@ -1127,10 +1269,32 @@ namespace ThreeKingdoms.UI
                 ResponseType.Dodge => "闪",
                 ResponseType.Slash => "杀",
                 ResponseType.Peach => "桃",
+                ResponseType.Nullify => "无懈可击",
                 _ => ""
             };
 
-            if (cardUI.cardData.cardName != requiredCardName)
+            bool isValidCard = cardUI.cardData.cardName == requiredCardName;
+
+            // ⭐ 龙胆技能检查：杀当闪，闪当杀
+            if (!isValidCard && responsePlayer != null)
+            {
+                var longdanSkill = GetLongdanSkill(responsePlayer);
+                if (longdanSkill != null)
+                {
+                    if (currentResponseType == ResponseType.Dodge && cardUI.cardData.cardName == "杀")
+                    {
+                        isValidCard = true;
+                        Debug.Log($"[龙胆] {responsePlayer.generalName} 将【杀】当【闪】使用");
+                    }
+                    else if (currentResponseType == ResponseType.Slash && cardUI.cardData.cardName == "闪")
+                    {
+                        isValidCard = true;
+                        Debug.Log($"[龙胆] {responsePlayer.generalName} 将【闪】当【杀】使用");
+                    }
+                }
+            }
+
+            if (!isValidCard)
             {
                 string localizedCardName = CardNameHelper.GetLocalizedCardName(requiredCardName);
                 ShowMessage(LocalizationManager.Instance != null
@@ -1154,14 +1318,23 @@ namespace ThreeKingdoms.UI
         /// </summary>
         private Card FindResponseCard(Player player, ResponseType responseType)
         {
+            // ⭐ 胆裂技能检查：处于胆裂状态不能使用或打出闪
+            if (responseType == ResponseType.Dodge && IsDanlieActive(player))
+            {
+                Debug.Log($"[胆裂] {player.generalName} 处于胆裂状态，不能使用或打出【闪】");
+                return null;
+            }
+
             string requiredCardName = responseType switch
             {
                 ResponseType.Dodge => "闪",
                 ResponseType.Slash => "杀",
                 ResponseType.Peach => "桃",
+                ResponseType.Nullify => "无懈可击",
                 _ => ""
             };
 
+            // 先查找原始卡牌
             foreach (var card in player.handCards)
             {
                 if (card.cardName == requiredCardName)
@@ -1169,7 +1342,92 @@ namespace ThreeKingdoms.UI
                     return card;
                 }
             }
+
+            // ⭐ 检查龙胆技能：杀当闪，闪当杀
+            var longdanSkill = GetLongdanSkill(player);
+            if (longdanSkill != null)
+            {
+                if (responseType == ResponseType.Dodge)
+                {
+                    // 需要闪时，检查是否有杀可以当闪用
+                    foreach (var card in player.handCards)
+                    {
+                        if (card.cardName == "杀")
+                        {
+                            Debug.Log($"[龙胆] {player.generalName} 将【杀】当【闪】使用");
+                            return card;
+                        }
+                    }
+                }
+                else if (responseType == ResponseType.Slash)
+                {
+                    // 需要杀时，检查是否有闪可以当杀用
+                    foreach (var card in player.handCards)
+                    {
+                        if (card.cardName == "闪")
+                        {
+                            Debug.Log($"[龙胆] {player.generalName} 将【闪】当【杀】使用");
+                            return card;
+                        }
+                    }
+                }
+            }
+
             return null;
+        }
+
+        /// <summary>
+        /// ⭐ 获取玩家的龙胆技能
+        /// </summary>
+        private ThreeKingdoms.DatabaseModule.Skills.Story.LongdanSkill GetLongdanSkill(Player player)
+        {
+            if (player == null || player.skills == null) return null;
+
+            foreach (var skill in player.skills)
+            {
+                if (skill is ThreeKingdoms.DatabaseModule.Skills.Story.LongdanSkill longdan)
+                {
+                    return longdan;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ⭐ 检查玩家是否处于胆裂状态（不能使用或打出闪）
+        /// </summary>
+        private bool IsDanlieActive(Player player)
+        {
+            if (player == null || player.skills == null) return false;
+
+            foreach (var skill in player.skills)
+            {
+                if (skill is ThreeKingdoms.DatabaseModule.Skills.Story.DanlieSkill danlie)
+                {
+                    if (danlie.IsDanlieActive())
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 检查玩家判定区是否已有指定延时锦囊
+        /// </summary>
+        private bool HasDelayedTrick(Player player, string cardName)
+        {
+            if (player == null || player.judgeCards == null) return false;
+
+            foreach (var card in player.judgeCards)
+            {
+                if (card.cardName == cardName)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -1178,6 +1436,37 @@ namespace ThreeKingdoms.UI
         public bool IsWaitingForResponse()
         {
             return isWaitingForResponse;
+        }
+
+        /// <summary>
+        /// ⭐ 当前濒死的玩家（用于显示求桃提示）
+        /// </summary>
+        private Player nearDeathTarget = null;
+
+        /// <summary>
+        /// ⭐ 设置濒死目标（用于显示谁需要被救）
+        /// </summary>
+        public void SetNearDeathTarget(Player dyingPlayer)
+        {
+            nearDeathTarget = dyingPlayer;
+
+            // 更新响应面板提示
+            if (responsePromptText != null && dyingPlayer != null)
+            {
+                string prompt = LocalizationManager.Instance != null
+                    ? LocalizationManager.Instance.GetTextFormatted("msg_peach_for_player", dyingPlayer.playerName)
+                    : $"请出【桃】救 {dyingPlayer.playerName}";
+                responsePromptText.text = prompt;
+                TMPFontHelper.SetFontByLanguage(responsePromptText);
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取当前濒死目标
+        /// </summary>
+        public Player GetNearDeathTarget()
+        {
+            return nearDeathTarget;
         }
 
         #endregion

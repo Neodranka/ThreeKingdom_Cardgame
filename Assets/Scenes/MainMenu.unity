@@ -569,7 +569,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   battleModeButton: {fileID: 2029888509}
   storyModeButton: {fileID: 845954888}
-  settingsButton: {fileID: 1390345925}
   titleText: {fileID: 73731540}
 --- !u!4 &449774885
 Transform:
@@ -643,7 +642,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: v0.1.0
+  m_text: v1.0.0
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

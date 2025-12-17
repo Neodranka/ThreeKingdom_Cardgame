@@ -131,12 +131,13 @@ namespace ThreeKingdoms.Story
     /// </summary>
     public enum VictoryType
     {
-        DefeatAllEnemies,       // 击败所有敌人
-        DefeatTarget,           // 击败特定目标
-        SurviveTurns,           // 存活N回合
-        AccumulateMarks,        // 累积特定标记
-        ProtectAlly,            // 保护友军存活
-        Custom                  // 自定义条件
+        DefeatAllEnemies,           // 击败所有敌人
+        DefeatTarget,               // 击败特定目标
+        SurviveTurns,               // 存活N回合
+        AccumulateMarks,            // 累积特定标记
+        ProtectAlly,                // 保护友军存活
+        DefeatAllEnemiesOrSurvive,  // 击败所有敌人或存活N回合
+        Custom                      // 自定义条件
     }
 
     /// <summary>
@@ -161,12 +162,14 @@ namespace ThreeKingdoms.Story
     /// </summary>
     public enum DefeatType
     {
-        PlayerDeath,            // 玩家死亡
-        AllyDeath,              // 特定友军死亡
-        AllAlliesDeath,         // 我方全灭
-        ExceedCount,            // 超过特定次数
-        TurnLimitExceeded,      // 超过回合限制
-        Custom                  // 自定义条件
+        PlayerDeath,                // 玩家死亡
+        AllyDeath,                  // 特定友军死亡
+        AllAlliesDeath,             // 我方全灭
+        ExceedCount,                // 超过特定次数
+        TurnLimitExceeded,          // 超过回合限制
+        PlayerDeathOrExceedCount,   // 玩家死亡或超过特定次数
+        PlayerDeathOrAllAlliesDeath,// 玩家死亡或我方全灭
+        Custom                      // 自定义条件
     }
 
     /// <summary>
@@ -209,6 +212,26 @@ namespace ThreeKingdoms.Story
         AddStatus,              // 添加状态
         EnemyNoAttack,          // 敌人不主动攻击
         AllyAutoSupport,        // 友军自动辅助
+
+        // 官渡之战/讨董之战新增规则类型
+        ModifyDrawCards,        // 修改摸牌数量
+        ModifyHandLimit,        // 修改手牌上限
+        DamageReduction,        // 伤害减免
+        RandomDiscard,          // 随机弃牌
+        FirstDamagePrevention,  // 首次伤害防止
+        DrawOnDamage,           // 受伤后摸牌
+        DrawOnNoDamage,         // 未造成伤害时摸牌
+        DrawOnFirstDamage,      // 首次造成伤害后摸牌
+        DamageToWounded,        // 对已受伤目标伤害加成
+        DamageOverTime,         // 持续伤害（每回合失去体力）
+        LowHandDamageBonus,     // 低手牌时伤害加成
+        FirstDamageBonus,       // 首次伤害加成
+        ForcedDiscard,          // 强制弃牌
+        BonusDraw,              // 额外摸牌
+        ExtraSlash,             // 额外出杀次数
+        NoAttackTarget,         // 禁止攻击目标
+        NoAllyPeach,            // 禁止对盟友用桃
+
         Custom                  // 自定义规则
     }
 
@@ -248,6 +271,7 @@ namespace ThreeKingdoms.Story
         OnBattleStart,          // 战斗开始
         OnRoundStart,           // 回合开始（参数为回合数）
         OnTurnStart,            // 角色回合开始（参数为角色ID）
+        OnTurnEnd,              // 角色回合结束（参数为角色ID）
         OnFirstAttack,          // 首次攻击（参数为攻击者ID）
         OnFirstKill,            // 首次出杀（参数为使用者ID）
         OnSkillActivate,        // 技能发动（参数为技能ID）

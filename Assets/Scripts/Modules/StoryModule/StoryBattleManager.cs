@@ -36,6 +36,7 @@ namespace ThreeKingdoms.Story
         [Header("状态")]
         public bool isBattleActive = false;
         public bool isDialogueShowing = false;
+        private bool battleEndHandled = false;  // ⭐ 防止重复处理游戏结束
 
         // ⭐ 开场对话状态
         private bool openingDialogueShown = false;
@@ -46,6 +47,29 @@ namespace ThreeKingdoms.Story
         private Dictionary<string, int> eventCounts = new Dictionary<string, int>(); // 事件计数
         private Player playerCharacter;
         private List<BattleEvent> pendingEvents = new List<BattleEvent>();
+
+        // ⭐ 规则运行时状态
+        private Dictionary<string, int> damageReductionCharges = new Dictionary<string, int>(); // 伤害减免次数
+        private Dictionary<string, bool> firstDamagePrevented = new Dictionary<string, bool>(); // 首次伤害是否已防止
+        private Dictionary<string, bool> firstDamageDealt = new Dictionary<string, bool>(); // 是否已造成首次伤害
+        private Dictionary<string, bool> dealtDamageThisTurn = new Dictionary<string, bool>(); // 本回合是否造成伤害
+        private HashSet<string> noAttackTargets = new HashSet<string>(); // 禁止攻击的目标ID
+        private bool noAllyPeachRule = false; // 禁止对盟友用桃
+        private int extraSlashCount = 0; // 额外出杀次数
+        private int extraSlashRound = 0; // 额外出杀生效回合
+
+        // ⭐ 赤壁之战 Custom 规则状态
+        private bool huweiRule = false;              // 虎威：张飞杀有30%令目标弃牌
+        private bool noPeachRule = false;            // 单骑断桥：张飞不能用桃
+        private bool debateRule = false;             // 舌战模式
+        private bool persuadeRule = false;           // 以理服人：诸葛亮杀伤可改弃2牌
+        private bool forgeLetterRule = false;        // 伪造书信：反间成功获得标记
+        private bool trickRule = false;              // 中计：黑牌视为假情报
+        private bool suspicionRule = false;          // 曹操猜忌：标记减蔡瑁HP
+        private bool seasickRule = false;            // 水土不服：曹军30%掉血
+        private bool guanyuPriorityRule = false;     // 关羽优先攻击最低血敌人
+        private int fanjianMarkerCount = 0;          // 反间标记计数
+        private int stealSuccessCount = 0;           // 蒋干盗书成功次数（连续）
 
         private void Awake()
         {
@@ -250,9 +274,20 @@ namespace ThreeKingdoms.Story
             markers.Clear();
             eventCounts.Clear();
 
+            // ⭐ 重置规则运行时状态
+            damageReductionCharges.Clear();
+            firstDamagePrevented.Clear();
+            firstDamageDealt.Clear();
+            dealtDamageThisTurn.Clear();
+            noAttackTargets.Clear();
+            noAllyPeachRule = false;
+            extraSlashCount = 0;
+            extraSlashRound = 0;
+
             // ⭐ 重置开场对话状态
             openingDialogueShown = false;
             pendingOpeningDialogue = null;
+            battleEndHandled = false;  // ⭐ 重置游戏结束处理标志
 
             // 重置事件触发状态
             foreach (var evt in battle.events)
@@ -300,60 +335,917 @@ namespace ThreeKingdoms.Story
         /// </summary>
         private void ApplyRule(SpecialRule rule)
         {
-            Debug.Log($"[StoryBattle] 应用规则: {rule.nameKey}");
+            Debug.Log($"[StoryBattle] 应用规则: {rule.nameKey} (类型:{rule.type})");
 
             switch (rule.type)
             {
                 case RuleType.ModifyInitialCards:
                     // 修改初始手牌数
-                    if (!string.IsNullOrEmpty(rule.targetId))
-                    {
-                        var player = FindPlayer(rule.targetId);
-                        if (player != null)
-                        {
-                            // 减少手牌
-                            for (int i = 0; i < -rule.value && player.handCards.Count > 0; i++)
-                            {
-                                player.DiscardCard(player.handCards[0]);
-                            }
-                        }
-                    }
+                    ApplyModifyInitialCards(rule);
                     break;
 
                 case RuleType.ModifyMaxHP:
                     // 修改血量上限
-                    if (!string.IsNullOrEmpty(rule.targetId))
-                    {
-                        var player = FindPlayer(rule.targetId);
-                        if (player != null)
-                        {
-                            player.maxHP += rule.value;
-                            player.currentHP += rule.value;
-                        }
-                    }
+                    ApplyModifyMaxHP(rule);
                     break;
 
                 case RuleType.ModifyAttackRange:
                     // 修改攻击距离
-                    if (!string.IsNullOrEmpty(rule.targetId))
-                    {
-                        var player = FindPlayer(rule.targetId);
-                        if (player != null)
-                        {
-                            player.attackRange += rule.value;
-                        }
-                    }
+                    ApplyModifyAttackRange(rule);
                     break;
 
                 case RuleType.FireDamageBonus:
-                    // 火焰伤害加成 - 存储到markers
+                    // 火焰伤害加成
                     markers["fire_damage_bonus"] = rule.value;
                     break;
 
+                case RuleType.ModifyDrawCards:
+                    // 修改摸牌数量 - 存储到markers供摸牌时使用
+                    if (rule.targetId == "enemies" || rule.targetId == "allies" || string.IsNullOrEmpty(rule.targetId))
+                    {
+                        markers[$"draw_modifier_{rule.targetId ?? "all"}"] = rule.value;
+                    }
+                    else
+                    {
+                        markers[$"draw_modifier_{rule.targetId}"] = rule.value;
+                    }
+                    break;
+
+                case RuleType.ModifyHandLimit:
+                    // 修改手牌上限
+                    ApplyModifyHandLimit(rule);
+                    break;
+
+                case RuleType.DamageReduction:
+                    // 伤害减免（官渡要塞：首次两次伤害各-1）
+                    string drTarget = rule.targetId ?? "allies";
+                    damageReductionCharges[drTarget] = rule.value > 0 ? rule.value : 2; // 默认2次
+                    Debug.Log($"[规则] 伤害减免生效，目标:{drTarget}，次数:{damageReductionCharges[drTarget]}");
+                    break;
+
+                case RuleType.RandomDiscard:
+                    // 随机弃牌 - 存储概率到markers（30%）
+                    markers["random_discard_chance"] = rule.value > 0 ? rule.value : 30;
+                    break;
+
+                case RuleType.FirstDamagePrevention:
+                    // 首次伤害防止（强势主公）
+                    string fdpTarget = rule.targetId ?? "player";
+                    firstDamagePrevented[fdpTarget] = false; // false表示还未触发防止
+                    Debug.Log($"[规则] 首次伤害防止生效，目标:{fdpTarget}");
+                    break;
+
+                case RuleType.DrawOnDamage:
+                    // 受伤后摸牌（死战不退）
+                    markers["draw_on_damage"] = rule.value > 0 ? rule.value : 1;
+                    break;
+
+                case RuleType.DrawOnNoDamage:
+                    // 未造成伤害时摸牌（以逸待劳）
+                    markers["draw_on_no_damage"] = rule.value > 0 ? rule.value : 1;
+                    break;
+
+                case RuleType.DrawOnFirstDamage:
+                    // 首次造成伤害后摸牌（江东猛虎）
+                    markers["draw_on_first_damage"] = rule.value > 0 ? rule.value : 1;
+                    break;
+
+                case RuleType.DamageToWounded:
+                    // 对已受伤目标伤害加成（西凉精骑）
+                    markers["damage_to_wounded_bonus"] = rule.value > 0 ? rule.value : 1;
+                    break;
+
+                case RuleType.DamageOverTime:
+                    // 持续伤害 - 记录开始回合
+                    markers["damage_over_time_start"] = rule.triggerTurn > 0 ? rule.triggerTurn : 2;
+                    markers["damage_over_time_value"] = rule.value > 0 ? rule.value : 1;
+                    markers["damage_over_time_target"] = rule.targetId == "all" ? 0 : (rule.targetId == "enemies" ? 1 : 2);
+                    Debug.Log($"[规则] 持续伤害将在第{markers["damage_over_time_start"]}回合开始生效");
+                    break;
+
+                case RuleType.LowHandDamageBonus:
+                    // 低手牌时伤害加成（背水一战）
+                    markers["low_hand_damage_bonus"] = rule.value > 0 ? rule.value : 1;
+                    markers["low_hand_threshold"] = 2; // 手牌<=2时生效
+                    break;
+
+                case RuleType.FirstDamageBonus:
+                    // 首次伤害加成（降将助战）
+                    string fdbTarget = rule.targetId ?? "player";
+                    firstDamageDealt[fdbTarget] = false;
+                    markers[$"first_damage_bonus_{fdbTarget}"] = rule.value > 0 ? rule.value : 1;
+                    break;
+
+                case RuleType.ForcedDiscard:
+                    // 强制弃牌（袁营猜忌）
+                    markers["forced_discard"] = rule.value > 0 ? rule.value : 1;
+                    markers["forced_discard_target"] = rule.targetId != null ? 1 : 0;
+                    break;
+
+                case RuleType.BonusDraw:
+                    // 额外摸牌（赤足相迎）
+                    markers["bonus_draw"] = rule.value > 0 ? rule.value : 1;
+                    markers["bonus_draw_trigger"] = 1; // 首次触发
+                    break;
+
+                case RuleType.ExtraSlash:
+                    // 额外出杀次数（先声夺人）
+                    extraSlashCount = rule.value > 0 ? rule.value : 1;
+                    extraSlashRound = rule.triggerTurn > 0 ? rule.triggerTurn : 1;
+                    Debug.Log($"[规则] 第{extraSlashRound}回合可额外出{extraSlashCount}张杀");
+                    break;
+
+                case RuleType.NoAttackTarget:
+                    // 禁止攻击目标（名义联盟）
+                    if (!string.IsNullOrEmpty(rule.targetId))
+                    {
+                        noAttackTargets.Add(rule.targetId.ToLower());
+                    }
+                    // 检查是否有多个目标（通过敌人列表）
+                    if (currentBattle?.enemies != null)
+                    {
+                        foreach (var enemy in currentBattle.enemies)
+                        {
+                            // 标记为"名义盟友"的敌人（袁绍、袁术）
+                            if (enemy.characterId.ToLower().Contains("yuanshao") ||
+                                enemy.characterId.ToLower().Contains("yuanshu"))
+                            {
+                                noAttackTargets.Add(enemy.characterId.ToLower());
+                            }
+                        }
+                    }
+                    Debug.Log($"[规则] 禁止攻击目标: {string.Join(", ", noAttackTargets)}");
+                    break;
+
+                case RuleType.NoAllyPeach:
+                    // 禁止对盟友用桃（各自为战）
+                    noAllyPeachRule = true;
+                    Debug.Log("[规则] 禁止对盟友使用桃");
+                    break;
+
+                case RuleType.Custom:
+                    // ⭐ 自定义规则处理
+                    ApplyCustomRule(rule);
+                    break;
+
+                case RuleType.AllyAutoSupport:
+                    // ⭐ 盟友自动支援（鲁肃斡旋）
+                    markers["ally_auto_support"] = 1;
+                    Debug.Log("[规则] 盟友自动支援生效");
+                    break;
+
                 default:
+                    Debug.Log($"[StoryBattle] 未处理的规则类型: {rule.type}");
                     break;
             }
         }
+
+        #region 规则应用辅助方法
+
+        private void ApplyModifyInitialCards(SpecialRule rule)
+        {
+            if (string.IsNullOrEmpty(rule.targetId)) return;
+
+            List<Player> targets = GetTargetPlayers(rule.targetId);
+            foreach (var player in targets)
+            {
+                if (rule.value > 0)
+                {
+                    // 增加手牌
+                    for (int i = 0; i < rule.value; i++)
+                    {
+                        var card = DeckManager.Instance?.DrawCard();
+                        if (card != null) player.DrawCard(card);
+                    }
+                }
+                else
+                {
+                    // 减少手牌
+                    for (int i = 0; i < -rule.value && player.handCards.Count > 0; i++)
+                    {
+                        player.DiscardCard(player.handCards[0]);
+                    }
+                }
+            }
+        }
+
+        private void ApplyModifyMaxHP(SpecialRule rule)
+        {
+            List<Player> targets = GetTargetPlayers(rule.targetId);
+            foreach (var player in targets)
+            {
+                player.maxHP += rule.value;
+                if (rule.value > 0) player.currentHP += rule.value;
+            }
+        }
+
+        private void ApplyModifyAttackRange(SpecialRule rule)
+        {
+            List<Player> targets = GetTargetPlayers(rule.targetId);
+            foreach (var player in targets)
+            {
+                player.attackRange += rule.value;
+            }
+        }
+
+        private void ApplyModifyHandLimit(SpecialRule rule)
+        {
+            List<Player> targets = GetTargetPlayers(rule.targetId);
+            foreach (var player in targets)
+            {
+                player.handCardLimit += rule.value;
+            }
+        }
+
+        /// <summary>
+        /// 根据targetId获取目标玩家列表
+        /// </summary>
+        private List<Player> GetTargetPlayers(string targetId)
+        {
+            List<Player> targets = new List<Player>();
+            if (string.IsNullOrEmpty(targetId)) return targets;
+
+            if (targetId.ToLower() == "allies")
+            {
+                targets.AddRange(GetAllyPlayers());
+            }
+            else if (targetId.ToLower() == "enemies")
+            {
+                targets.AddRange(GetEnemyPlayers());
+            }
+            else if (targetId.ToLower() == "all")
+            {
+                if (BattleManager.Instance != null)
+                    targets.AddRange(BattleManager.Instance.players);
+            }
+            else
+            {
+                var player = FindPlayer(targetId);
+                if (player != null) targets.Add(player);
+            }
+            return targets;
+        }
+
+        /// <summary>
+        /// ⭐ 应用自定义规则（赤壁之战专用）
+        /// </summary>
+        private void ApplyCustomRule(SpecialRule rule)
+        {
+            string ruleId = rule.ruleId?.ToLower() ?? "";
+            Debug.Log($"[Custom规则] 应用规则: {ruleId}");
+
+            switch (ruleId)
+            {
+                case "tutorial":
+                    // 新手教学 - 暂无特殊处理，仅标记
+                    markers["tutorial"] = 1;
+                    break;
+
+                case "huwei":
+                    // 虎威：张飞使用【杀】时，有30%概率令目标弃置1张手牌
+                    huweiRule = true;
+                    Debug.Log("[规则] 虎威生效：张飞使用杀有30%令目标弃牌");
+                    break;
+
+                case "no_peach":
+                    // 单骑断桥：张飞不能使用【桃】
+                    noPeachRule = true;
+                    Debug.Log("[规则] 单骑断桥生效：张飞不能使用桃");
+                    break;
+
+                case "debate":
+                    // 舌战模式：所有伤害代表"辩论失利"
+                    debateRule = true;
+                    Debug.Log("[规则] 舌战模式生效：伤害代表辩论失利");
+                    break;
+
+                case "persuade":
+                    // 以理服人：诸葛亮使用【杀】造成伤害时，可选择改为令目标弃2张牌
+                    persuadeRule = true;
+                    Debug.Log("[规则] 以理服人生效：诸葛亮杀伤可改弃2牌");
+                    break;
+
+                case "forge_letter":
+                    // 伪造书信：周瑜每次成功发动【反间】获得1个"反间"标记
+                    forgeLetterRule = true;
+                    fanjianMarkerCount = 0;
+                    Debug.Log("[规则] 伪造书信生效：反间成功获得标记");
+                    break;
+
+                case "trick":
+                    // 中计：当蒋干查看手牌时，若周瑜手牌中有黑色牌，视为"假情报"
+                    trickRule = true;
+                    Debug.Log("[规则] 中计生效：黑牌视为假情报");
+                    break;
+
+                case "suspicion":
+                    // 曹操猜忌：每累积1个反间标记，蔡瑁体力上限-1
+                    suspicionRule = true;
+                    Debug.Log("[规则] 曹操猜忌生效：标记减蔡瑁HP");
+                    break;
+
+                case "seasick":
+                    // 水土不服：曹军水兵每回合30%概率掉1血
+                    seasickRule = true;
+                    Debug.Log("[规则] 水土不服生效：曹军30%掉血");
+                    break;
+
+                case "guanyu_priority":
+                    // 关羽优先攻击血量最低的敌人
+                    guanyuPriorityRule = true;
+                    Debug.Log("[规则] 关羽归来生效：优先攻击最低血敌人");
+                    break;
+
+                default:
+                    Debug.Log($"[Custom规则] 未知规则ID: {ruleId}");
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region 赤壁之战 Custom 规则公共API
+
+        /// <summary>
+        /// ⭐ 检查角色是否可以使用桃（单骑断桥规则）
+        /// </summary>
+        public bool CanUsePeach(Player player)
+        {
+            if (!noPeachRule) return true;
+
+            // 检查是否是张飞
+            string playerId = player?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (playerId.Contains("zhangfei") || playerId.Contains("张飞"))
+            {
+                Debug.Log("[规则] 单骑断桥：张飞不能使用桃");
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// ⭐ 杀命中后触发虎威效果（30%概率令目标弃牌）
+        /// </summary>
+        public void TryTriggerHuwei(Player attacker, Player target)
+        {
+            if (!huweiRule) return;
+
+            // 检查攻击者是否是张飞
+            string attackerId = attacker?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (!attackerId.Contains("zhangfei") && !attackerId.Contains("张飞")) return;
+
+            // 30%概率
+            if (Random.Range(0, 100) < 30)
+            {
+                if (target.handCards.Count > 0)
+                {
+                    // 随机弃置1张手牌
+                    int randomIndex = Random.Range(0, target.handCards.Count);
+                    Card discardCard = target.handCards[randomIndex];
+                    target.DiscardCard(discardCard);
+                    Debug.Log($"[虎威] {target.generalName} 被气势震慑，弃置了1张手牌");
+
+                    // 显示提示
+                    if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                    {
+                        ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【虎威】{target.generalName} 弃置1张手牌！");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 检查是否触发以理服人（诸葛亮杀伤可改弃2牌）
+        /// 返回true表示应该让玩家选择，false表示不适用此规则
+        /// </summary>
+        public bool ShouldOfferPersuade(Player attacker, Player target)
+        {
+            if (!persuadeRule) return false;
+
+            // 检查攻击者是否是诸葛亮且是玩家控制
+            string attackerId = attacker?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (!attackerId.Contains("zhugeliang") && !attackerId.Contains("诸葛亮")) return false;
+
+            // 检查目标手牌数是否足够
+            if (target.handCards.Count < 2) return false;
+
+            return !attacker.isAI; // 只对玩家提供选择
+        }
+
+        /// <summary>
+        /// ⭐ 执行以理服人效果（目标弃2牌代替伤害）
+        /// </summary>
+        public void ExecutePersuade(Player target)
+        {
+            if (target.handCards.Count >= 2)
+            {
+                // 弃置2张手牌
+                for (int i = 0; i < 2 && target.handCards.Count > 0; i++)
+                {
+                    int randomIndex = Random.Range(0, target.handCards.Count);
+                    Card discardCard = target.handCards[randomIndex];
+                    target.DiscardCard(discardCard);
+                }
+                Debug.Log($"[以理服人] {target.generalName} 被说服，弃置了2张手牌");
+
+                if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                {
+                    ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【以理服人】{target.generalName} 弃置2张手牌");
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 周瑜反间成功时触发（伪造书信规则）
+        /// </summary>
+        public void OnFanjianSuccess(Player zhouyu)
+        {
+            if (!forgeLetterRule) return;
+
+            fanjianMarkerCount++;
+            Debug.Log($"[伪造书信] 周瑜获得第{fanjianMarkerCount}个反间标记");
+
+            if (ThreeKingdoms.UI.BattleUI.Instance != null)
+            {
+                ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【伪造书信】获得反间标记（{fanjianMarkerCount}/3）");
+            }
+
+            // 触发事件
+            TriggerEvents(EventTrigger.OnMarkerGained, $"fanjian_{fanjianMarkerCount}");
+
+            // 曹操猜忌：每个标记减蔡瑁HP
+            if (suspicionRule)
+            {
+                ApplySuspicionEffect();
+            }
+
+            // 检查胜利条件
+            CheckVictoryCondition();
+        }
+
+        /// <summary>
+        /// ⭐ 应用曹操猜忌效果（减蔡瑁HP）
+        /// </summary>
+        private void ApplySuspicionEffect()
+        {
+            Player caimao = FindPlayer("caimao");
+            if (caimao != null && caimao.isAlive)
+            {
+                caimao.maxHP--;
+                if (caimao.currentHP > caimao.maxHP)
+                {
+                    caimao.currentHP = caimao.maxHP;
+                }
+                Debug.Log($"[曹操猜忌] 蔡瑁体力上限降至{caimao.maxHP}");
+
+                if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                {
+                    ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【曹操猜忌】蔡瑁体力上限-1");
+                    ThreeKingdoms.UI.BattleUI.Instance.UpdateAllPlayerInfo();
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 蒋干盗书时检查是否中计（周瑜手牌有黑牌=假情报）
+        /// </summary>
+        public bool CheckTrickRule(Player zhouyu)
+        {
+            if (!trickRule) return false;
+
+            // 检查周瑜手牌是否有黑色牌
+            foreach (var card in zhouyu.handCards)
+            {
+                if (card.suit == CardSuit.Spade || card.suit == CardSuit.Club)
+                {
+                    Debug.Log("[中计] 周瑜手中有黑色牌，蒋干获得假情报");
+                    stealSuccessCount = 0; // 重置连续成功计数
+                    return true; // 有黑牌 = 假情报
+                }
+            }
+
+            // 没有黑牌 = 真实情报，计入失败条件
+            stealSuccessCount++;
+            Debug.Log($"[中计] 周瑜手中无黑色牌，蒋干获得真实情报（连续{stealSuccessCount}次）");
+
+            // 检查失败条件
+            if (stealSuccessCount >= 3)
+            {
+                Debug.Log("[中计] 蒋干连续3次获得真实情报，计谋败露！");
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 回合开始时触发水土不服（曹军30%掉血）
+        /// </summary>
+        public void TrySeasickEffect(Player player)
+        {
+            if (!seasickRule) return;
+
+            // 检查是否是曹军水兵
+            string playerId = player?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (!playerId.Contains("caojun") && !playerId.Contains("曹军") && !playerId.Contains("sailor"))
+                return;
+
+            // 30%概率
+            if (Random.Range(0, 100) < 30)
+            {
+                player.TakeDamage(1, null);
+                Debug.Log($"[水土不服] {player.generalName} 晕船，失去1点体力");
+
+                if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                {
+                    ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【水土不服】{player.generalName} 晕船-1HP");
+                }
+
+                // 触发事件
+                TriggerEvents(EventTrigger.OnSkillActivate, "beiren");
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取关羽应该优先攻击的目标（最低血敌人）
+        /// </summary>
+        public Player GetGuanyuPriorityTarget(Player guanyu)
+        {
+            if (!guanyuPriorityRule) return null;
+
+            // 检查是否是关羽
+            string playerId = guanyu?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (!playerId.Contains("guanyu") && !playerId.Contains("关羽")) return null;
+
+            // 获取所有存活的敌人
+            List<Player> enemies = GetEnemyPlayers();
+            Player lowestHPEnemy = null;
+            int lowestHP = int.MaxValue;
+
+            foreach (var enemy in enemies)
+            {
+                if (enemy.isAlive && enemy.currentHP < lowestHP)
+                {
+                    lowestHP = enemy.currentHP;
+                    lowestHPEnemy = enemy;
+                }
+            }
+
+            if (lowestHPEnemy != null)
+            {
+                Debug.Log($"[关羽归来] 优先攻击血量最低的敌人：{lowestHPEnemy.generalName}（{lowestHP}血）");
+            }
+
+            return lowestHPEnemy;
+        }
+
+        /// <summary>
+        /// ⭐ 获取当前反间标记数
+        /// </summary>
+        public int GetFanjianMarkerCount()
+        {
+            return fanjianMarkerCount;
+        }
+
+        /// <summary>
+        /// ⭐ 获取蒋干连续盗书成功次数
+        /// </summary>
+        public int GetStealSuccessCount()
+        {
+            return stealSuccessCount;
+        }
+
+        /// <summary>
+        /// ⭐ 检查是否是舌战模式
+        /// </summary>
+        public bool IsDebateMode()
+        {
+            return debateRule;
+        }
+
+        #endregion
+
+        #region 公共规则查询API
+
+        /// <summary>
+        /// ⭐ 检查目标是否可以被攻击（供AI和玩家使用）
+        /// </summary>
+        public bool IsTargetAttackable(Player attacker, Player target)
+        {
+            if (attacker == null || target == null) return false;
+            if (attacker == target) return false;
+            if (!target.isAlive) return false;
+
+            // 检查是否是盟友（故事模式中盟友不能互相攻击）
+            if (IsAlly(attacker, target))
+            {
+                Debug.Log($"[规则检查] {attacker.generalName} 不能攻击盟友 {target.generalName}");
+                return false;
+            }
+
+            // 检查禁止攻击目标规则
+            string targetId = target.generalName?.ToLower().Replace("_story", "") ?? "";
+            foreach (var noAttackId in noAttackTargets)
+            {
+                if (targetId.Contains(noAttackId) || noAttackId.Contains(targetId))
+                {
+                    Debug.Log($"[规则检查] {target.generalName} 被规则保护，不能被攻击");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// ⭐ 检查两个角色是否是盟友
+        /// </summary>
+        public bool IsAlly(Player p1, Player p2)
+        {
+            if (p1 == null || p2 == null) return false;
+            if (currentBattle == null) return p1.faction == p2.faction;
+
+            bool p1IsAlly = false;
+            bool p2IsAlly = false;
+
+            // 检查是否都在我方列表中
+            if (currentBattle.allies != null)
+            {
+                foreach (var ally in currentBattle.allies)
+                {
+                    string allyId = ally.characterId.ToLower().Replace("_story", "");
+                    string p1Id = p1.generalName?.ToLower().Replace("_story", "") ?? "";
+                    string p2Id = p2.generalName?.ToLower().Replace("_story", "") ?? "";
+
+                    if (allyId.Contains(p1Id) || p1Id.Contains(allyId)) p1IsAlly = true;
+                    if (allyId.Contains(p2Id) || p2Id.Contains(allyId)) p2IsAlly = true;
+                }
+            }
+
+            return p1IsAlly && p2IsAlly;
+        }
+
+        /// <summary>
+        /// ⭐ 检查两个角色是否是敌人
+        /// </summary>
+        public bool IsEnemy(Player p1, Player p2)
+        {
+            if (p1 == null || p2 == null) return false;
+            if (p1 == p2) return false;
+            return !IsAlly(p1, p2);
+        }
+
+        /// <summary>
+        /// ⭐ 检查是否可以对目标使用桃
+        /// </summary>
+        public bool CanUsePeachOn(Player source, Player target)
+        {
+            if (source == null || target == null) return false;
+            if (source == target) return true; // 对自己总是可以
+
+            // 检查禁止对盟友用桃规则
+            if (noAllyPeachRule && IsAlly(source, target))
+            {
+                Debug.Log($"[规则检查] 规则禁止 {source.generalName} 对盟友 {target.generalName} 使用桃");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// ⭐ 获取我方玩家列表
+        /// </summary>
+        public List<Player> GetAllyPlayers()
+        {
+            List<Player> allies = new List<Player>();
+            if (BattleManager.Instance == null) return allies;
+
+            if (currentBattle?.allies != null)
+            {
+                foreach (var allyConfig in currentBattle.allies)
+                {
+                    Player player = FindPlayer(allyConfig.characterId);
+                    if (player != null && player.isAlive)
+                    {
+                        allies.Add(player);
+                    }
+                }
+            }
+
+            // 如果没有定义，返回玩家阵营相同的
+            if (allies.Count == 0 && playerCharacter != null)
+            {
+                foreach (var player in BattleManager.Instance.players)
+                {
+                    if (player.isAlive && player.faction == playerCharacter.faction)
+                    {
+                        allies.Add(player);
+                    }
+                }
+            }
+
+            return allies;
+        }
+
+        /// <summary>
+        /// ⭐ 获取敌方玩家列表
+        /// </summary>
+        public List<Player> GetEnemyPlayers()
+        {
+            List<Player> enemies = new List<Player>();
+            if (BattleManager.Instance == null) return enemies;
+
+            if (currentBattle?.enemies != null)
+            {
+                foreach (var enemyConfig in currentBattle.enemies)
+                {
+                    Player player = FindPlayer(enemyConfig.characterId);
+                    if (player != null && player.isAlive)
+                    {
+                        enemies.Add(player);
+                    }
+                }
+            }
+
+            // 如果没有定义，返回玩家阵营不同的
+            if (enemies.Count == 0 && playerCharacter != null)
+            {
+                foreach (var player in BattleManager.Instance.players)
+                {
+                    if (player.isAlive && player.faction != playerCharacter.faction)
+                    {
+                        enemies.Add(player);
+                    }
+                }
+            }
+
+            return enemies;
+        }
+
+        /// <summary>
+        /// ⭐ 获取可攻击的有效目标（综合考虑攻击范围和规则）
+        /// </summary>
+        public List<Player> GetValidAttackTargets(Player attacker)
+        {
+            List<Player> validTargets = new List<Player>();
+            if (attacker == null || BattleManager.Instance == null) return validTargets;
+
+            foreach (var player in BattleManager.Instance.players)
+            {
+                if (player.isAlive &&
+                    attacker.IsInAttackRange(player) &&
+                    IsTargetAttackable(attacker, player))
+                {
+                    validTargets.Add(player);
+                }
+            }
+
+            return validTargets;
+        }
+
+        /// <summary>
+        /// ⭐ 获取当前回合额外出杀次数
+        /// </summary>
+        public int GetExtraSlashCount()
+        {
+            if (currentRound == extraSlashRound)
+            {
+                return extraSlashCount;
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// ⭐ 计算修正后的伤害值
+        /// </summary>
+        public int GetModifiedDamage(Player source, Player target, int baseDamage, bool isFireDamage = false)
+        {
+            int damage = baseDamage;
+
+            // 火焰伤害加成
+            if (isFireDamage && markers.TryGetValue("fire_damage_bonus", out int fireBonus))
+            {
+                damage += fireBonus;
+                Debug.Log($"[伤害修正] 火焰加成 +{fireBonus}");
+            }
+
+            // 对已受伤目标伤害加成
+            if (target.currentHP < target.maxHP && markers.TryGetValue("damage_to_wounded_bonus", out int woundedBonus))
+            {
+                damage += woundedBonus;
+                Debug.Log($"[伤害修正] 对已受伤目标 +{woundedBonus}");
+            }
+
+            // 低手牌伤害加成
+            if (source != null && markers.TryGetValue("low_hand_damage_bonus", out int lowHandBonus))
+            {
+                int threshold = markers.TryGetValue("low_hand_threshold", out int t) ? t : 2;
+                if (source.handCards.Count <= threshold)
+                {
+                    damage += lowHandBonus;
+                    Debug.Log($"[伤害修正] 低手牌加成 +{lowHandBonus}");
+                }
+            }
+
+            // 首次伤害加成
+            if (source != null)
+            {
+                string sourceId = source.generalName?.ToLower().Replace("_story", "") ?? "";
+                foreach (var kvp in firstDamageDealt)
+                {
+                    if (!kvp.Value && (kvp.Key.Contains(sourceId) || sourceId.Contains(kvp.Key)))
+                    {
+                        if (markers.TryGetValue($"first_damage_bonus_{kvp.Key}", out int bonus))
+                        {
+                            damage += bonus;
+                            Debug.Log($"[伤害修正] {source.generalName} 首次伤害加成 +{bonus}");
+                        }
+                    }
+                }
+            }
+
+            return damage;
+        }
+
+        /// <summary>
+        /// ⭐ 检查伤害是否应该被防止（首次伤害防止）
+        /// </summary>
+        public bool ShouldPreventDamage(Player target)
+        {
+            if (target == null) return false;
+
+            string targetId = target.generalName?.ToLower().Replace("_story", "") ?? "";
+
+            foreach (var kvp in firstDamagePrevented)
+            {
+                if (!kvp.Value && (kvp.Key.Contains(targetId) || targetId.Contains(kvp.Key) || kvp.Key == "player"))
+                {
+                    // 标记已触发
+                    firstDamagePrevented[kvp.Key] = true;
+                    Debug.Log($"[规则] {target.generalName} 的首次伤害被防止！");
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 检查是否有伤害减免
+        /// </summary>
+        public int GetDamageReduction(Player target)
+        {
+            if (target == null) return 0;
+
+            // 检查是否是盟友
+            bool isAlly = false;
+            if (currentBattle?.allies != null)
+            {
+                string targetId = target.generalName?.ToLower().Replace("_story", "") ?? "";
+                foreach (var ally in currentBattle.allies)
+                {
+                    string allyId = ally.characterId.ToLower().Replace("_story", "");
+                    if (allyId.Contains(targetId) || targetId.Contains(allyId))
+                    {
+                        isAlly = true;
+                        break;
+                    }
+                }
+            }
+
+            // 检查盟友伤害减免
+            if (isAlly && damageReductionCharges.TryGetValue("allies", out int charges) && charges > 0)
+            {
+                damageReductionCharges["allies"] = charges - 1;
+                Debug.Log($"[规则] 盟友伤害减免触发，剩余次数: {charges - 1}");
+                return 1;
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// ⭐ 标记角色本回合造成了伤害
+        /// </summary>
+        public void MarkDamageDealt(Player source)
+        {
+            if (source == null) return;
+
+            string sourceId = source.generalName?.ToLower().Replace("_story", "") ?? "";
+            dealtDamageThisTurn[sourceId] = true;
+
+            // 检查首次伤害标记
+            foreach (var key in new List<string>(firstDamageDealt.Keys))
+            {
+                if (!firstDamageDealt[key] && (key.Contains(sourceId) || sourceId.Contains(key)))
+                {
+                    firstDamageDealt[key] = true;
+                    Debug.Log($"[规则] {source.generalName} 造成了首次伤害");
+                }
+            }
+        }
+
+        #endregion
 
         #endregion
 
@@ -363,13 +1255,98 @@ namespace ThreeKingdoms.Story
         {
             if (!isBattleActive) return;
 
+            // ⭐ 重置本回合伤害追踪
+            string playerId = player.generalName?.ToLower().Replace("_story", "") ?? "";
+            dealtDamageThisTurn[playerId] = false;
+
+            // ⭐ 处理随机弃牌规则（内部不和：30%概率弃牌）
+            if (markers.TryGetValue("random_discard_chance", out int chance))
+            {
+                if (IsAllyPlayer(player) && Random.Range(0, 100) < chance && player.handCards.Count > 0)
+                {
+                    int randomIndex = Random.Range(0, player.handCards.Count);
+                    Card discardedCard = player.handCards[randomIndex];
+                    player.DiscardCard(discardedCard);
+                    Debug.Log($"[规则] 内部不和触发，{player.generalName} 弃置了 {discardedCard.cardName}");
+                    TriggerEvents(EventTrigger.OnCardPlayed, "discard");
+                }
+            }
+
+            // ⭐ 应用额外出杀次数
+            if (currentRound == extraSlashRound && IsAllyPlayer(player))
+            {
+                player.maxSlashPerTurn += extraSlashCount;
+                Debug.Log($"[规则] {player.generalName} 本回合可额外出 {extraSlashCount} 张杀");
+            }
+
+            // ⭐ 赤壁之战：水土不服规则（曹军水兵30%掉血）
+            TrySeasickEffect(player);
+
             // 检查回合开始事件
             TriggerEvents(EventTrigger.OnTurnStart, player.generalName);
+
+            // ⭐ 回合开始时检测（用于存活回合数条件）
+            CheckVictoryCondition();
+            CheckDefeatCondition();
+        }
+
+        /// <summary>
+        /// 检查玩家是否是我方角色
+        /// </summary>
+        private bool IsAllyPlayer(Player player)
+        {
+            if (player == null || currentBattle?.allies == null) return false;
+
+            string playerId = player.generalName?.ToLower().Replace("_story", "") ?? "";
+            foreach (var ally in currentBattle.allies)
+            {
+                string allyId = ally.characterId.ToLower().Replace("_story", "");
+                if (allyId.Contains(playerId) || playerId.Contains(allyId))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private void OnTurnEnd(Player player)
         {
             if (!isBattleActive) return;
+
+            // ⭐ 处理以逸待劳规则（未造成伤害时摸牌）
+            if (markers.TryGetValue("draw_on_no_damage", out int drawCount) && IsAllyPlayer(player))
+            {
+                string playerId = player.generalName?.ToLower().Replace("_story", "") ?? "";
+                if (!dealtDamageThisTurn.TryGetValue(playerId, out bool dealt) || !dealt)
+                {
+                    for (int i = 0; i < drawCount; i++)
+                    {
+                        var card = DeckManager.Instance?.DrawCard();
+                        if (card != null) player.DrawCard(card);
+                    }
+                    Debug.Log($"[规则] 以逸待劳触发，{player.generalName} 摸了 {drawCount} 张牌");
+                }
+            }
+
+            // ⭐ 处理强制弃牌规则（袁营猜忌：袁绍每回合弃牌）
+            if (markers.TryGetValue("forced_discard", out int discardCount))
+            {
+                // 检查是否是目标角色（通常是敌人）
+                bool isTarget = !IsAllyPlayer(player);
+                if (isTarget && player.handCards.Count > 0)
+                {
+                    for (int i = 0; i < discardCount && player.handCards.Count > 0; i++)
+                    {
+                        int randomIndex = Random.Range(0, player.handCards.Count);
+                        Card discardedCard = player.handCards[randomIndex];
+                        player.DiscardCard(discardedCard);
+                        Debug.Log($"[规则] 强制弃牌触发，{player.generalName} 弃置了 {discardedCard.cardName}");
+                    }
+                }
+            }
+
+            // 触发回合结束事件
+            TriggerEvents(EventTrigger.OnTurnEnd, player.generalName);
 
             // 如果是第一个玩家回合结束，增加回合数
             if (BattleManager.Instance != null && BattleManager.Instance.players.Count > 0)
@@ -380,6 +1357,10 @@ namespace ThreeKingdoms.Story
                     OnRoundStart();
                 }
             }
+
+            // ⭐ 回合结束时也检测
+            CheckVictoryCondition();
+            CheckDefeatCondition();
         }
 
         private void OnRoundStart()
@@ -398,6 +1379,44 @@ namespace ThreeKingdoms.Story
                 }
             }
 
+            // ⭐ 处理持续伤害规则（粮草焚毁/洛阳焦土）
+            if (markers.TryGetValue("damage_over_time_start", out int startRound) && currentRound >= startRound)
+            {
+                int damageValue = markers.TryGetValue("damage_over_time_value", out int dv) ? dv : 1;
+                int targetType = markers.TryGetValue("damage_over_time_target", out int tt) ? tt : 0;
+
+                List<Player> targets = new List<Player>();
+
+                switch (targetType)
+                {
+                    case 0: // all - 所有角色
+                        if (BattleManager.Instance != null)
+                            targets.AddRange(BattleManager.Instance.players.FindAll(p => p.isAlive));
+                        break;
+                    case 1: // enemies - 敌方角色
+                        targets.AddRange(GetEnemyPlayers());
+                        break;
+                    case 2: // allies - 我方角色
+                        targets.AddRange(GetAllyPlayers());
+                        break;
+                }
+
+                foreach (var target in targets)
+                {
+                    if (target.isAlive)
+                    {
+                        target.TakeDamage(damageValue, null);
+                        Debug.Log($"[规则] 持续伤害触发，{target.generalName} 失去 {damageValue} 点体力");
+                    }
+                }
+
+                // 触发特殊事件
+                if (currentRound == startRound)
+                {
+                    TriggerEvents(EventTrigger.OnRoundStart, currentRound.ToString());
+                }
+            }
+
             // 触发回合开始事件
             TriggerEvents(EventTrigger.OnRoundStart, currentRound.ToString());
 
@@ -410,7 +1429,43 @@ namespace ThreeKingdoms.Story
         {
             if (!isBattleActive) return;
 
+            // ⭐ 标记伤害来源本回合造成了伤害
+            if (source != null)
+            {
+                MarkDamageDealt(source);
+
+                // ⭐ 检查首次造成伤害摸牌（江东猛虎）
+                if (markers.TryGetValue("draw_on_first_damage", out int drawCount) && IsAllyPlayer(source))
+                {
+                    string sourceId = source.generalName?.ToLower().Replace("_story", "") ?? "";
+                    string trackKey = $"first_damage_drawn_{sourceId}";
+
+                    if (!markers.ContainsKey(trackKey))
+                    {
+                        markers[trackKey] = 1; // 标记已触发
+                        for (int i = 0; i < drawCount; i++)
+                        {
+                            var drawCard = DeckManager.Instance?.DrawCard();
+                            if (drawCard != null) source.DrawCard(drawCard);
+                        }
+                        Debug.Log($"[规则] 江东猛虎触发，{source.generalName} 摸了 {drawCount} 张牌");
+                    }
+                }
+            }
+
+            // ⭐ 处理受伤后摸牌规则（死战不退）
+            if (markers.TryGetValue("draw_on_damage", out int drawOnDamage) && IsAllyPlayer(victim))
+            {
+                for (int i = 0; i < drawOnDamage; i++)
+                {
+                    var drawCard = DeckManager.Instance?.DrawCard();
+                    if (drawCard != null) victim.DrawCard(drawCard);
+                }
+                Debug.Log($"[规则] 死战不退触发，{victim.generalName} 摸了 {drawOnDamage} 张牌");
+            }
+
             TriggerEvents(EventTrigger.OnDamageTaken, victim.generalName);
+            TriggerEvents(EventTrigger.OnDamageDealt, source?.generalName ?? "");
 
             // 检查血量低于阈值事件
             TriggerEvents(EventTrigger.OnHPBelow, victim.generalName, victim.currentHP.ToString());
@@ -420,15 +1475,33 @@ namespace ThreeKingdoms.Story
             {
                 TriggerEvents(EventTrigger.OnNearDeath, victim.generalName);
             }
+
+            // ⭐ 伤害后检测胜负条件（用于HP相关条件）
+            CheckVictoryCondition();
+            CheckDefeatCondition();
         }
 
         private void OnPlayerDeath(Player victim, Player killer)
         {
             if (!isBattleActive) return;
 
+            Debug.Log($"[StoryBattle] 玩家死亡: {victim.generalName}, 击杀者: {killer?.generalName ?? "无"}");
             TriggerEvents(EventTrigger.OnDeath, victim.generalName);
 
-            // 检查胜负条件
+            // ⭐ 延迟一帧检测，确保死亡状态已更新
+            StartCoroutine(DelayedVictoryCheck());
+        }
+
+        /// <summary>
+        /// ⭐ 延迟检测胜负条件（确保状态已更新）
+        /// </summary>
+        private IEnumerator DelayedVictoryCheck()
+        {
+            yield return null; // 等待一帧
+
+            if (!isBattleActive) yield break;
+
+            Debug.Log("[StoryBattle] 执行延迟胜负检测");
             CheckVictoryCondition();
             CheckDefeatCondition();
         }
@@ -448,6 +1521,10 @@ namespace ThreeKingdoms.Story
             }
 
             TriggerEvents(EventTrigger.OnCardPlayed, card.cardName);
+
+            // ⭐ 出牌后检测（某些条件可能与出牌相关）
+            CheckVictoryCondition();
+            CheckDefeatCondition();
         }
 
         private void OnSkillTriggered(Player player, string skillId)
@@ -455,6 +1532,10 @@ namespace ThreeKingdoms.Story
             if (!isBattleActive) return;
 
             TriggerEvents(EventTrigger.OnSkillActivate, skillId);
+
+            // ⭐ 技能触发后检测
+            CheckVictoryCondition();
+            CheckDefeatCondition();
         }
 
         private void OnStoryEventTriggered(string eventType, string param)
@@ -467,7 +1548,6 @@ namespace ThreeKingdoms.Story
                 int count = int.Parse(param);
                 markers["zhaxiang"] = count;
                 TriggerEvents(EventTrigger.OnMarkerGained, "zhaxiang");
-                CheckVictoryCondition();
             }
             else if (eventType == "hand_viewed")
             {
@@ -475,8 +1555,11 @@ namespace ThreeKingdoms.Story
                     eventCounts["hand_viewed_huanggai"] = 0;
                 eventCounts["hand_viewed_huanggai"]++;
                 TriggerEvents(EventTrigger.OnHandCardViewed, param);
-                CheckDefeatCondition();
             }
+
+            // ⭐ 所有故事事件后都检测胜负条件
+            CheckVictoryCondition();
+            CheckDefeatCondition();
         }
 
         /// <summary>
@@ -488,26 +1571,126 @@ namespace ThreeKingdoms.Story
 
             foreach (var evt in currentBattle.events)
             {
-                if (evt.trigger == trigger &&
-                    (string.IsNullOrEmpty(evt.triggerParam) || evt.triggerParam == param))
+                if (evt.trigger != trigger) continue;
+
+                // ⭐ 使用更宽松的参数匹配
+                bool paramMatch = string.IsNullOrEmpty(evt.triggerParam) ||
+                                  MatchEventParam(evt.triggerParam, param);
+
+                if (!paramMatch) continue;
+
+                // 检查param2（如果有）
+                if (!string.IsNullOrEmpty(evt.triggerParam2) && evt.triggerParam2 != param2)
+                    continue;
+
+                // 检查是否已触发（非重复事件）
+                if (!evt.repeatable && evt.triggered)
+                    continue;
+
+                evt.triggered = true;
+                Debug.Log($"[StoryBattle] 触发事件: {trigger} param={param} (匹配:{evt.triggerParam})");
+
+                // 显示对白
+                if (evt.dialogues != null && evt.dialogues.Count > 0)
                 {
-                    // 检查param2（如果有）
-                    if (!string.IsNullOrEmpty(evt.triggerParam2) && evt.triggerParam2 != param2)
-                        continue;
-
-                    // 检查是否已触发（非重复事件）
-                    if (!evt.repeatable && evt.triggered)
-                        continue;
-
-                    evt.triggered = true;
-
-                    // 显示对白
-                    if (evt.dialogues != null && evt.dialogues.Count > 0)
-                    {
-                        StartCoroutine(ShowDialogueSequence(evt.dialogues, null));
-                    }
+                    StartCoroutine(ShowDialogueSequence(evt.dialogues, null));
                 }
             }
+        }
+
+        /// <summary>
+        /// ⭐ 匹配事件参数（支持中文名、英文ID、部分匹配）
+        /// </summary>
+        private bool MatchEventParam(string eventParam, string actualParam)
+        {
+            if (string.IsNullOrEmpty(eventParam) || string.IsNullOrEmpty(actualParam))
+                return false;
+
+            // 直接匹配
+            if (eventParam == actualParam)
+                return true;
+
+            // 忽略大小写匹配
+            if (eventParam.ToLower() == actualParam.ToLower())
+                return true;
+
+            // 包含匹配（处理"孙权"与"孙权_story"等情况）
+            string cleanEvent = eventParam.Replace("_story", "").Replace("_", "");
+            string cleanActual = actualParam.Replace("_story", "").Replace("_", "");
+
+            if (cleanEvent == cleanActual)
+                return true;
+
+            if (actualParam.Contains(eventParam) || eventParam.Contains(actualParam))
+                return true;
+
+            // 尝试通过角色ID映射匹配
+            string eventChinese = GetChineseNameFromParam(eventParam);
+            string actualChinese = GetChineseNameFromParam(actualParam);
+
+            if (!string.IsNullOrEmpty(eventChinese) && !string.IsNullOrEmpty(actualChinese))
+            {
+                return eventChinese == actualChinese;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 将参数转换为中文名（用于匹配）
+        /// </summary>
+        private string GetChineseNameFromParam(string param)
+        {
+            if (string.IsNullOrEmpty(param)) return param;
+
+            // 已经是中文，直接返回
+            if (ContainsChinese(param)) return param;
+
+            // 英文ID到中文名映射
+            var nameMap = new Dictionary<string, string>
+            {
+                {"sunquan", "孙权"}, {"sunquan_story", "孙权"},
+                {"lusu", "鲁肃"},
+                {"chengpu", "程普"},
+                {"zhangzhao", "张昭"},
+                {"zhugeliang", "诸葛亮"}, {"zhugeliang_story", "诸葛亮"},
+                {"zhouyu", "周瑜"}, {"zhouyu_story", "周瑜"},
+                {"lvmeng", "吕蒙"},
+                {"zhaoyun", "赵云"}, {"zhaoyun_story", "赵云"},
+                {"zhangfei", "张飞"}, {"zhangfei_story", "张飞"},
+                {"huanggai", "黄盖"}, {"huanggai_story", "黄盖"},
+                {"caocao", "曹操"}, {"caocao_story", "曹操"},
+                {"xiahoujie", "夏侯杰"},
+                {"jianggan", "蒋干"},
+                {"xiahoudun", "夏侯惇"},
+                {"xiahouyuan", "夏侯渊"},
+                {"zhangliao", "张辽"},
+                {"liubei", "刘备"}, {"liubei_story", "刘备"},
+                {"guanyu", "关羽"}, {"guanyu_story", "关羽"},
+                {"caojun_cavalry", "曹军骑兵"},
+            };
+
+            string cleanParam = param.ToLower().Trim();
+            if (nameMap.TryGetValue(cleanParam, out string chineseName))
+            {
+                return chineseName;
+            }
+
+            return param;
+        }
+
+        /// <summary>
+        /// ⭐ 检查字符串是否包含中文
+        /// </summary>
+        private bool ContainsChinese(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            foreach (char c in text)
+            {
+                if (c >= 0x4e00 && c <= 0x9fff)
+                    return true;
+            }
+            return false;
         }
 
         #endregion
@@ -519,7 +1702,8 @@ namespace ThreeKingdoms.Story
         /// </summary>
         public void CheckVictoryCondition()
         {
-            if (!isBattleActive || currentBattle?.victoryCondition == null) return;
+            // ⭐ 防止重复检查 - 如果已处理过游戏结束或战斗不活跃，直接返回
+            if (!isBattleActive || battleEndHandled || currentBattle?.victoryCondition == null) return;
 
             bool victory = false;
             var condition = currentBattle.victoryCondition;
@@ -528,27 +1712,56 @@ namespace ThreeKingdoms.Story
             {
                 case VictoryType.DefeatAllEnemies:
                     victory = AreAllEnemiesDefeated();
+                    if (victory) Debug.Log("[StoryBattle] 胜利条件达成: 击败所有敌人");
                     break;
 
                 case VictoryType.DefeatTarget:
                     victory = IsTargetDefeated(condition.targetCharacterId);
+                    if (victory) Debug.Log($"[StoryBattle] 胜利条件达成: 击败目标 {condition.targetCharacterId}");
                     break;
 
                 case VictoryType.SurviveTurns:
                     victory = currentRound >= condition.targetTurn;
+                    if (victory) Debug.Log($"[StoryBattle] 胜利条件达成: 存活 {condition.targetTurn} 回合");
                     break;
 
                 case VictoryType.AccumulateMarks:
-                    if (markers.TryGetValue("zhaxiang", out int count))
+                    // ⭐ 优先检查反间标记（第四章蒋干盗书）
+                    int markCount = fanjianMarkerCount;
+                    // 也检查通用markers字典
+                    if (markers.TryGetValue("fanjian", out int fanjianCount))
                     {
-                        victory = count >= condition.targetCount;
+                        markCount = System.Math.Max(markCount, fanjianCount);
                     }
+                    if (markers.TryGetValue("zhaxiang", out int zhaxiangCount))
+                    {
+                        markCount = System.Math.Max(markCount, zhaxiangCount);
+                    }
+                    victory = markCount >= condition.targetCount;
+                    if (victory) Debug.Log($"[StoryBattle] 胜利条件达成: 累积 {markCount} 个标记");
                     break;
 
                 case VictoryType.ProtectAlly:
                     // 保护目标存活且所有敌人被击败
                     var ally = FindPlayer(condition.targetCharacterId);
-                    victory = ally != null && ally.isAlive && AreAllEnemiesDefeated();
+                    bool allyAlive = ally != null && ally.isAlive;
+                    bool enemiesDefeated = AreAllEnemiesDefeated();
+                    victory = allyAlive && enemiesDefeated;
+                    if (victory) Debug.Log($"[StoryBattle] 胜利条件达成: 保护 {condition.targetCharacterId} 存活并击败所有敌人");
+                    break;
+
+                case VictoryType.DefeatAllEnemiesOrSurvive:
+                    // 击败所有敌人或存活N回合
+                    bool allDefeated = AreAllEnemiesDefeated();
+                    bool survivedTurns = currentRound >= condition.targetTurn;
+                    victory = allDefeated || survivedTurns;
+                    if (victory)
+                    {
+                        if (allDefeated)
+                            Debug.Log("[StoryBattle] 胜利条件达成: 击败所有敌人");
+                        else
+                            Debug.Log($"[StoryBattle] 胜利条件达成: 存活 {condition.targetTurn} 回合");
+                    }
                     break;
 
                 default:
@@ -566,7 +1779,8 @@ namespace ThreeKingdoms.Story
         /// </summary>
         public void CheckDefeatCondition()
         {
-            if (!isBattleActive || currentBattle?.defeatCondition == null) return;
+            // ⭐ 防止重复检查 - 如果已处理过游戏结束或战斗不活跃，直接返回
+            if (!isBattleActive || battleEndHandled || currentBattle?.defeatCondition == null) return;
 
             bool defeat = false;
             var condition = currentBattle.defeatCondition;
@@ -574,16 +1788,28 @@ namespace ThreeKingdoms.Story
             switch (condition.type)
             {
                 case DefeatType.PlayerDeath:
+                    // ⭐ 使用我方列表中的第一个角色作为主角
+                    if (playerCharacter == null && currentBattle?.allies != null && currentBattle.allies.Count > 0)
+                    {
+                        playerCharacter = FindPlayer(currentBattle.allies[0].characterId);
+                    }
+                    if (playerCharacter == null && BattleManager.Instance?.players.Count > 0)
+                    {
+                        playerCharacter = BattleManager.Instance.players[0];
+                    }
                     defeat = playerCharacter != null && !playerCharacter.isAlive;
+                    if (defeat) Debug.Log($"[StoryBattle] 失败条件达成: 主角 {playerCharacter?.generalName} 死亡");
                     break;
 
                 case DefeatType.AllyDeath:
                     var ally = FindPlayer(condition.targetCharacterId);
                     defeat = ally != null && !ally.isAlive;
+                    if (defeat) Debug.Log($"[StoryBattle] 失败条件达成: 盟友 {condition.targetCharacterId} 死亡");
                     break;
 
                 case DefeatType.AllAlliesDeath:
                     defeat = AreAllAlliesDefeated();
+                    if (defeat) Debug.Log("[StoryBattle] 失败条件达成: 我方全灭");
                     break;
 
                 case DefeatType.ExceedCount:
@@ -591,11 +1817,61 @@ namespace ThreeKingdoms.Story
                     if (eventCounts.TryGetValue("hand_viewed_huanggai", out int count))
                     {
                         defeat = count >= condition.maxCount;
+                        if (defeat) Debug.Log($"[StoryBattle] 失败条件达成: 计数达到 {count}");
                     }
                     break;
 
                 case DefeatType.TurnLimitExceeded:
                     defeat = currentBattle.turnLimit > 0 && currentRound > currentBattle.turnLimit;
+                    if (defeat) Debug.Log($"[StoryBattle] 失败条件达成: 超过回合限制 {currentBattle.turnLimit}");
+                    break;
+
+                case DefeatType.PlayerDeathOrExceedCount:
+                    // 玩家死亡或超过特定次数（如蒋干盗书）
+                    if (playerCharacter == null && currentBattle?.allies != null && currentBattle.allies.Count > 0)
+                    {
+                        playerCharacter = FindPlayer(currentBattle.allies[0].characterId);
+                    }
+                    if (playerCharacter == null && BattleManager.Instance?.players.Count > 0)
+                    {
+                        playerCharacter = BattleManager.Instance.players[0];
+                    }
+                    bool playerDead = playerCharacter != null && !playerCharacter.isAlive;
+                    bool exceedCount = false;
+                    if (eventCounts.TryGetValue("hand_viewed_huanggai", out int viewCount))
+                    {
+                        exceedCount = viewCount >= condition.maxCount;
+                    }
+                    defeat = playerDead || exceedCount;
+                    if (defeat)
+                    {
+                        if (playerDead)
+                            Debug.Log($"[StoryBattle] 失败条件达成: 主角 {playerCharacter?.generalName} 死亡");
+                        else
+                            Debug.Log($"[StoryBattle] 失败条件达成: 计数达到 {viewCount}");
+                    }
+                    break;
+
+                case DefeatType.PlayerDeathOrAllAlliesDeath:
+                    // 玩家死亡或我方全灭
+                    if (playerCharacter == null && currentBattle?.allies != null && currentBattle.allies.Count > 0)
+                    {
+                        playerCharacter = FindPlayer(currentBattle.allies[0].characterId);
+                    }
+                    if (playerCharacter == null && BattleManager.Instance?.players.Count > 0)
+                    {
+                        playerCharacter = BattleManager.Instance.players[0];
+                    }
+                    bool mainPlayerDead = playerCharacter != null && !playerCharacter.isAlive;
+                    bool allAlliesDead = AreAllAlliesDefeated();
+                    defeat = mainPlayerDead || allAlliesDead;
+                    if (defeat)
+                    {
+                        if (mainPlayerDead)
+                            Debug.Log($"[StoryBattle] 失败条件达成: 主角 {playerCharacter?.generalName} 死亡");
+                        else
+                            Debug.Log("[StoryBattle] 失败条件达成: 我方全灭");
+                    }
                     break;
 
                 default:
@@ -612,9 +1888,31 @@ namespace ThreeKingdoms.Story
         {
             if (BattleManager.Instance == null) return false;
 
+            // ⭐ 使用 StoryBattle 中定义的敌人列表
+            if (currentBattle?.enemies != null && currentBattle.enemies.Count > 0)
+            {
+                foreach (var enemyConfig in currentBattle.enemies)
+                {
+                    Player enemy = FindPlayer(enemyConfig.characterId);
+                    if (enemy != null && enemy.isAlive)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            // 回退逻辑：使用阵营判断
+            if (playerCharacter == null)
+            {
+                // 尝试从我方列表获取第一个角色的阵营
+                playerCharacter = BattleManager.Instance.players.Count > 0
+                    ? BattleManager.Instance.players[0]
+                    : null;
+            }
+
             foreach (var player in BattleManager.Instance.players)
             {
-                // 假设敌人是非我方阵营
                 if (player.isAlive && player.faction != playerCharacter?.faction)
                 {
                     return false;
@@ -626,6 +1924,28 @@ namespace ThreeKingdoms.Story
         private bool AreAllAlliesDefeated()
         {
             if (BattleManager.Instance == null) return true;
+
+            // ⭐ 使用 StoryBattle 中定义的盟友列表
+            if (currentBattle?.allies != null && currentBattle.allies.Count > 0)
+            {
+                foreach (var allyConfig in currentBattle.allies)
+                {
+                    Player ally = FindPlayer(allyConfig.characterId);
+                    if (ally != null && ally.isAlive)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            // 回退逻辑：使用阵营判断
+            if (playerCharacter == null)
+            {
+                playerCharacter = BattleManager.Instance.players.Count > 0
+                    ? BattleManager.Instance.players[0]
+                    : null;
+            }
 
             foreach (var player in BattleManager.Instance.players)
             {
@@ -640,21 +1960,48 @@ namespace ThreeKingdoms.Story
         private bool IsTargetDefeated(string characterId)
         {
             var target = FindPlayer(characterId);
-            return target != null && !target.isAlive;
+            bool defeated = target != null && !target.isAlive;
+            Debug.Log($"[StoryBattle] 检查目标 {characterId} 是否被击败: {defeated} (target={target?.generalName}, alive={target?.isAlive})");
+            return defeated;
         }
 
         private Player FindPlayer(string characterId)
         {
             if (BattleManager.Instance == null) return null;
+            if (string.IsNullOrEmpty(characterId)) return null;
+
+            string cleanId = characterId.ToLower().Replace("_story", "").Replace("_", "");
 
             foreach (var player in BattleManager.Instance.players)
             {
-                if (player.generalName.Contains(characterId) ||
-                    characterId.Contains(player.generalName))
+                // ⭐ 检查 generalData.generalId
+                if (player.generalData != null)
+                {
+                    string dataId = player.generalData.generalId?.ToLower().Replace("_story", "").Replace("_", "") ?? "";
+                    if (dataId == cleanId || dataId.Contains(cleanId) || cleanId.Contains(dataId))
+                    {
+                        return player;
+                    }
+                }
+
+                // 检查中文名匹配
+                string playerName = player.generalName ?? "";
+                string expectedChinese = GetChineseNameFromParam(characterId);
+
+                if (!string.IsNullOrEmpty(expectedChinese) && playerName == expectedChinese)
+                {
+                    return player;
+                }
+
+                // 检查英文名匹配
+                string playerNameLower = playerName.ToLower().Replace("_story", "").Replace("_", "");
+                if (playerNameLower == cleanId || playerNameLower.Contains(cleanId) || cleanId.Contains(playerNameLower))
                 {
                     return player;
                 }
             }
+
+            Debug.LogWarning($"[StoryBattle] FindPlayer 找不到角色: {characterId}");
             return null;
         }
 
@@ -664,42 +2011,98 @@ namespace ThreeKingdoms.Story
 
         private void OnVictory()
         {
+            // ⭐ 防止重复调用
+            if (battleEndHandled)
+            {
+                Debug.Log("[StoryBattle] OnVictory: 已处理过游戏结束，跳过");
+                return;
+            }
+            battleEndHandled = true;
+
             Debug.Log("[StoryBattle] 胜利！");
             isBattleActive = false;
+
+            // ⭐ 使用协程处理胜利，以便等待任何正在进行的对话完成
+            StartCoroutine(HandleVictorySequence());
+        }
+
+        /// <summary>
+        /// ⭐ 处理胜利序列 - 等待现有对话完成后显示胜利对话
+        /// </summary>
+        private IEnumerator HandleVictorySequence()
+        {
+            // ⭐ 等待任何正在进行的对话完成
+            if (isDialogueShowing)
+            {
+                Debug.Log("[StoryBattle] 等待现有对话完成...");
+                yield return new WaitUntil(() => !isDialogueShowing);
+                Debug.Log("[StoryBattle] 现有对话已完成");
+                // 等待一帧确保状态稳定
+                yield return null;
+            }
 
             // 显示胜利对白
             if (currentBattle?.victoryDialogue != null && currentBattle.victoryDialogue.Count > 0)
             {
-                StartCoroutine(ShowDialogueSequence(currentBattle.victoryDialogue, () =>
-                {
-                    // 标记战斗完成
-                    MarkBattleCompleted();
-                }));
+                Debug.Log($"[StoryBattle] 开始显示胜利对话，共 {currentBattle.victoryDialogue.Count} 句");
+                yield return StartCoroutine(ShowDialogueSequence(currentBattle.victoryDialogue, null));
+                Debug.Log("[StoryBattle] 胜利对话完成，准备标记战斗完成");
             }
             else
             {
-                MarkBattleCompleted();
+                Debug.Log("[StoryBattle] 没有胜利对话，直接标记完成");
             }
+
+            // 标记战斗完成
+            MarkBattleCompleted();
         }
 
         private void OnDefeat()
         {
+            // ⭐ 防止重复调用
+            if (battleEndHandled)
+            {
+                Debug.Log("[StoryBattle] OnDefeat: 已处理过游戏结束，跳过");
+                return;
+            }
+            battleEndHandled = true;
+
             Debug.Log("[StoryBattle] 失败！");
             isBattleActive = false;
+
+            // ⭐ 使用协程处理失败，以便等待任何正在进行的对话完成
+            StartCoroutine(HandleDefeatSequence());
+        }
+
+        /// <summary>
+        /// ⭐ 处理失败序列 - 等待现有对话完成后显示失败对话
+        /// </summary>
+        private IEnumerator HandleDefeatSequence()
+        {
+            // ⭐ 等待任何正在进行的对话完成
+            if (isDialogueShowing)
+            {
+                Debug.Log("[StoryBattle] 等待现有对话完成...");
+                yield return new WaitUntil(() => !isDialogueShowing);
+                Debug.Log("[StoryBattle] 现有对话已完成");
+                // 等待一帧确保状态稳定
+                yield return null;
+            }
 
             // 显示失败对白
             if (currentBattle?.defeatDialogue != null && currentBattle.defeatDialogue.Count > 0)
             {
-                StartCoroutine(ShowDialogueSequence(currentBattle.defeatDialogue, () =>
-                {
-                    // 返回故事模式界面
-                    ReturnToStoryMode();
-                }));
+                Debug.Log($"[StoryBattle] 开始显示失败对话，共 {currentBattle.defeatDialogue.Count} 句");
+                yield return StartCoroutine(ShowDialogueSequence(currentBattle.defeatDialogue, null));
+                Debug.Log("[StoryBattle] 失败对话完成，准备返回故事模式");
             }
             else
             {
-                ReturnToStoryMode();
+                Debug.Log("[StoryBattle] 没有失败对话，直接返回");
             }
+
+            // 返回故事模式界面
+            ReturnToStoryMode();
         }
 
         private void MarkBattleCompleted()
@@ -721,6 +2124,8 @@ namespace ThreeKingdoms.Story
 
         private void ReturnToStoryMode()
         {
+            Debug.Log($"[StoryBattle] ReturnToStoryMode 被调用! isDialogueShowing={isDialogueShowing}");
+            Debug.Log($"[StoryBattle] 调用堆栈:\n{System.Environment.StackTrace}");
             UnityEngine.SceneManagement.SceneManager.LoadScene("StoryMode");
         }
 
@@ -748,6 +2153,13 @@ namespace ThreeKingdoms.Story
         public IEnumerator ShowDialogueSequence(List<Dialogue> dialogues, System.Action onComplete)
         {
             Debug.Log($"[StoryBattle] ShowDialogueSequence 开始，共 {dialogues?.Count ?? 0} 句对话");
+
+            // ⭐ 防止重复启动对话序列
+            if (isDialogueShowing)
+            {
+                Debug.LogWarning("[StoryBattle] 对话序列已在运行中，跳过重复调用!");
+                yield break;
+            }
 
             if (dialogues == null || dialogues.Count == 0)
             {
@@ -804,14 +2216,20 @@ namespace ThreeKingdoms.Story
 
             Debug.Log("[StoryBattle] 开始显示对话内容...");
 
+            int dialogueIndex = 0;
             foreach (var dialogue in dialogues)
             {
+                dialogueIndex++;
+                Debug.Log($"[StoryBattle] 显示第 {dialogueIndex}/{dialogues.Count} 句对话: {dialogue.contentKey}");
+
                 ShowDialogue(dialogue);
 
                 // ⭐ 等待玩家点击（带冷却时间）
                 waitingForClick = true;
                 clickCooldown = CLICK_COOLDOWN_TIME;  // 重置冷却
+                Debug.Log($"[StoryBattle] 等待玩家点击... (cooldown={CLICK_COOLDOWN_TIME}s)");
                 yield return new WaitUntil(() => !waitingForClick);
+                Debug.Log($"[StoryBattle] 第 {dialogueIndex} 句对话点击确认");
 
                 // ⭐ 等待一帧确保输入被清除
                 yield return null;

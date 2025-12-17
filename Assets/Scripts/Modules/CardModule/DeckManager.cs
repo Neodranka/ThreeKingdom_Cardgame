@@ -119,6 +119,21 @@ namespace ThreeKingdoms
             {
                 drawPile.Add(new Card("五谷丰登", CardType.Trick, CardSuit.Spade, i + 3));
             }
+
+            // ==================== 延时锦囊 ====================
+
+            // 【乐不思蜀】- 3张
+            drawPile.Add(new Card("乐不思蜀", CardType.Trick, CardSuit.Heart, 6));
+            drawPile.Add(new Card("乐不思蜀", CardType.Trick, CardSuit.Spade, 6));
+            drawPile.Add(new Card("乐不思蜀", CardType.Trick, CardSuit.Club, 6));
+
+            // 【闪电】- 2张
+            drawPile.Add(new Card("闪电", CardType.Trick, CardSuit.Spade, 1));
+            drawPile.Add(new Card("闪电", CardType.Trick, CardSuit.Heart, 12));
+
+            // 【兵粮寸断】- 2张
+            drawPile.Add(new Card("兵粮寸断", CardType.Trick, CardSuit.Spade, 10));
+            drawPile.Add(new Card("兵粮寸断", CardType.Trick, CardSuit.Club, 4));
         }
 
         /// <summary>

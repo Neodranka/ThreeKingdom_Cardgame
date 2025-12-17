@@ -115,6 +115,17 @@ namespace ThreeKingdoms
             // 锦囊牌 - 延时锦囊
             AddTranslation("card_indulgence", "乐不思蜀", "Indulgence", "락불사촉");
             AddTranslation("card_lightning", "闪电", "Lightning", "번개");
+            AddTranslation("card_supply_shortage", "兵粮寸断", "Supply Shortage", "병량촌단");
+
+            // 判定相关消息
+            AddTranslation("msg_judgment", "{0} 进行【{1}】的判定", "{0} judging for [{1}]", "{0}이(가) [{1}]에 대해 판정");
+            AddTranslation("msg_judgment_result", "判定结果：{0}{1}", "Judgment result: {0}{1}", "판정 결과: {0}{1}");
+            AddTranslation("msg_indulgence_effect", "{0} 乐不思蜀生效，跳过出牌阶段", "{0}'s Indulgence takes effect, skip play phase", "{0}의 락불사촉 효과 발동, 출패 단계 건너뜀");
+            AddTranslation("msg_indulgence_miss", "{0} 乐不思蜀未生效", "{0}'s Indulgence missed", "{0}의 락불사촉 무효화");
+            AddTranslation("msg_lightning_hit", "闪电击中 {0}，受到3点雷电伤害", "Lightning struck {0}, dealing 3 damage", "번개가 {0}에게 적중, 3 피해");
+            AddTranslation("msg_lightning_miss", "闪电未击中，传递给下家", "Lightning missed, passing to next player", "번개 빗나감, 다음 플레이어에게 전달");
+            AddTranslation("msg_supply_shortage_effect", "{0} 兵粮寸断生效，跳过摸牌阶段", "{0}'s Supply Shortage takes effect, skip draw phase", "{0}의 병량촌단 효과 발동, 드로우 단계 건너뜀");
+            AddTranslation("msg_supply_shortage_miss", "{0} 兵粮寸断未生效", "{0}'s Supply Shortage missed", "{0}의 병량촌단 무효화");
 
             // 装备牌 - 武器
             AddTranslation("card_qinggang_sword", "青釭剑", "Qinggang Sword", "청강검");
@@ -214,15 +225,26 @@ namespace ThreeKingdoms
             AddTranslation("msg_dodge_required", "请出【闪】", "Play [Dodge]", "[섬]을 내세요");
             AddTranslation("msg_slash_required", "请出【杀】", "Play [Slash]", "[살]을 내세요");
             AddTranslation("msg_peach_required", "请出【桃】", "Play [Peach]", "[도]를 내세요");
+            AddTranslation("msg_nullify_required", "是否使用【无懈可击】？", "Use [Nullification]?", "[무효화]를 사용하시겠습니까?");
+            AddTranslation("msg_peach_for_player", "请出【桃】救 {0}", "Play [Peach] to save {0}", "[도]를 내서 {0}을(를) 구하세요");
+            AddTranslation("msg_near_death", "{0} 进入濒死状态！", "{0} is dying!", "{0}이(가) 빈사 상태!");
+            AddTranslation("msg_saved_by_peach", "{0} 被 {1} 用【桃】救回", "{0} was saved by {1}'s [Peach]", "{0}이(가) {1}의 [도]로 구출됨");
             AddTranslation("msg_response_required", "请响应", "Please respond", "응답하세요");
             AddTranslation("msg_responded_dodge", "{0} 打出了【闪】", "{0} played [Dodge]", "{0}이(가) [섬]을 냄");
             AddTranslation("msg_responded_slash", "{0} 打出了【杀】", "{0} played [Slash]", "{0}이(가) [살]을 냄");
             AddTranslation("msg_no_dodge", "{0} 没有【闪】", "{0} has no [Dodge]", "{0}은(는) [섬]이 없음");
             AddTranslation("msg_no_slash", "{0} 没有【杀】", "{0} has no [Slash]", "{0}은(는) [살]이 없음");
 
+            // 无懈可击消息
+            AddTranslation("msg_nullify_trick", "{0} 使用【无懈可击】抵消【{1}】", "{0} used [Nullification] to cancel [{1}]", "{0}이(가) [무효화]로 [{1}]을(를) 무효화함");
+            AddTranslation("msg_nullify_counter", "{0} 使用【无懈可击】反制", "{0} used [Nullification] to counter", "{0}이(가) [무효화]로 반제함");
+            AddTranslation("msg_nullify_failed", "{0} 的【无懈可击】被反制", "{0}'s [Nullification] was countered", "{0}의 [무효화]가 반제됨");
+
             // 错误/警告消息
             AddTranslation("msg_cannot_use", "不能使用此牌", "Cannot use this card", "이 카드를 사용할 수 없음");
             AddTranslation("msg_dodge_only_response", "【闪】只能在响应【杀】时使用", "[Dodge] can only be used to respond to [Slash]", "[섬]은 [살]에 대응할 때만 사용 가능");
+            AddTranslation("msg_longdan_dodge_as_slash", "{0} 发动【龙胆】，将【闪】当【杀】对 {1} 使用", "{0} used [Longdan], using [Dodge] as [Slash] against {1}", "{0}이(가) [용담]을 발동, [섬]을 [살]로 {1}에게 사용");
+            AddTranslation("msg_longdan_hint", "【龙胆】可选择目标当杀使用", "[Longdan] Can select target to use as Slash", "[용담] 대상 선택 시 [살]로 사용 가능");
             AddTranslation("msg_out_of_range", "目标不在攻击范围内", "Target out of range", "대상이 공격 범위 밖");
             AddTranslation("msg_already_used_slash", "本回合已使用过【杀】", "Already used [Slash] this turn", "이번 턴에 이미 [살] 사용함");
             AddTranslation("msg_card_effect_unimplemented", "卡牌【{0}】的效果尚未实现", "Card [{0}] effect not implemented", "카드 [{0}] 효과 미구현");
@@ -306,6 +328,14 @@ namespace ThreeKingdoms
             AddTranslation("msg_no_cards_to_discard", "目标没有可弃置的牌!", "Target has no cards to discard!", "대상에게 버릴 카드가 없습니다!");
             AddTranslation("msg_nullification_only_response", "【无懈可击】只能在响应锦囊牌时使用", "[Nullification] can only be used to counter trick cards", "[무해가격]은 계략 카드에 대응할 때만 사용 가능");
             AddTranslation("msg_delayed_trick_not_implemented", "延时锦囊暂未实现", "Delayed tricks not implemented yet", "지연 계략 미구현");
+
+            // 延时锦囊
+            AddTranslation("msg_already_has_indulgence", "目标判定区已有【乐不思蜀】", "Target already has [Indulgence] in judgment area", "대상의 판정 구역에 이미 [낙불사촉]이 있습니다");
+            AddTranslation("msg_already_has_lightning", "判定区已有【闪电】", "Already has [Lightning] in judgment area", "판정 구역에 이미 [번개]가 있습니다");
+            AddTranslation("msg_already_has_supply_shortage", "目标判定区已有【兵粮寸断】", "Target already has [Supply Shortage] in judgment area", "대상의 판정 구역에 이미 [병량촌단]이 있습니다");
+            AddTranslation("msg_supply_shortage_distance", "【兵粮寸断】只能对距离1的角色使用", "[Supply Shortage] can only be used on targets at distance 1", "[병량촌단]은 거리 1인 대상에게만 사용 가능");
+            AddTranslation("msg_used_delayed_trick", "{0} 对 {2} 使用了【{1}】", "{0} used [{1}] on {2}", "{0}이(가) {2}에게 [{1}]을 사용했습니다");
+            AddTranslation("msg_used_lightning", "{0} 放置了【闪电】", "{0} placed [Lightning]", "{0}이(가) [번개]를 배치했습니다");
 
             // 阶段和阵营
             AddTranslation("phase_unknown", "未知阶段", "Unknown Phase", "알 수 없는 단계");
@@ -449,6 +479,19 @@ namespace ThreeKingdoms
             AddTranslation("rule_northern_expedition", "北伐：蜀军士气高涨，摸牌+1", "Northern Expedition: Shu army morale is high, draw +1 card", "북벌: 촉군의 사기가 높아 카드를 1장 더 뽑습니다");
             AddTranslation("rule_final_battle", "终极决战：所有角色体力上限+1", "Final Battle: All characters gain +1 max HP", "최종 결전: 모든 캐릭터의 체력 상한이 +1 증가합니다");
 
+            // ⭐ 赤壁之战 Custom 规则相关消息
+            AddTranslation("msg_no_peach_rule", "【单骑断桥】不能使用桃！", "[Single Rider Bridge] Cannot use Peach!", "[단기단교] 도를 사용할 수 없습니다!");
+            AddTranslation("msg_huwei_trigger", "【虎威】{0} 弃置1张手牌！", "[Tiger's Might] {0} discards 1 card!", "[호위] {0}이(가) 1장을 버립니다!");
+            AddTranslation("msg_huwei_no_cards", "【虎威】{0} 没有手牌可弃", "[Tiger's Might] {0} has no cards to discard", "[호위] {0}은(는) 버릴 카드가 없음");
+            AddTranslation("msg_persuade_offer", "【以理服人】是否令目标弃2牌代替伤害？", "[Persuasion] Make target discard 2 cards instead of damage?", "[이리복인] 피해 대신 대상이 2장 버리게 하시겠습니까?");
+            AddTranslation("msg_persuade_effect", "【以理服人】{0} 弃置2张牌代替受到伤害", "[Persuasion] {0} discards 2 cards instead of taking damage", "[이리복인] {0}이(가) 피해 대신 2장을 버립니다");
+            AddTranslation("msg_forge_letter", "【伪造书信】获得反间标记！({0}/3)", "[Forged Letter] Gained counter-intelligence mark! ({0}/3)", "[위조서신] 반간 표시 획득! ({0}/3)");
+            AddTranslation("msg_trick_fake_intel", "【中计】蒋干发现假情报！", "[Tricked] Jiang Gan found fake intelligence!", "[중계] 장간이 가짜 정보를 발견했습니다!");
+            AddTranslation("msg_suspicion_effect", "【猜忌】曹操对蔡瑁产生怀疑，蔡瑁体力-{0}", "[Suspicion] Cao Cao suspects Cai Mao. Cai Mao HP -{0}", "[의심] 조조가 채모를 의심합니다. 채모 체력 -{0}");
+            AddTranslation("msg_seasick_effect", "【水土不服】{0} 不适应水战，损失1点体力", "[Seasickness] {0} is not used to naval combat, loses 1 HP", "[수토불복] {0}이(가) 수전에 적응 못해 체력 1 손실");
+            AddTranslation("msg_guanyu_priority", "【关羽】优先攻击血量最低的敌人", "[Guan Yu] Prioritizes attacking the lowest HP enemy", "[관우] 체력이 가장 낮은 적을 우선 공격합니다");
+            AddTranslation("msg_debate_mode", "【舌战模式】杀和闪无效，只能使用锦囊牌", "[Debate Mode] Slash and Dodge ineffective, only Trick cards work", "[설전모드] 살과 섬 무효, 금낭패만 사용 가능");
+
             // ==================== 赤壁之战 · 详细数据 ====================
 
             // 战役信息
@@ -456,55 +499,55 @@ namespace ThreeKingdoms
                 "In the 13th year of Jian'an, Cao Cao marches south with an unstoppable army. Red Cliffs marks both the end of retreat and the turning point of Shu Han's fate.",
                 "건안 13년, 조조가 남하하여 막을 수 없는 기세입니다. 적벽은 퇴로의 끝이자 촉한 운명의 전환점입니다.");
 
-            // 第一战：柴桑盟议
-            AddTranslation("battle_chibi_1", "柴桑盟议", "Chaisang Alliance", "시상 맹의");
-            AddTranslation("battle_chibi_1_subtitle", "降？还是战？", "Surrender? Or Fight?", "항복인가? 싸울 것인가?");
-            AddTranslation("battle_chibi_1_desc", "孙权面对主和派与主战派的激烈争论，必须做出抉择——是俯首称臣，还是奋起抗曹？",
-                "Sun Quan faces heated debate between the peace and war factions. He must choose - submit or resist Cao Cao?",
-                "손권은 화의파와 주전파의 격렬한 논쟁 앞에서 결단을 내려야 합니다. 굴복할 것인가, 항전할 것인가?");
-            AddTranslation("battle_chibi_1_briefing", "击败张昭（使其体力归零）即可获胜。张昭不会主动攻击，仅使用【主和】技能削弱孙权。",
-                "Defeat Zhang Zhao to win. He won't attack directly but uses [Advocate Peace] to weaken Sun Quan.",
-                "장소를 물리치면 승리입니다. 그는 직접 공격하지 않고 [주화] 기술로 손권을 약화시킵니다.");
+            // 第一战：长坂先锋（教程）
+            AddTranslation("battle_chibi_1", "长坂先锋", "Changban Vanguard", "장판 선봉");
+            AddTranslation("battle_chibi_1_subtitle", "七进七出", "Seven In, Seven Out", "칠진칠출");
+            AddTranslation("battle_chibi_1_desc", "曹军追兵将至！赵云必须击退先头部队，为刘备撤退争取时间。",
+                "Cao's pursuers are coming! Zhao Yun must repel the vanguard to buy time for Liu Bei's retreat.",
+                "조조군 추격대가 다가오고 있습니다! 조운이 선봉대를 격퇴하여 유비의 후퇴를 위한 시간을 벌어야 합니다.");
+            AddTranslation("battle_chibi_1_briefing", "新手教程战斗。击败曹军骑兵即可获胜。熟悉【龙胆】技能的使用方法。",
+                "Tutorial battle. Defeat the Cao cavalry to win. Learn how to use the [Longdan] skill.",
+                "튜토리얼 전투입니다. 조조군 기병을 물리치면 승리합니다. [용담] 기술 사용법을 익히세요.");
 
-            // 第二战：诸葛渡江
-            AddTranslation("battle_chibi_2", "诸葛渡江", "Zhuge Crosses the River", "제갈량 도강");
-            AddTranslation("battle_chibi_2_subtitle", "智与疑的交锋", "Clash of Wit and Doubt", "지혜와 의심의 대결");
-            AddTranslation("battle_chibi_2_desc", "诸葛亮奉命出使东吴，说服周瑜联合抗曹。然而周瑜此人，最恨被人牵着走……",
-                "Zhuge Liang is sent to Eastern Wu to persuade Zhou Yu to join against Cao Cao. But Zhou Yu hates being led by others...",
-                "제갈량이 동오로 파견되어 주유를 설득합니다. 하지만 주유는 남에게 끌려다니는 것을 싫어합니다...");
-            AddTranslation("battle_chibi_2_briefing", "这是一场生存战，存活至第6回合即可获胜。无需击败敌人，保住诸葛亮的性命即可。",
-                "This is a survival battle. Survive until turn 6 to win. No need to defeat enemies, just keep Zhuge Liang alive.",
-                "생존전입니다. 6턴까지 살아남으면 승리합니다. 적을 물리칠 필요 없이 제갈량을 살리세요.");
-
-            // 第三战：长坂坡突围
-            AddTranslation("battle_chibi_3", "长坂坡突围", "Changban Breakout", "장판파 돌파");
-            AddTranslation("battle_chibi_3_subtitle", "百万军中护主", "Protecting the Lord Among a Million", "백만 대군 속 주군 호위");
-            AddTranslation("battle_chibi_3_desc", "曹军先头部队追上来了！赵云必须护送刘备突出重围。",
-                "Cao Cao's vanguard has caught up! Zhao Yun must escort Liu Bei to break through the siege.",
-                "조조군 선발대가 따라잡았습니다! 조운이 유비를 호위하여 포위를 돌파해야 합니다.");
-            AddTranslation("battle_chibi_3_briefing", "新手引导战斗，难度较低。熟悉基础操作和龙胆技能使用。",
-                "Tutorial battle with low difficulty. Learn basic operations and Longdan skill usage.",
-                "튜토리얼 전투로 난이도가 낮습니다. 기본 조작과 용담 기술 사용법을 익히세요.");
-
-            // 第四战：张飞断桥
-            AddTranslation("battle_chibi_4", "张飞断桥", "Zhang Fei Breaks the Bridge", "장비 교량 파괴");
-            AddTranslation("battle_chibi_4_subtitle", "燕人张翼德在此！", "I am Zhang Yide of Yan!", "연인 장익덕이 여기 있다!");
-            AddTranslation("battle_chibi_4_desc", "曹操亲自率领部队追了上来。张飞单骑断桥，横矛立马，以一己之力阻挡曹军追击。",
+            // 第二战：张飞断桥
+            AddTranslation("battle_chibi_2", "张飞断桥", "Zhang Fei Breaks the Bridge", "장비 교량 파괴");
+            AddTranslation("battle_chibi_2_subtitle", "燕人张翼德在此！", "I am Zhang Yide of Yan!", "연인 장익덕이 여기 있다!");
+            AddTranslation("battle_chibi_2_desc", "曹操亲自率领部队追了上来。张飞单骑断桥，横矛立马，以一己之力阻挡曹军追击。",
                 "Cao Cao personally leads troops in pursuit. Zhang Fei alone blocks the bridge with his spear to stop the pursuers.",
                 "조조가 직접 군대를 이끌고 추격합니다. 장비가 홀로 다리를 막고 창을 세워 추격군을 저지합니다.");
-            AddTranslation("battle_chibi_4_briefing", "击败夏侯杰即可获胜。夏侯杰体力降至2点时会触发【胆裂】，无法使用闪且伤害-1。",
-                "Defeat Xiahou Jie to win. When his HP drops to 2, [Terror] triggers - he can't use Dodge and deals -1 damage.",
-                "하후걸을 물리치면 승리입니다. 체력이 2가 되면 [담렬]이 발동되어 섬을 사용할 수 없고 피해가 -1됩니다.");
+            AddTranslation("battle_chibi_2_briefing", "击败夏侯杰即可获胜。夏侯杰体力降至2点时会触发【胆裂】，无法使用闪且伤害-1。张飞可无限出【杀】。",
+                "Defeat Xiahou Jie to win. When his HP drops to 2, [Terror] triggers - he can't use Dodge and deals -1 damage. Zhang Fei can use unlimited [Slash].",
+                "하후걸을 물리치면 승리합니다. 체력이 2가 되면 [담렬]이 발동되어 섬을 사용할 수 없고 피해가 -1됩니다. 장비는 무제한 [살]을 사용할 수 있습니다.");
 
-            // 第五战：黄盖诈降
-            AddTranslation("battle_chibi_5", "黄盖诈降", "Huang Gai's Feigned Surrender", "황개의 거짓 항복");
-            AddTranslation("battle_chibi_5_subtitle", "最痛的一步棋", "The Most Painful Move", "가장 고통스러운 한 수");
-            AddTranslation("battle_chibi_5_desc", "黄盖单膝跪地，请命受刑。苦肉计，是火攻的前奏——必须让曹操相信黄盖是真心投降。",
-                "Huang Gai kneels and asks to be punished. The self-torture scheme precedes the fire attack - Cao Cao must believe the surrender is real.",
-                "황개가 무릎을 꿇고 형벌을 청합니다. 고육지계는 화공의 전주곡으로 조조가 진짜 항복이라 믿게 해야 합니다.");
-            AddTranslation("battle_chibi_5_briefing", "累积3个诈降标记即可获胜。每次发动【苦肉诈降】会获得1个标记。注意躲避蒋干的【盗书】。",
-                "Accumulate 3 surrender marks to win. Each [Self-Torture Surrender] gives 1 mark. Avoid Jiang Gan's [Steal Documents].",
-                "항복 표시 3개를 모으면 승리합니다. [고육사항]을 발동할 때마다 1개를 얻습니다. 장간의 [도서]를 피하세요.");
+            // 第三战：舌战群儒
+            AddTranslation("battle_chibi_3", "舌战群儒", "Debate with Scholars", "설전군유");
+            AddTranslation("battle_chibi_3_subtitle", "以言为剑", "Words as Swords", "말로 싸우다");
+            AddTranslation("battle_chibi_3_desc", "诸葛亮只身入东吴，面对张昭、虞翻等主和派的刁难。他必须以雄辩之才，说服孙权联刘抗曹。",
+                "Zhuge Liang enters Wu alone to face the peace advocates Zhang Zhao and Yu Fan. He must use his eloquence to persuade Sun Quan to ally with Liu against Cao.",
+                "제갈량이 홀로 동오에 들어가 장소, 우번 등 화의파의 난관에 직면합니다. 웅변으로 손권을 설득하여 유비와 연합해야 합니다.");
+            AddTranslation("battle_chibi_3_briefing", "击败张昭和虞翻，或存活6回合即可获胜。鲁肃会在旁协助。注意敌人的【主和】和【诘难】技能。",
+                "Defeat Zhang Zhao and Yu Fan, or survive 6 turns to win. Lu Su will assist. Watch out for enemies' [Advocate Peace] and [Challenge] skills.",
+                "장소와 우번을 물리치거나 6턴 생존시 승리합니다. 노숙이 도와줍니다. 적의 [주화]와 [힐난] 기술에 주의하세요.");
+
+            // 第四战：蒋干盗书
+            AddTranslation("battle_chibi_4", "蒋干盗书", "Jiang Gan Steals the Letter", "장간 도서");
+            AddTranslation("battle_chibi_4_subtitle", "周郎妙计安天下", "Zhou Yu's Brilliant Scheme", "주유의 묘계");
+            AddTranslation("battle_chibi_4_desc", "蒋干奉曹操之命前来劝降，周瑜将计就计，设下反间之局。诸葛亮在旁观察，共谋除掉曹军水军都督蔡瑁。",
+                "Jiang Gan comes to persuade Zhou Yu to surrender. Zhou Yu turns the tables with a counter-intelligence scheme. Zhuge Liang observes, plotting to eliminate Cai Mao.",
+                "장간이 조조의 명을 받아 항복을 권유하러 옵니다. 주유가 반간계를 꾸미고 제갈량이 관찰하며 채모를 제거할 계획을 세웁니다.");
+            AddTranslation("battle_chibi_4_briefing", "累积3个反间标记即可获胜。发动【反间】获得标记。若蒋干连续3次成功【盗书】则失败。",
+                "Accumulate 3 counter-intelligence marks to win. Use [Counter-Scheme] to gain marks. Lose if Jiang Gan succeeds 3 times with [Steal Documents].",
+                "반간 표시 3개를 모으면 승리합니다. [반간]으로 표시를 얻으세요. 장간이 [도서]를 3번 성공하면 패배합니다.");
+
+            // 第五战：江上对峙
+            AddTranslation("battle_chibi_5", "江上对峙", "River Standoff", "강상 대치");
+            AddTranslation("battle_chibi_5_subtitle", "风雨欲来", "The Storm is Coming", "폭풍 전야");
+            AddTranslation("battle_chibi_5_desc", "刘备与关羽在江上与曹军水师对峙。曹军士兵不习水战，战力大减。只需坚守至援军到来。",
+                "Liu Bei and Guan Yu face Cao's navy on the river. Cao's soldiers are not used to naval combat, greatly reducing their strength. Just hold until reinforcements arrive.",
+                "유비와 관우가 강 위에서 조조 수군과 대치합니다. 조조군 병사들은 수전에 익숙하지 않아 전력이 크게 떨어집니다. 원군이 올 때까지 버티세요.");
+            AddTranslation("battle_chibi_5_briefing", "击败所有曹军水兵或存活5回合即可获胜。曹军水兵拥有【北人】技能，手牌上限-1，出杀需弃牌。",
+                "Defeat all Cao sailors or survive 5 turns to win. Cao sailors have [Northerner] skill: -1 hand limit, must discard when using Slash.",
+                "모든 조조 수병을 물리치거나 5턴 생존시 승리합니다. 조조 수병은 [북인] 기술: 패 상한 -1, 살 사용시 버려야 합니다.");
 
             // 第六战：赤壁火起
             AddTranslation("battle_chibi_6", "赤壁火起", "Fire at Red Cliffs", "적벽의 불");
@@ -537,6 +580,10 @@ namespace ThreeKingdoms
             AddTranslation("char_zhangliao", "张辽", "Zhang Liao", "장료");
             AddTranslation("char_mifang", "糜芳", "Mi Fang", "미방");
             AddTranslation("char_caojun_cavalry", "曹军骑兵", "Cao Cavalry", "조조군 기병");
+            AddTranslation("char_yufan", "虞翻", "Yu Fan", "우번");
+            AddTranslation("char_caimao", "蔡瑁", "Cai Mao", "채모");
+            AddTranslation("char_caojun_sailor", "曹军水兵", "Cao Sailor", "조조군 수병");
+            AddTranslation("char_soldier", "士兵", "Soldier", "병사");
 
             // 特殊规则
             AddTranslation("rule_zhangzhao_no_attack", "张昭不会主动攻击", "Zhang Zhao won't attack", "장소는 공격하지 않습니다");
@@ -547,69 +594,550 @@ namespace ThreeKingdoms
             AddTranslation("rule_conspiracy", "密谋成功：火攻伤害+2", "Conspiracy Success: Fire damage +2", "밀모 성공: 화공 피해 +2");
             AddTranslation("rule_east_wind", "东风渐起：火攻伤害再+1", "East Wind Rising: Fire damage +1 more", "동풍: 화공 피해 추가 +1");
 
-            // 对白 - 第一战
-            AddTranslation("dialogue_chibi1_opening_1", "冬夜，柴桑。大帐之内，只有火盆噼啪作响。", "Winter night, Chaisang. Inside the tent, only the brazier crackles.", "겨울밤, 시상. 장막 안에는 화로 소리만 탁탁 울립니다.");
-            AddTranslation("dialogue_chibi1_opening_zhangzhao", "主公，曹操八十万大军，非人力可挡。不如暂且归顺，保全江东。", "My lord, Cao Cao's 800,000 troops cannot be stopped by human strength. Better to submit and preserve Jiangdong.", "주공, 조조의 80만 대군은 인력으로 막을 수 없습니다. 잠시 귀순하여 강동을 보전하시죠.");
-            AddTranslation("dialogue_chibi1_opening_sunquan", "父兄基业，岂能拱手让人？", "How can I hand over my father's and brother's legacy?", "부형의 기업을 어찌 남에게 넘길 수 있겠습니까?");
-            AddTranslation("dialogue_chibi1_sunquan_kill", "江东不是用来跪的！", "Jiangdong is not for kneeling!", "강동은 무릎 꿇을 곳이 아니다!");
-            AddTranslation("dialogue_chibi1_zhangzhao_zhuhe", "一时之忍，未必不是长久之安！", "Temporary endurance may lead to lasting peace!", "일시적 인내가 오랜 평화를 가져올 수 있습니다!");
-            AddTranslation("dialogue_chibi1_lusu_help", "主公，刘备尚在，尚可一战！", "My lord, Liu Bei still stands - we can still fight!", "주공, 유비가 아직 있으니 싸울 수 있습니다!");
-            AddTranslation("dialogue_chibi1_chengpu_panic", "主公！江东不能没有你！", "My lord! Jiangdong cannot be without you!", "주공! 강동은 당신 없이 안 됩니다!");
-            AddTranslation("dialogue_chibi1_zhangzhao_defeat", "主公……老臣愚钝了。", "My lord... this old servant was foolish.", "주공... 노신이 어리석었습니다.");
-            AddTranslation("dialogue_chibi1_victory_1", "孤已决意！与曹操势不两立！", "My decision is made! Cao Cao and I cannot coexist!", "내 결심은 섰다! 조조와 양립할 수 없다!");
-            AddTranslation("dialogue_chibi1_victory_2", "众臣：愿随主公死战！", "Ministers: We will fight to the death with our lord!", "신하들: 주공과 함께 죽을 때까지 싸우겠습니다!");
+            // ==================== 赤壁之战v2 对白 ====================
 
-            // 对白 - 第二战
-            AddTranslation("dialogue_chibi2_opening_1", "江面薄雾缭绕，船桨破水。", "Thin mist shrouds the river, oars break the water.", "강 위에 옅은 안개가 끼고 노가 물을 가릅니다.");
-            AddTranslation("dialogue_chibi2_opening_zhouyu", "诸葛孔明？久闻大名。", "Zhuge Kongming? I've heard much about you.", "제갈공명? 오래전부터 이름을 들었소.");
-            AddTranslation("dialogue_chibi2_zhugeliang_guanxing", "局未开，胜负已分三成。", "Before the game begins, thirty percent of victory is already decided.", "국이 펼쳐지기 전에 승부는 이미 30%가 결정됩니다.");
-            AddTranslation("dialogue_chibi2_zhouyu_attack", "空谈之士，也会流血吗？", "Does a scholar of empty talk also bleed?", "공론만 하는 선비도 피를 흘리는가?");
-            AddTranslation("dialogue_chibi2_lvmeng_warning", "都督，此人不可小觑。", "Commander, this man should not be underestimated.", "도독, 이 자를 가볍게 보면 안 됩니다.");
-            AddTranslation("dialogue_chibi2_round4_narration", "江风渐急，船身微微倾斜。", "The river wind picks up, the boat tilts slightly.", "강바람이 거세지고 배가 살짝 기웁니다.");
-            AddTranslation("dialogue_chibi2_zhouyu_question", "曹操水军连船，铁索横江。你这把火，从哪儿来？", "Cao Cao's navy chains ships together, iron links cross the river. Where will your fire come from?", "조조 수군이 배를 연결하고 철쇄가 강을 가로지르오. 그대의 불은 어디서 오는가?");
-            AddTranslation("dialogue_chibi2_zhugeliang_answer", "从你我头顶。", "From above our heads.", "당신과 내 머리 위에서.");
-            AddTranslation("dialogue_chibi2_victory", "好一个卧龙！这一战，瑜不再独行。", "What a Sleeping Dragon! In this battle, Yu will not fight alone.", "과연 와룡이로군! 이 싸움에서 유는 더 이상 홀로 싸우지 않겠소.");
+            // 战役开场对白
+            AddTranslation("dialogue_chibi_campaign_intro", "建安十三年，曹操挥师南下，荆州望风而降。刘备败走当阳，前路茫茫。在这绝境之中，一场改变天下的大战，即将拉开序幕……",
+                "In the 13th year of Jian'an, Cao Cao marches south. Jingzhou surrenders at sight. Liu Bei flees in defeat at Dangyang, the road ahead unclear. In this desperate situation, a battle that will change the world is about to begin...",
+                "건안 13년, 조조가 남하합니다. 형주가 풍문만 듣고 항복합니다. 유비는 당양에서 패하여 앞길이 막막합니다. 이 절망 속에서 천하를 바꿀 대전이 막을 올리려 합니다...");
+            AddTranslation("dialogue_chibi_opening_zhuge1", "主公，曹军虽众，但远道而来，士卒疲惫。此时正是联合孙权，共抗曹操的良机。",
+                "My lord, though Cao's army is large, they come from afar and the soldiers are weary. This is the perfect time to ally with Sun Quan against Cao Cao.",
+                "주공, 조조군이 많지만 먼 길을 와서 병사들이 지쳐 있습니다. 지금이 손권과 연합하여 조조에 맞설 좋은 기회입니다.");
+            AddTranslation("dialogue_chibi_opening_liubei1", "孔明所言极是。只是……我军新败，孙权可愿与我联手？",
+                "Kongming speaks truly. But... our army has just been defeated. Will Sun Quan be willing to ally with us?",
+                "공명의 말이 맞소. 하지만... 우리 군이 막 패했는데, 손권이 우리와 손을 잡으려 할까요?");
+            AddTranslation("dialogue_chibi_opening_guanyu", "大哥放心，有我和三弟在，曹军休想轻易得逞！",
+                "Rest assured, brother. With me and Third Brother here, Cao's army won't have their way easily!",
+                "형님 안심하세요. 저와 삼제가 있으니 조조군이 쉽게 뜻을 이루지 못할 것입니다!");
+            AddTranslation("dialogue_chibi_opening_zhuge2", "亮愿只身前往江东，说服孙权。但在此之前，我们必须先稳住阵脚。",
+                "I am willing to go to Jiangdong alone to persuade Sun Quan. But first, we must secure our position.",
+                "제가 홀로 강동에 가서 손권을 설득하겠습니다. 하지만 그 전에 우리 진영을 안정시켜야 합니다.");
+            AddTranslation("dialogue_chibi_opening_liubei2", "好！子龙，你先率军殿后，为我军争取时间！",
+                "Good! Zilong, you lead the rear guard first and buy us time!",
+                "좋소! 자룡, 먼저 후방을 맡아 우리 군에 시간을 벌어주시오!");
+            AddTranslation("dialogue_chibi_opening_hint", "【提示】接下来是教程战斗，熟悉基本操作。",
+                "[Hint] Next is the tutorial battle. Learn the basic controls.",
+                "[힌트] 다음은 튜토리얼 전투입니다. 기본 조작을 익히세요.");
+            AddTranslation("dialogue_chibi_opening_soldier", "报——！曹军先锋已至！",
+                "Report! Cao's vanguard has arrived!",
+                "보고합니다! 조조군 선봉이 도착했습니다!");
+            AddTranslation("dialogue_chibi_opening_zhaoyun", "主公放心，赵云在此，定保主公周全！",
+                "Rest assured, my lord. With Zhao Yun here, I will definitely keep you safe!",
+                "주공 안심하세요. 조운이 여기 있으니 반드시 주공을 지키겠습니다!");
 
-            // 对白 - 第三战
-            AddTranslation("dialogue_chibi3_opening_mifang", "不好了主公！赵云投降曹操了！", "Bad news, my lord! Zhao Yun has surrendered to Cao Cao!", "큰일입니다, 주공! 조운이 조조에게 항복했습니다!");
-            AddTranslation("dialogue_chibi3_opening_liubei", "怎么可能，子龙是我的兄弟，怎么会背叛我？", "Impossible! Zilong is my brother - how could he betray me?", "말도 안 돼, 자룡은 내 형제인데 어떻게 배신할 수 있겠는가?");
-            AddTranslation("dialogue_chibi3_victory", "大哥，那我去断后，你们先走！", "Big brother, let me hold the rear - you go first!", "형님, 제가 후방을 막을 테니 먼저 가세요!");
+            // 第一战：长坂先锋
+            AddTranslation("dialogue_chibi1_zhaoyun_start", "来者何人？想挡我赵云的去路，先问问我手中的枪！",
+                "Who goes there? If you want to block Zhao Yun's path, first ask my spear!",
+                "누구냐? 조운의 길을 막으려면 먼저 내 창에게 물어봐라!");
+            AddTranslation("dialogue_chibi1_longdan_tip", "【提示】龙胆技能：可将【杀】当【闪】使用，或将【闪】当【杀】使用。灵活运用，攻守兼备！",
+                "[Tip] Longdan skill: Use [Slash] as [Dodge] or [Dodge] as [Slash]. Use flexibly for both offense and defense!",
+                "[팁] 용담 기술: [살]을 [섬]으로, [섬]을 [살]로 사용할 수 있습니다. 공수 겸비로 유연하게 활용하세요!");
+            AddTranslation("dialogue_chibi1_zhaoyun_win", "区区先锋，不足为惧。主公，我们走！",
+                "A mere vanguard is nothing to fear. My lord, let's go!",
+                "고작 선봉따위, 두려울 것 없소. 주공, 가시죠!");
+            AddTranslation("dialogue_chibi1_mifang_rumor", "主公！不好了！有人传言，说赵云投降曹操了！",
+                "My lord! Bad news! There are rumors that Zhao Yun has surrendered to Cao Cao!",
+                "주공! 큰일입니다! 조운이 조조에게 항복했다는 소문이 있습니다!");
+            AddTranslation("dialogue_chibi1_liubei_trust", "子龙断不会背叛我！他定是去救阿斗了！",
+                "Zilong would never betray me! He must have gone to save A-Dou!",
+                "자룡은 절대 나를 배신하지 않을 것이오! 틀림없이 아두를 구하러 갔을 거요!");
+            AddTranslation("dialogue_chibi1_mifang_seen", "我亲眼所见！赵云往北方去了！",
+                "I saw it with my own eyes! Zhao Yun went north!",
+                "제가 직접 봤습니다! 조운이 북쪽으로 갔습니다!");
+            AddTranslation("dialogue_chibi1_zhangfei_go", "大哥，那我去断后，你们先走！",
+                "Big brother, then I'll hold the rear. You go first!",
+                "형님, 그럼 제가 후방을 막겠습니다. 먼저 가세요!");
 
-            // 对白 - 第四战
-            AddTranslation("dialogue_chibi4_opening", "曹操亲自率领部队追了上来。", "Cao Cao personally leads the pursuit.", "조조가 직접 추격대를 이끌고 왔습니다.");
-            AddTranslation("dialogue_chibi4_zhangfei_roar", "我乃燕人张翼德，谁敢与我决一死战！", "I am Zhang Yide of Yan! Who dares fight me to the death!", "나는 연인 장익덕이다! 누가 감히 나와 결사전을 벌이겠는가!");
-            AddTranslation("dialogue_chibi4_xiahoujie_fear", "曹军骑将夏侯杰，惊骇失措。", "Cao's cavalry general Xiahou Jie is terrified and panics.", "조조군 기장 하후걸이 공포에 질려 당황합니다.");
-            AddTranslation("dialogue_chibi4_caocao_retreat", "昔日云长就说过，张翼德可在百万军中取敌将首级。听我命令，全军后撤！", "Yunchang once said Zhang Yide could take an enemy general's head among a million troops. On my order, all forces retreat!", "예전에 운장이 말하길 장익덕은 백만 대군 속에서 적장의 목을 벨 수 있다고 했다. 내 명령이다, 전군 후퇴!");
-            AddTranslation("dialogue_chibi4_zhangfei_order", "命令士卒，把这个桥给拆了。", "Order the soldiers to tear down this bridge.", "병사들에게 명령한다, 이 다리를 부숴라.");
-            AddTranslation("dialogue_chibi4_narration_zhaoyun", "就在此时，赵云骑马而来，胸中挂着刘备的儿子刘禅。", "At this moment, Zhao Yun arrives on horseback, carrying Liu Bei's son Liu Shan at his chest.", "바로 그때, 조운이 말을 타고 와 품에 유비의 아들 유선을 안고 있었습니다.");
-            AddTranslation("dialogue_chibi4_liubei_praise", "在百万军中带着我的儿子杀出重围，子龙一身都是胆啊！", "Fighting through a million troops with my son - Zilong is all courage!", "백만 대군 속에서 내 아들을 데리고 돌파하다니, 자룡은 온몸이 담력이구나!");
+            // 第二战：张飞断桥
+            AddTranslation("dialogue_chibi2_opening", "长坂桥上，张飞横矛立马，怒目圆睁。",
+                "On Changban Bridge, Zhang Fei stands with his spear raised, eyes blazing with fury.",
+                "장판교 위에서 장비가 창을 가로잡고 말 위에 서서 눈을 부릅뜨고 있습니다.");
+            AddTranslation("dialogue_chibi2_zhangfei_roar", "我乃燕人张翼德！谁敢与我决一死战！",
+                "I am Zhang Yide of Yan! Who dares fight me to the death!",
+                "나는 연인 장익덕이다! 누가 감히 나와 결사전을 벌이겠는가!");
+            AddTranslation("dialogue_chibi2_xiahoujie_fear", "夏侯杰面色惨白，身体不由自主地颤抖……",
+                "Xiahou Jie's face turns pale, his body trembling involuntarily...",
+                "하후걸의 얼굴이 창백해지고 몸이 저절로 떨립니다...");
+            AddTranslation("dialogue_chibi2_xiahoujie_death", "夏侯杰惊骇过度，坠马而亡。",
+                "Xiahou Jie dies from excessive terror, falling from his horse.",
+                "하후걸이 과도한 공포로 말에서 떨어져 죽습니다.");
+            AddTranslation("dialogue_chibi2_caocao_retreat", "云长曾言，翼德可于百万军中取上将首级。全军撤退！",
+                "Yunchang once said Yide could take a general's head among a million troops. All forces retreat!",
+                "운장이 말하길 익덕은 백만 대군 속에서 상장의 목을 벨 수 있다 했다. 전군 후퇴!");
+            AddTranslation("dialogue_chibi2_zhangfei_order", "来人！把这桥给我拆了！",
+                "Men! Tear down this bridge!",
+                "여봐라! 이 다리를 부숴라!");
+            AddTranslation("dialogue_chibi2_zhaoyun_arrive", "就在此时，赵云策马而至，怀中抱着刘禅。",
+                "At that moment, Zhao Yun arrives on horseback, carrying Liu Shan in his arms.",
+                "바로 그때 조운이 말을 타고 와서 품에 유선을 안고 있었습니다.");
+            AddTranslation("dialogue_chibi2_zhaoyun_help", "三将军！主公在前方等候！",
+                "Third General! The lord awaits ahead!",
+                "삼장군! 주공이 앞에서 기다리고 계십니다!");
+            AddTranslation("dialogue_chibi2_zhangfei_go", "好！我们走！",
+                "Good! Let's go!",
+                "좋다! 가자!");
+            AddTranslation("dialogue_chibi2_liubei_praise", "子龙一身是胆！翼德威震天下！有你们在，刘备何惧曹操！",
+                "Zilong is all courage! Yide's might shakes the world! With you two, why should Liu Bei fear Cao Cao!",
+                "자룡은 온몸이 담력이고 익덕의 위엄이 천하를 진동시키는구나! 너희가 있으니 유비가 어찌 조조를 두려워하겠는가!");
 
-            // 对白 - 第五战
-            AddTranslation("dialogue_chibi5_opening", "营帐之内，气氛压抑。", "Inside the tent, the atmosphere is oppressive.", "장막 안의 분위기가 무겁습니다.");
-            AddTranslation("dialogue_chibi5_huanggai_request", "都督，这顿打，我来挨。", "Commander, let me take this beating.", "도독, 이 매는 제가 맞겠습니다.");
-            AddTranslation("dialogue_chibi5_zhouyu_warning", "若你撑不住，计策便成空谈。", "If you can't endure, the plan becomes empty talk.", "네가 버티지 못하면 계책은 공염불이 됩니다.");
-            AddTranslation("dialogue_chibi5_huanggai_hit", "这一棍，打得值！", "This beating is worth it!", "이 매는 값진 것이다!");
-            AddTranslation("dialogue_chibi5_zhouyu_enough", "够了……别再硬撑。", "Enough... don't push yourself further.", "됐어... 더 이상 무리하지 마.");
-            AddTranslation("dialogue_chibi5_caocao_believe", "周瑜用人，果然刻薄。", "Zhou Yu's treatment of people is truly harsh.", "주유의 사람 대하는 것이 정말 각박하군.");
-            AddTranslation("dialogue_chibi5_jianggan_doubt", "奇怪……为何总觉得不对？", "Strange... why does something feel off?", "이상해... 왜 뭔가 이상한 느낌이 들지?");
-            AddTranslation("dialogue_chibi5_victory_narration", "曹操收下降书。", "Cao Cao accepts the surrender letter.", "조조가 항복서를 받습니다.");
-            AddTranslation("dialogue_chibi5_caocao_accept", "若黄盖真降，赤壁，不过一把火的事。", "If Huang Gai truly surrenders, Red Cliffs is just a matter of one fire.", "황개가 진짜 항복한다면, 적벽은 불 한 번이면 끝이다.");
+            // 第三战：舌战群儒
+            AddTranslation("dialogue_chibi3_opening", "诸葛亮只身入东吴，面对主和派的诘难。",
+                "Zhuge Liang enters Eastern Wu alone, facing the challenges of the peace faction.",
+                "제갈량이 홀로 동오에 들어가 화의파의 힐난에 직면합니다.");
+            AddTranslation("dialogue_chibi3_zhangzhao_question", "刘备屡战屡败，先生何以认为他能抗曹？",
+                "Liu Bei loses battle after battle. Why does the master believe he can resist Cao Cao?",
+                "유비는 싸울 때마다 지는데, 선생은 왜 그가 조조에 맞설 수 있다고 생각하시오?");
+            AddTranslation("dialogue_chibi3_zhuge_guanxing", "观星之术，可知天命。曹操虽强，但天命不在他。",
+                "Through stargazing, one can know heaven's will. Though Cao Cao is strong, heaven's mandate is not with him.",
+                "관성술로 천명을 알 수 있소. 조조가 강하지만 천명이 그에게 있지 않소.");
+            AddTranslation("dialogue_chibi3_yufan_challenge", "好一张利嘴！只怕嘴上功夫，战场上可用不上！",
+                "What a sharp tongue! But I fear such verbal skills are useless on the battlefield!",
+                "입심 하나는 대단하군! 하지만 전장에서는 소용없을 것 같은데!");
+            AddTranslation("dialogue_chibi3_zhangzhao_surrender", "降曹可保江东百姓平安，这难道不是大义？",
+                "Surrendering to Cao can ensure peace for Jiangdong's people. Is this not righteousness?",
+                "조조에게 항복하면 강동 백성이 평안할 수 있는데, 이것이 대의가 아니겠소?");
+            AddTranslation("dialogue_chibi3_lusu_hint", "孔明先生，不必与他们争论太久。关键是说服吴侯。",
+                "Master Kongming, no need to argue with them for too long. The key is to persuade Lord Wu.",
+                "공명 선생, 그들과 너무 오래 논쟁할 필요 없습니다. 관건은 오후를 설득하는 것입니다.");
+            AddTranslation("dialogue_chibi3_zhangzhao_defeat", "这……竟无言以对。",
+                "This... I have no words to respond.",
+                "이... 할 말이 없구려.");
+            AddTranslation("dialogue_chibi3_zhuge_victory", "诸公，曹操虽有百万大军，但骄兵必败。孙刘联合，必能破曹！",
+                "Gentlemen, though Cao Cao has a million troops, an arrogant army is doomed to fail. If Sun and Liu unite, Cao can be defeated!",
+                "여러분, 조조에게 백만 대군이 있지만 교만한 군대는 반드시 패합니다. 손유가 연합하면 반드시 조조를 깨뜨릴 수 있습니다!");
+            AddTranslation("dialogue_chibi3_lusu_report", "吴侯已决意抗曹！诸葛先生，请随我去见都督周瑜！",
+                "Lord Wu has decided to resist Cao! Master Zhuge, please come with me to meet Commander Zhou Yu!",
+                "오후가 항조를 결심하셨습니다! 제갈 선생, 저와 함께 도독 주유를 만나러 가시죠!");
+            AddTranslation("dialogue_chibi3_alliance", "孙刘联盟，正式成立。",
+                "The Sun-Liu Alliance is officially formed.",
+                "손유 동맹이 정식으로 성립되었습니다.");
 
-            // 对白 - 第六战
-            AddTranslation("dialogue_chibi6_opening", "夜色如墨，江水翻涌。", "Night dark as ink, the river surges.", "밤은 먹처럼 어둡고 강물이 출렁입니다.");
-            AddTranslation("dialogue_chibi6_zhugeliang_wind", "东南风，三更到五更。", "Southeast wind, from the third to fifth watch.", "동남풍, 삼경부터 오경까지.");
-            AddTranslation("dialogue_chibi6_zhouyu_fire", "那就三更点火。", "Then we light the fire at the third watch.", "그럼 삼경에 불을 붙이지.");
-            AddTranslation("dialogue_chibi6_round2_conspiracy", "【密谋】黄盖自请苦肉，诈降曹营。火攻之计，悄然展开。", "[Conspiracy] Huang Gai volunteers for self-torture, feigning surrender to Cao's camp. The fire attack plan unfolds silently.", "[밀모] 황개가 고육을 자청하고 조조 진영에 거짓 항복합니다. 화공 계책이 은밀히 펼쳐집니다.");
-            AddTranslation("dialogue_chibi6_round3_wind", "【天象】夜半江风突变，东风渐起。", "[Omen] At midnight the river wind shifts - the east wind rises.", "[천상] 한밤중 강바람이 바뀌고 동풍이 불기 시작합니다.");
-            AddTranslation("dialogue_chibi6_huanggai_fire", "这一把火，烧给天下看！", "This fire burns for all to see!", "이 불길, 천하에 보여주마!");
-            AddTranslation("dialogue_chibi6_caocao_trap", "不好！中计了！", "No! We've fallen into their trap!", "안 돼! 계략에 빠졌다!");
-            AddTranslation("dialogue_chibi6_zhangliao_chaos", "主公，船阵已乱！", "My lord, the ship formation is in chaos!", "주공, 선진이 어지럽습니다!");
-            AddTranslation("dialogue_chibi6_zhugeliang_strong", "风，正盛。", "The wind is at its strongest.", "바람이 가장 강합니다.");
-            AddTranslation("dialogue_chibi6_caocao_heaven", "天不助我！", "Heaven does not help me!", "하늘이 나를 돕지 않는구나!");
-            AddTranslation("dialogue_chibi6_zhouyu_humanity", "不是天，是你小看了人心！", "It's not heaven - you underestimated the human heart!", "하늘이 아니라, 네가 인심을 얕보았다!");
-            AddTranslation("dialogue_chibi6_ending", "火光映红江面，曹军溃散，战船尽毁。赤壁之战，尘埃落定。联军稳住阵型，曹军已无再战之力。以少胜多，终于在乱世之中，看见一线生机。",
-                "Fire illuminates the river red, Cao's army scatters, warships destroyed. The Battle of Red Cliffs is decided. The alliance holds formation while Cao's army has no strength to fight again. Victory against overwhelming odds - finally, a glimmer of hope in troubled times.",
-                "불빛이 강을 붉게 물들이고 조조군이 흩어지며 전선이 불타버립니다. 적벽대전이 결판났습니다. 연합군은 대열을 유지하고 조조군은 더 이상 싸울 힘이 없습니다. 과감히 승리하여 마침내 난세에 한 줄기 희망이 보입니다.");
+            // 第四战：蒋干盗书
+            AddTranslation("dialogue_chibi4_opening", "蒋干奉曹操之命，前来劝降周瑜。",
+                "Jiang Gan comes on Cao Cao's orders to persuade Zhou Yu to surrender.",
+                "장간이 조조의 명을 받아 주유를 설득하러 왔습니다.");
+            AddTranslation("dialogue_chibi4_zhouyu_plan", "蒋干此来，正好将计就计。孔明，你我配合，除掉蔡瑁张允！",
+                "Jiang Gan's arrival is perfect for our scheme. Kongming, let's work together to eliminate Cai Mao and Zhang Yun!",
+                "장간이 왔으니 마침 계략을 꾸밀 수 있겠소. 공명, 함께 채모와 장윤을 제거합시다!");
+            AddTranslation("dialogue_chibi4_jianggan_steal", "蒋干：这封书信……莫非是蔡瑁张允与周瑜的密谋！",
+                "Jiang Gan: This letter... could it be a secret plot between Cai Mao, Zhang Yun and Zhou Yu!",
+                "장간: 이 서신은... 채모, 장윤과 주유의 밀모가 아닌가!");
+            AddTranslation("dialogue_chibi4_zhouyu_drunk", "来来来，子翼，今日不醉不归！",
+                "Come, come, Ziyi! Today we don't stop until we're drunk!",
+                "자, 자익, 오늘은 취하지 않으면 돌아가지 않을 거야!");
+            AddTranslation("dialogue_chibi4_jianggan_found", "就是这个！我要把这书信带回给丞相！",
+                "This is it! I must bring this letter back to the Prime Minister!",
+                "바로 이거야! 이 서신을 승상에게 가져가야겠다!");
+            AddTranslation("dialogue_chibi4_caimao_loyal", "末将对丞相忠心耿耿，绝无二心！",
+                "This general is absolutely loyal to the Prime Minister, with no second thoughts!",
+                "소장은 승상에게 충성을 다하며 결코 다른 마음이 없습니다!");
+            AddTranslation("dialogue_chibi4_jianggan_return", "蒋干连夜赶回曹营，将书信呈上。",
+                "Jiang Gan rushes back to Cao's camp overnight and presents the letter.",
+                "장간이 밤새 조조 진영으로 돌아가 서신을 바칩니다.");
+            AddTranslation("dialogue_chibi4_caocao_kill", "蔡瑁张允，竟敢通敌！来人，推出去斩了！",
+                "Cai Mao and Zhang Yun dare to collude with the enemy! Guards, take them out and execute them!",
+                "채모와 장윤이 감히 적과 내통하다니! 여봐라, 끌어내어 참수하라!");
+            AddTranslation("dialogue_chibi4_caimao_dead", "蔡瑁张允被斩，曹军水军群龙无首。",
+                "Cai Mao and Zhang Yun are executed. Cao's navy is left leaderless.",
+                "채모와 장윤이 참수되어 조조 수군이 지휘관을 잃었습니다.");
+            AddTranslation("dialogue_chibi4_zhouyu_laugh", "哈哈哈！曹操自断臂膀，赤壁之战，胜算又多三分！",
+                "Hahaha! Cao Cao cuts off his own arms. Our chances of victory at Red Cliffs just increased by thirty percent!",
+                "하하하! 조조가 스스로 팔을 자르는구나. 적벽 대전의 승산이 30% 더 늘었다!");
+
+            // 第五战：江上对峙
+            AddTranslation("dialogue_chibi5_opening", "联军与曹军隔江对峙，决战在即。",
+                "The allied forces face Cao's army across the river. The decisive battle is imminent.",
+                "연합군과 조조군이 강을 사이에 두고 대치합니다. 결전이 임박했습니다.");
+            AddTranslation("dialogue_chibi5_liubei_worry", "曹军水师虽失主帅，但兵力仍然庞大……",
+                "Though Cao's navy lost its commander, their forces are still massive...",
+                "조조 수군이 주장을 잃었지만 병력은 여전히 막대합니다...");
+            AddTranslation("dialogue_chibi5_sailor_sick", "曹军士兵不习水战，纷纷晕船。",
+                "Cao's soldiers are not used to naval combat and many get seasick.",
+                "조조군 병사들이 수전에 익숙하지 않아 배멀미를 합니다.");
+            AddTranslation("dialogue_chibi5_guanyu_kill", "北方士卒，不过如此！",
+                "Northern soldiers are nothing but this!",
+                "북방 병사들이 고작 이 정도인가!");
+            AddTranslation("dialogue_chibi5_liubei_wait", "关羽，不可恋战！我们的目标是拖延时间！",
+                "Guan Yu, don't get too caught up in battle! Our goal is to buy time!",
+                "관우, 싸움에 빠지지 마시오! 우리 목표는 시간을 버는 것이오!");
+            AddTranslation("dialogue_chibi5_reinforcement", "远处江面上，周瑜的战船正在接近！",
+                "In the distance, Zhou Yu's warships are approaching!",
+                "멀리 강 위에서 주유의 전선이 다가오고 있습니다!");
+            AddTranslation("dialogue_chibi5_zhouyu_arrive", "刘皇叔！援军到了！准备发起总攻！",
+                "Lord Liu! Reinforcements have arrived! Prepare for the final assault!",
+                "유황숙! 원군이 도착했습니다! 총공격을 준비하세요!");
+            AddTranslation("dialogue_chibi5_zhuge_wind", "都督，今夜子时，必有东南风！",
+                "Commander, tonight at midnight, there will surely be a southeast wind!",
+                "도독, 오늘 밤 자정에 반드시 동남풍이 불 것입니다!");
+            AddTranslation("dialogue_chibi5_huanggai_fire", "火船已备！只等风起！",
+                "The fire ships are ready! We only wait for the wind!",
+                "화선 준비 완료! 바람만 기다립니다!");
+            AddTranslation("dialogue_chibi5_alliance_formed", "孙刘联军，整装待发。决战，即将开始！",
+                "The Sun-Liu allied forces are ready. The decisive battle is about to begin!",
+                "손유 연합군이 준비를 마쳤습니다. 결전이 곧 시작됩니다!");
+
+            // 第六战：赤壁火起
+            AddTranslation("dialogue_chibi6_opening", "夜色如墨，江水翻涌。东南风起，火攻之时已到。",
+                "Night dark as ink, the river surges. The southeast wind rises - the time for the fire attack has come.",
+                "밤은 먹처럼 어둡고 강물이 출렁입니다. 동남풍이 불기 시작하니 화공의 때가 왔습니다.");
+            AddTranslation("dialogue_chibi6_zhuge_wind", "风起了！东南风！",
+                "The wind rises! Southeast wind!",
+                "바람이 분다! 동남풍이다!");
+            AddTranslation("dialogue_chibi6_zhouyu_fire", "黄盖！点火！",
+                "Huang Gai! Light the fire!",
+                "황개! 불을 붙여라!");
+            AddTranslation("dialogue_chibi6_round2_conspiracy", "【密谋成功】黄盖率领火船冲向曹军水寨，火攻伤害+2！",
+                "[Conspiracy Success] Huang Gai leads fire ships charging toward Cao's naval camp. Fire damage +2!",
+                "[밀모 성공] 황개가 화선을 이끌고 조조 수채로 돌진합니다. 화공 피해 +2!");
+            AddTranslation("dialogue_chibi6_round3_wind", "【东风大作】东南风越刮越猛，火势蔓延！火攻伤害再+1！",
+                "[East Wind Surges] The southeast wind blows stronger, fire spreads! Fire damage +1 more!",
+                "[동풍 대작] 동남풍이 더욱 거세지고 불길이 번집니다! 화공 피해 추가 +1!");
+            AddTranslation("dialogue_chibi6_huanggai_fire", "曹贼！受死吧！",
+                "Cao villain! Meet your death!",
+                "조조 역적! 죽어라!");
+            AddTranslation("dialogue_chibi6_huanggai_kill", "这把火，烧的值！",
+                "This fire is worth it!",
+                "이 불길, 값진 것이다!");
+            AddTranslation("dialogue_chibi6_caocao_trap", "中计了！快撤！",
+                "We've fallen into their trap! Retreat quickly!",
+                "계략에 빠졌다! 빨리 후퇴하라!");
+            AddTranslation("dialogue_chibi6_zhangliao_chaos", "主公！战船都连在一起，无法散开！",
+                "My lord! The warships are all chained together and cannot separate!",
+                "주공! 전선이 모두 연결되어 있어 흩어질 수가 없습니다!");
+            AddTranslation("dialogue_chibi6_zhuge_strong", "天时地利人和，缺一不可。曹操，你输了。",
+                "The right time, place, and people - all three are indispensable. Cao Cao, you have lost.",
+                "천시, 지리, 인화 - 하나라도 빠지면 안 됩니다. 조조, 당신이 졌습니다.");
+            AddTranslation("dialogue_chibi6_xiahoudun_retreat", "主公，快走华容道！",
+                "My lord, quickly take the Huarong Road!",
+                "주공, 빨리 화용도로 가세요!");
+            AddTranslation("dialogue_chibi6_caocao_heaven", "天不亡我曹操！今日虽败，他日必报此仇！",
+                "Heaven will not destroy me, Cao Cao! Though defeated today, I will surely avenge this one day!",
+                "하늘이 나 조조를 망하게 하지 않을 것이다! 오늘은 패했지만 언젠가 반드시 이 원수를 갚겠다!");
+            AddTranslation("dialogue_chibi6_zhouyu_humanity", "曹操败了！赤壁大捷！",
+                "Cao Cao is defeated! Great victory at Red Cliffs!",
+                "조조가 패했다! 적벽 대첩이다!");
+            AddTranslation("dialogue_chibi6_ending1", "火光映红江面，曹军溃不成军。赤壁之战，以孙刘联军的胜利告终。",
+                "Fire illuminates the river red, Cao's army collapses. The Battle of Red Cliffs ends with victory for the Sun-Liu Alliance.",
+                "불빛이 강을 붉게 물들이고 조조군이 무너집니다. 적벽 대전이 손유 연합군의 승리로 끝났습니다.");
+            AddTranslation("dialogue_chibi6_ending2", "这一战，奠定了三分天下的格局。乱世之中，终于看到了一线生机。",
+                "This battle established the pattern of three kingdoms. In troubled times, a glimmer of hope finally appears.",
+                "이 전투로 천하삼분의 구도가 확립되었습니다. 난세 속에서 마침내 한 줄기 희망이 보입니다.");
+
+            // ==================== 讨董之战 (Campaign Against Dong Zhuo) ====================
+            AddTranslation("campaign_taodong", "讨董之战", "Campaign Against Dong Zhuo", "동탁 토벌전");
+            AddTranslation("campaign_taodong_desc", "董卓挟天子以令诸侯，关东诸侯会盟讨伐。然而联军各怀心思，注定是一场失败的勤王之战。",
+                "Dong Zhuo controls the emperor to command the lords. The eastern lords ally to campaign against him, but each has their own agenda - a doomed campaign to save the emperor.",
+                "동탁이 천자를 끼고 제후들을 호령합니다. 관동 제후들이 동맹을 맺어 토벌에 나서지만, 각자 속셈이 달라 실패할 운명의 근왕전입니다.");
+
+            // 讨董之战 - 第一战：酸枣会盟
+            AddTranslation("battle_taodong_1", "酸枣会盟", "Suanzao Alliance", "산조 회맹");
+            AddTranslation("battle_taodong_1_subtitle", "讨董联军，各怀心思", "United Against Dong Zhuo, Yet Divided", "동탁 토벌, 그러나 각자 속셈");
+            AddTranslation("battle_taodong_1_desc", "酸枣城外，关东诸侯齐聚。名为讨董，实则人心难测。曹操必须在这场政治博弈中站稳脚跟。",
+                "Outside Suanzao city, eastern lords gather. United against Dong Zhuo in name, but hearts are hard to read. Cao Cao must establish himself in this political game.",
+                "산조성 밖에 관동 제후들이 모였습니다. 명목상 동탁 토벌이지만 인심을 알기 어렵습니다. 조조는 이 정치적 게임에서 입지를 다져야 합니다.");
+            AddTranslation("battle_taodong_1_briefing", "击败诸侯观望或存活6回合即可获胜。袁绍袁术不可攻击。",
+                "Defeat Lords' Hesitation or survive 6 turns to win. Cannot attack Yuan Shao or Yuan Shu.",
+                "제후 관망을 격파하거나 6턴 생존하면 승리. 원소와 원술을 공격할 수 없습니다.");
+
+            // 讨董之战 - 第二战：荥阳血战
+            AddTranslation("battle_taodong_2", "荥阳血战", "Battle of Xingyang", "형양 혈전");
+            AddTranslation("battle_taodong_2_subtitle", "孤军深入", "Isolated Army", "고군 심입");
+            AddTranslation("battle_taodong_2_desc", "诸侯按兵不动，曹操愤而独进，在荥阳遭遇徐荣。这是一场以寡敌众的血战。",
+                "While lords hold back, Cao Cao advances alone in anger, meeting Xu Rong at Xingyang. A bloody battle against overwhelming odds.",
+                "제후들이 움직이지 않자 조조가 분노하여 홀로 진격하고 형양에서 서영을 만납니다. 압도적 적과의 혈전입니다.");
+            AddTranslation("battle_taodong_2_briefing", "击败徐荣或存活5回合即可获胜。曹操初始手牌-1，首回合不能用桃。",
+                "Defeat Xu Rong or survive 5 turns to win. Cao Cao starts with -1 hand cards and cannot use Peach in first turn.",
+                "서영을 격파하거나 5턴 생존하면 승리. 조조 초기 수패-1, 첫 턴 도 사용 불가.");
+
+            // 讨董之战 - 第三战：斩杀华雄
+            AddTranslation("battle_taodong_3", "斩杀华雄", "Slay Hua Xiong", "화웅 참살");
+            AddTranslation("battle_taodong_3_subtitle", "江东猛虎", "Tiger of Jiangdong", "강동의 맹호");
+            AddTranslation("battle_taodong_3_desc", "汜水关前，华雄连斩联军数将。孙坚亲率江东子弟迎战！",
+                "Before Si River Pass, Hua Xiong slays several allied generals. Sun Jian personally leads Jiangdong's sons to battle!",
+                "사수관 앞에서 화웅이 연합군 장수 여럿을 베었습니다. 손견이 친히 강동 자제를 이끌고 싸웁니다!");
+            AddTranslation("battle_taodong_3_briefing", "击败华雄即可获胜。第1回合孙坚可额外出1杀。",
+                "Defeat Hua Xiong to win. Sun Jian can use an extra Slash in turn 1.",
+                "화웅을 격파하면 승리. 1턴에 손견은 살 1장 추가 사용 가능.");
+
+            // 讨董之战 - 第四战：联军瓦解
+            AddTranslation("battle_taodong_4", "联军瓦解", "Alliance Collapses", "연합군 와해");
+            AddTranslation("battle_taodong_4_subtitle", "大厦将倾", "The Great Edifice Falls", "대하 장경");
+            AddTranslation("battle_taodong_4_desc", "董卓焚毁洛阳迁都长安，联军失去目标。袁氏兄弟争权，诸侯各自为战。",
+                "Dong Zhuo burns Luoyang and moves to Chang'an. The alliance loses its purpose. Yuan brothers fight for power, lords go separate ways.",
+                "동탁이 낙양을 불태우고 장안으로 천도합니다. 연합군은 목표를 잃습니다. 원씨 형제가 권력을 다투고 제후들은 각자 도생합니다.");
+            AddTranslation("battle_taodong_4_briefing", "击败联军内斗或存活7回合即可获胜。第3回合开始所有角色每回合失去1体力。",
+                "Defeat Alliance Strife or survive 7 turns to win. From turn 3, all characters lose 1 HP each turn.",
+                "연합 내분을 격파하거나 7턴 생존하면 승리. 3턴부터 모든 캐릭터가 매 턴 체력 1 손실.");
+
+            // 讨董之战对话
+            AddTranslation("dialogue_taodong1_opening_narration", "酸枣城外，旌旗蔽日，关东诸侯齐聚一堂。名为讨董，实则人心难测。",
+                "Outside Suanzao, banners block the sun as eastern lords gather. United against Dong Zhuo in name, but hearts remain unfathomable.",
+                "산조성 밖에 깃발이 해를 가리고 관동 제후들이 모였습니다. 명목상 동탁 토벌이지만 인심은 알 수 없습니다.");
+            AddTranslation("dialogue_taodong1_yuanshao_speech", "董卓乱政，天人共愤！今日推我为盟主，绍当竭尽全力，统率诸军，共讨国贼！",
+                "Dong Zhuo's tyranny angers heaven and man! Today you elect me as alliance leader - I shall lead all armies to destroy the traitor!",
+                "동탁의 난정에 천인이 공분합니다! 오늘 저를 맹주로 추대하셨으니 전력을 다해 제군을 이끌고 국적을 토벌하겠습니다!");
+            AddTranslation("dialogue_taodong1_caocao_doubt", "人虽多，却未必同心……此战，恐不易。",
+                "Many in number, but not necessarily united... this battle will not be easy.",
+                "사람은 많으나 한마음인지... 이 싸움은 쉽지 않겠군.");
+            AddTranslation("dialogue_taodong1_yuanshu_greedy", "粮草是我的，凭什么全给别人？",
+                "The supplies are mine - why should I share them all?",
+                "군량은 내 것인데 왜 다 남에게 줘야 하는가?");
+            AddTranslation("dialogue_taodong1_consensus", "在曹操的周旋下，联军勉强达成共识。",
+                "Through Cao Cao's efforts, the alliance barely reaches consensus.",
+                "조조의 중재로 연합군이 간신히 합의에 도달했습니다.");
+            AddTranslation("dialogue_taodong1_victory_caocao", "联军虽立，却迟迟不进。真正的战争，尚未开始。",
+                "The alliance stands, but hesitates to advance. The real war has not yet begun.",
+                "연합군이 섰으나 진격을 머뭇거립니다. 진짜 전쟁은 아직 시작되지 않았습니다.");
+            AddTranslation("dialogue_taodong1_victory_xiahoudun", "主公，我等何时出兵？",
+                "My lord, when do we march?",
+                "주공, 언제 출병합니까?");
+            AddTranslation("dialogue_taodong1_victory_caocao2", "等不及了……我们先动！",
+                "Can't wait any longer... we move first!",
+                "더 기다릴 수 없다... 우리가 먼저 움직인다!");
+
+            AddTranslation("dialogue_taodong2_opening_caocao", "诸侯坐视不前，岂是讨贼之道！我曹操，纵死亦不愿苟安！",
+                "The lords sit idle - is this how we defeat the traitor! I, Cao Cao, would rather die than cower!",
+                "제후들이 앉아서 관망하다니, 이것이 역적 토벌입니까! 나 조조는 차라리 죽을지언정 구차히 안주하지 않겠소!");
+            AddTranslation("dialogue_taodong2_xiahoudun_loyal", "主公既决，我等誓死相随！",
+                "If my lord is resolved, we follow to the death!",
+                "주공께서 결심하셨으니 저희는 죽음으로 따르겠습니다!");
+            AddTranslation("dialogue_taodong2_xurong_mock", "就凭你这点兵马，也敢犯我西凉军？",
+                "With such few troops, you dare attack my Xiliang army?",
+                "이 정도 병력으로 감히 내 서량군에 덤비겠다고?");
+            AddTranslation("dialogue_taodong2_caocao_wounded", "曹操被流矢所伤，血染战袍。",
+                "Cao Cao is wounded by a stray arrow, blood staining his robe.",
+                "조조가 유시에 맞아 피가 전포를 물들입니다.");
+            AddTranslation("dialogue_taodong2_caocao_vow", "董卓未除，天下难安……此仇，他日必报！",
+                "Until Dong Zhuo falls, the realm knows no peace... This grudge will be repaid!",
+                "동탁을 제거하지 않으면 천하가 편안할 수 없다... 이 원한은 반드시 갚으리라!");
+            AddTranslation("dialogue_taodong2_victory_narration", "曹操终因寡不敌众，被流矢所伤，只得夜退。然其英勇之名，传遍天下。",
+                "Cao Cao, outnumbered, is wounded and forced to retreat by night. Yet his brave reputation spreads throughout the land.",
+                "조조는 중과부적으로 부상당하고 야간에 퇴각해야 했습니다. 그러나 그의 용맹한 이름은 천하에 퍼졌습니다.");
+            AddTranslation("dialogue_taodong2_victory_caocao", "今日之败，他日必十倍奉还！",
+                "Today's defeat will be repaid tenfold!",
+                "오늘의 패배는 언젠가 열 배로 갚겠다!");
+
+            AddTranslation("dialogue_taodong3_opening_sunjian", "董卓暴行，人神共愤！今日不破敌军，誓不回师！",
+                "Dong Zhuo's atrocities anger men and gods! Today we break the enemy or never return!",
+                "동탁의 폭행에 인신이 공분합니다! 오늘 적군을 깨지 못하면 돌아가지 않겠습니다!");
+            AddTranslation("dialogue_taodong3_huaxiong_mock", "关东鼠辈，也敢与我一战？哈哈哈！",
+                "Eastern rats dare fight me? Ha ha ha!",
+                "관동 쥐새끼들이 감히 나와 싸우겠다고? 하하하!");
+            AddTranslation("dialogue_taodong3_huanggai_brave", "这点伤算什么，给我上！",
+                "This wound is nothing - charge!",
+                "이 정도 상처가 뭐야, 돌격!");
+            AddTranslation("dialogue_taodong3_chengpu_praise", "主公神勇！江东儿郎，随我杀敌！",
+                "My lord is mighty! Jiangdong sons, follow me to slay the enemy!",
+                "주공이 신용하십니다! 강동 자제들이여, 나를 따라 적을 죽여라!");
+            AddTranslation("dialogue_taodong3_huaxiong_shocked", "什么？这孙坚竟如此厉害！",
+                "What? This Sun Jian is so formidable!",
+                "뭐라고? 이 손견이 이렇게 대단할 줄이야!");
+            AddTranslation("dialogue_taodong3_sunjian_victory", "董卓走狗，不过如此！",
+                "Dong Zhuo's lackey - nothing more!",
+                "동탁의 앞잡이, 별것 아니군!");
+            AddTranslation("dialogue_taodong3_victory_narration", "华雄已被斩杀！",
+                "Hua Xiong has been slain!",
+                "화웅이 참살되었습니다!");
+            AddTranslation("dialogue_taodong3_victory_sunjian", "传首各营，以振军心！进军洛阳！",
+                "Send his head to all camps to raise morale! March on Luoyang!",
+                "목을 각 진영에 보내 군심을 높여라! 낙양으로 진군!");
+
+            AddTranslation("dialogue_taodong4_opening_narration", "洛阳化为焦土，百姓流离失所。联军虽进，却已失去目标。",
+                "Luoyang becomes scorched earth, people displaced. The alliance advances but has lost its purpose.",
+                "낙양이 초토화되고 백성들이 유리걸식합니다. 연합군이 진격했으나 이미 목표를 잃었습니다.");
+            AddTranslation("dialogue_taodong4_yuanshu_argue", "粮草是我的，凭什么全给你？",
+                "The supplies are mine - why give them all to you?",
+                "군량은 내 것인데 왜 다 네게 줘야 해?");
+            AddTranslation("dialogue_taodong4_yuanshao_blame", "你这是误国！",
+                "You're ruining the nation!",
+                "네가 나라를 망치는 거야!");
+            AddTranslation("dialogue_taodong4_round3_ruins", "董卓焚城的余烬仍在燃烧，诸侯却已开始内斗。",
+                "The embers of Dong Zhuo's burning city still glow, yet the lords already fight among themselves.",
+                "동탁이 불태운 성의 잿더미가 아직 타고 있는데 제후들은 이미 내분을 시작했습니다.");
+            AddTranslation("dialogue_taodong4_sunjian_lament", "可恨！讨董大业，竟毁于诸侯之手！",
+                "Curse it! The great campaign against Dong Zhuo, ruined by the lords themselves!",
+                "통탄스럽다! 동탁 토벌 대업이 제후들 손에 무너지다니!");
+            AddTranslation("dialogue_taodong4_caocao_ambition", "讨董未成，诸侯已散……天下大乱，正是英雄用武之时！",
+                "Dong Zhuo remains, the lords scatter... Great chaos - the time for heroes to act!",
+                "동탁 토벌은 실패하고 제후들은 흩어지는군... 천하대란, 바로 영웅이 활약할 때다!");
+            AddTranslation("dialogue_taodong4_yuanshao_sigh", "一场勤王之战，竟落得如此下场。",
+                "A campaign to save the emperor, ending like this.",
+                "근왕전이 이런 결말을 맞다니.");
+            AddTranslation("dialogue_taodong4_victory_caocao", "董卓虽未除，但天下格局已变。这乱世，我曹操必将有所作为！",
+                "Though Dong Zhuo remains, the world has changed. In this chaos, I, Cao Cao, will make my mark!",
+                "동탁은 제거하지 못했으나 천하 판도가 바뀌었다. 이 난세에서 나 조조는 반드시 대업을 이루리라!");
+            AddTranslation("dialogue_taodong4_ending_narration", "讨董联军瓦解，勤王大业功亏一篑。然而，曹操、孙坚等人在战火中崭露头角，新的时代，即将到来……",
+                "The alliance collapses, the emperor's rescue fails. Yet Cao Cao, Sun Jian and others emerge from the flames. A new era is about to begin...",
+                "연합군이 와해되고 근왕 대업이 수포로 돌아갔습니다. 그러나 조조, 손견 등이 전란 속에서 두각을 나타내고 새로운 시대가 열리려 합니다...");
+
+            // ==================== 官渡之战 (Battle of Guandu) ====================
+            AddTranslation("campaign_guandu_desc", "建安四年，北方霸主袁绍与曹操决战官渡。兵力悬殊，却以弱胜强，奠定曹操北方霸业。",
+                "In 199 AD, northern hegemon Yuan Shao and Cao Cao clash at Guandu. Despite inferior numbers, the weak defeats the strong, establishing Cao Cao's northern dominance.",
+                "건안 4년, 북방 패자 원소와 조조가 관도에서 결전합니다. 병력이 열세임에도 약자가 강자를 이기며 조조의 북방 패업을 확립합니다.");
+
+            // 官渡之战 - 第一战：袁营决策
+            AddTranslation("battle_guandu_1", "袁营决策", "Yuan's Camp Decision", "원영 결책");
+            AddTranslation("battle_guandu_1_subtitle", "兵强马壮，暗藏隐患", "Strong Army, Hidden Troubles", "강병하나 숨은 우환");
+            AddTranslation("battle_guandu_1_desc", "袁绍召集谋士决定是否南下攻曹。表面气势如虹，实则内部意见分裂。",
+                "Yuan Shao gathers advisors to decide on attacking Cao Cao south. Seemingly unstoppable, but internally divided.",
+                "원소가 모사들을 모아 조조 남하 공격을 결정합니다. 겉으로는 기세등등하나 내부는 분열되어 있습니다.");
+            AddTranslation("battle_guandu_1_briefing", "击败军心动摇和粮草隐患即可获胜。注意内部不和规则会随机弃牌。",
+                "Defeat Morale Problem and Supply Problem to win. Watch for Internal Strife forcing random discards.",
+                "군심동요와 군량우환을 격파하면 승리. 내부불화 규칙으로 무작위 패 버림 주의.");
+
+            // 官渡之战 - 第二战：坚守官渡
+            AddTranslation("battle_guandu_2", "坚守官渡", "Defend Guandu", "관도 수비");
+            AddTranslation("battle_guandu_2_subtitle", "以少敌多", "The Few Against Many", "과소적다");
+            AddTranslation("battle_guandu_2_desc", "曹操在官渡布防，以守为攻。兵力悬殊，唯有智取。",
+                "Cao Cao fortifies Guandu, defending to attack. Outnumbered, only cunning can prevail.",
+                "조조가 관도에서 방어진을 치고 수비로 공격합니다. 병력이 열세이니 지략만이 승리의 길입니다.");
+            AddTranslation("battle_guandu_2_briefing", "击败袁绍或存活8回合即可获胜。官渡要塞前两次伤害各-1。",
+                "Defeat Yuan Shao or survive 8 turns to win. Guandu Fortress reduces first two damages by 1 each.",
+                "원소를 격파하거나 8턴 생존하면 승리. 관도요새 첫 두 피해 각각 -1.");
+
+            // 官渡之战 - 第三战：许攸献策
+            AddTranslation("battle_guandu_3", "许攸献策", "Xu You's Strategy", "허유의 헌책");
+            AddTranslation("battle_guandu_3_subtitle", "乌巢，胜负手", "Wuchao, The Decisive Move", "오소, 승부수");
+            AddTranslation("battle_guandu_3_desc", "许攸因家人被扣押愤而投奔曹操，献上袁军粮仓乌巢的情报。",
+                "Xu You, angry that his family was detained, defects to Cao Cao with intelligence about Yuan's supply depot at Wuchao.",
+                "허유가 가족이 구금되자 분노하여 조조에게 투항하고 원군 군량창고 오소의 정보를 바칩니다.");
+            AddTranslation("battle_guandu_3_briefing", "击败袁绍即可获胜。火攻火杀效果翻倍。袁绍每回合被迫弃牌。",
+                "Defeat Yuan Shao to win. Fire attacks have double effect. Yuan Shao forced to discard each turn.",
+                "원소를 격파하면 승리. 화공/화살 효과 2배. 원소 매 턴 강제 패 버림.");
+
+            // 官渡之战 - 第四战：火烧乌巢
+            AddTranslation("battle_guandu_4", "火烧乌巢", "Burn Wuchao", "오소 화공");
+            AddTranslation("battle_guandu_4_subtitle", "天下归曹", "The World Falls to Cao", "천하귀조");
+            AddTranslation("battle_guandu_4_desc", "曹操亲率精兵五千，夜袭袁军粮仓乌巢。不成功，便成仁！",
+                "Cao Cao personally leads 5000 elite troops in a night raid on Wuchao. Victory or death!",
+                "조조가 친히 정예병 5천을 이끌고 오소를 야습합니다. 성공 아니면 죽음!");
+            AddTranslation("battle_guandu_4_briefing", "击败淳于琼即可获胜。第2回合开始敌方每回合失去1体力。曹操手牌<=2时杀伤害+1。",
+                "Defeat Chunyu Qiong to win. From turn 2, enemies lose 1 HP per turn. Cao Cao's Slash +1 damage when hand <=2.",
+                "순우경을 격파하면 승리. 2턴부터 적 매 턴 체력-1. 조조 수패<=2일 때 살 피해+1.");
+
+            // 官渡之战对话
+            AddTranslation("dialogue_guandu1_opening_yuanshao", "曹操挟天子以令诸侯，狼子野心！今日便要定下南下大计！",
+                "Cao Cao controls the emperor to command lords - wolf's ambition! Today we decide the southern campaign!",
+                "조조가 천자를 끼고 제후를 호령하니 늑대의 야심이다! 오늘 남하 대계를 정한다!");
+            AddTranslation("dialogue_guandu1_tianfeng_warn", "主公不可轻进！曹操善用兵，我军远征粮道过长！",
+                "My lord, don't advance rashly! Cao Cao excels at warfare, our supply lines are too long!",
+                "주공, 경솔히 진격하지 마십시오! 조조는 용병에 능하고 우리 군량로가 너무 깁니다!");
+            AddTranslation("dialogue_guandu1_yuanshao_confident", "我袁绍四世三公，兵马数十万，难道还怕他曹操？",
+                "I, Yuan Shao, come from four generations of ministers, with hundreds of thousands of troops - should I fear Cao Cao?",
+                "나 원소는 사세삼공의 가문에 수십만 병마를 거느렸는데 조조가 두렵단 말인가?");
+            AddTranslation("dialogue_guandu1_shenpei_argue", "田丰言辞过激，未免助长怯战之风。",
+                "Tian Feng's words are too harsh - he encourages cowardice.",
+                "전풍의 말이 너무 과격하여 겁쟁이 기풍을 조장합니다.");
+            AddTranslation("dialogue_guandu1_jushou_stable", "军心已稳，可以出兵了。",
+                "Morale is stable - we can march.",
+                "군심이 안정되었으니 출병할 수 있습니다.");
+            AddTranslation("dialogue_guandu1_victory_yuanshao", "够了！我意已决，三军整备，即日南下！",
+                "Enough! My decision is made - all armies prepare, we march south today!",
+                "됐다! 내 결심은 섰다, 삼군 정비하라, 오늘 남하한다!");
+            AddTranslation("dialogue_guandu1_victory_narration", "田丰低头长叹，神情忧虑。",
+                "Tian Feng lowers his head and sighs deeply, his expression worried.",
+                "전풍이 고개를 숙이고 길게 탄식하며 걱정스러운 표정을 짓습니다.");
+
+            AddTranslation("dialogue_guandu2_opening_caocao", "袁绍兵多，但迟疑不决。官渡若守得住，胜负未可知。",
+                "Yuan Shao has many troops, but hesitates. If we hold Guandu, victory is uncertain.",
+                "원소는 병력이 많으나 우유부단합니다. 관도를 지키면 승부를 알 수 없습니다.");
+            AddTranslation("dialogue_guandu2_xunyu_advice", "主公，当以逸待劳，消耗其锐气。",
+                "My lord, we should wait at ease for the exhausted enemy, wearing down their edge.",
+                "주공, 편히 쉬며 피로한 적을 기다려 그들의 예기를 소모시켜야 합니다.");
+            AddTranslation("dialogue_guandu2_guojia_predict", "袁绍必犯错，我们只需等。",
+                "Yuan Shao will make mistakes - we need only wait.",
+                "원소는 반드시 실수할 것입니다, 우리는 기다리기만 하면 됩니다.");
+            AddTranslation("dialogue_guandu2_round4_stalemate", "双方僵持，袁军锐气渐失。",
+                "Both sides deadlock, Yuan's army gradually loses morale.",
+                "양측이 교착하고 원군의 예기가 점차 꺾입니다.");
+            AddTranslation("dialogue_guandu2_caocao_gamble", "好！就赌这一局！",
+                "Good! Let's bet on this game!",
+                "좋아! 이 판에 걸겠다!");
+            AddTranslation("dialogue_guandu2_yuanshao_angry", "颜良！可恶！",
+                "Yan Liang! Curse it!",
+                "안량! 빌어먹을!");
+            AddTranslation("dialogue_guandu2_victory_caocao", "袁绍虽众，不足为惧。传令下去，继续坚守！",
+                "Though Yuan Shao has numbers, he's not to be feared. Pass the order - continue defending!",
+                "원소가 병력이 많으나 두려워할 것 없다. 명령을 전달하라, 계속 수비!");
+            AddTranslation("dialogue_guandu2_victory_xunyu", "主公英明，袁军已现疲态。",
+                "My lord is wise - Yuan's army shows fatigue.",
+                "주공이 영명하십니다, 원군이 피로한 기색을 보입니다.");
+
+            AddTranslation("dialogue_guandu3_opening_xuyou", "我为袁绍出谋划策，他却听信审配，扣押我家人！此处不留我，自有留我处！",
+                "I advised Yuan Shao, yet he trusted Shen Pei and detained my family! If I'm not wanted here, somewhere else will have me!",
+                "내가 원소를 위해 계책을 냈건만 심배를 믿고 내 가족을 구금하다니! 여기서 안 받아주면 다른 곳이 받아주리라!");
+            AddTranslation("dialogue_guandu3_opening_caocao", "子远来此，天助我也！",
+                "Ziyuan comes to me - heaven helps me!",
+                "자원이 오다니, 하늘이 나를 돕는구나!");
+            AddTranslation("dialogue_guandu3_xuyou_wuchao", "乌巢！袁绍的粮草全在乌巢！守将淳于琼嗜酒如命，正是可乘之机！",
+                "Wuchao! All Yuan Shao's supplies are at Wuchao! The guard Chunyu Qiong loves wine - this is our chance!",
+                "오소! 원소의 군량이 전부 오소에 있습니다! 수장 순우경은 술을 목숨처럼 좋아하니 바로 기회입니다!");
+            AddTranslation("dialogue_guandu3_shenpei_suspect", "许攸叛逃，必有阴谋，须严加防范！",
+                "Xu You's defection must be a plot - we must be vigilant!",
+                "허유가 탈주했으니 필시 음모가 있다, 엄히 방비해야 합니다!");
+            AddTranslation("dialogue_guandu3_yuanshao_dismiss", "许攸小人，不足为虑！",
+                "Xu You is a petty man - not worth worrying about!",
+                "허유는 소인배, 걱정할 것 없다!");
+            AddTranslation("dialogue_guandu3_victory_caocao", "乌巢……好！传令精兵，今夜随我亲征！",
+                "Wuchao... Good! Order elite troops - tonight I lead the raid myself!",
+                "오소... 좋아! 정예병에게 명령하라, 오늘 밤 내가 친히 출정한다!");
+            AddTranslation("dialogue_guandu3_victory_xuyou", "主公英明，此战必胜！",
+                "My lord is wise - this battle will surely be won!",
+                "주공이 영명하시니 이 싸움은 반드시 이깁니다!");
+
+            AddTranslation("dialogue_guandu4_opening_caocao", "今夜，不成功，便成仁。",
+                "Tonight - victory or death.",
+                "오늘 밤, 성공 아니면 죽음이다.");
+            AddTranslation("dialogue_guandu4_caohong_loyal", "愿随主公赴死！",
+                "I follow my lord to death!",
+                "주공과 함께 죽겠습니다!");
+            AddTranslation("dialogue_guandu4_round2_fire", "火光骤起，乌巢大乱！",
+                "Fire erupts suddenly - Wuchao in chaos!",
+                "불길이 갑자기 솟아오르고 오소가 대혼란에 빠집니다!");
+            AddTranslation("dialogue_guandu4_chunyuqiong_drunk", "什么？敌袭？再……再让我喝一杯……",
+                "What? Enemy attack? Let me... let me have one more drink...",
+                "뭐라고? 적습? 다... 다시 한 잔만...");
+            AddTranslation("dialogue_guandu4_zhanghe_defect", "袁绍不听良策，已无胜机。不如另投明主！",
+                "Yuan Shao ignores good advice - no chance of victory. Better to find a wiser lord!",
+                "원소가 좋은 계책을 듣지 않으니 승기가 없다. 차라리 명주를 찾겠다!");
+            AddTranslation("dialogue_guandu4_chunyuqiong_defeat", "粮草……完了……",
+                "The supplies... finished...",
+                "군량이... 끝났다...");
+            AddTranslation("dialogue_guandu4_victory_narration", "乌巢火起，粮草尽毁。袁军闻讯，军心崩溃。",
+                "Fire at Wuchao - supplies destroyed. Yuan's army hears the news - morale collapses.",
+                "오소에 불이 나고 군량이 전소됩니다. 원군이 소식을 듣고 군심이 붕괴합니다.");
+            AddTranslation("dialogue_guandu4_yuanshao_despair", "天不助我……",
+                "Heaven does not help me...",
+                "하늘이 나를 돕지 않는구나...");
+            AddTranslation("dialogue_guandu4_victory_caocao", "官渡之战，尘埃落定。北方，将归于曹氏！",
+                "The Battle of Guandu is decided. The North will belong to the Cao clan!",
+                "관도대전이 결판났다. 북방은 조씨의 것이 되리라!");
+
+            // 角色名称
+            AddTranslation("char_yuanshao", "袁绍", "Yuan Shao", "원소");
+            AddTranslation("char_yuanshu", "袁术", "Yuan Shu", "원술");
+            AddTranslation("char_tianfeng", "田丰", "Tian Feng", "전풍");
+            AddTranslation("char_jushou", "沮授", "Ju Shou", "저수");
+            AddTranslation("char_shenpei", "审配", "Shen Pei", "심배");
+            AddTranslation("char_xuyou", "许攸", "Xu You", "허유");
+            AddTranslation("char_yanliang", "颜良", "Yan Liang", "안량");
+            AddTranslation("char_wenchou", "文丑", "Wen Chou", "문추");
+            AddTranslation("char_chunyuqiong", "淳于琼", "Chunyu Qiong", "순우경");
+            AddTranslation("char_xunyu", "荀彧", "Xun Yu", "순욱");
+            AddTranslation("char_guojia", "郭嘉", "Guo Jia", "곽가");
+            AddTranslation("char_caohong", "曹洪", "Cao Hong", "조홍");
+            AddTranslation("char_zhanghe", "张郃", "Zhang He", "장합");
+            AddTranslation("char_sunjian", "孙坚", "Sun Jian", "손견");
+            AddTranslation("char_huaxiong", "华雄", "Hua Xiong", "화웅");
+            AddTranslation("char_huzhen", "胡轸", "Hu Zhen", "호진");
+            AddTranslation("char_xurong", "徐荣", "Xu Rong", "서영");
+            AddTranslation("char_morale_problem", "军心动摇", "Morale Problem", "군심동요");
+            AddTranslation("char_supply_problem", "粮草隐患", "Supply Problem", "군량우환");
+            AddTranslation("char_lords_hesitation", "诸侯观望", "Lords' Hesitation", "제후 관망");
+            AddTranslation("char_xiliang_cavalry", "西凉骑兵", "Xiliang Cavalry", "서량 기병");
+            AddTranslation("char_xiliang_soldier", "西凉兵", "Xiliang Soldier", "서량병");
+            AddTranslation("char_yuanjun_guard", "袁军守将", "Yuan Army Guard", "원군 수장");
+            AddTranslation("char_alliance_strife", "联军内斗", "Alliance Strife", "연합 내분");
 
             Debug.Log($"[LocalizationManager] 本地化初始化完成，当前语言：{currentLanguage}");
         }

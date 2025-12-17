@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
 using ThreeKingdoms.AI;
+using ThreeKingdoms.Story;
 
 namespace ThreeKingdoms
 {
@@ -35,11 +36,16 @@ namespace ThreeKingdoms
 
         [Header("回合信息")]
         public TurnPhase currentPhase = TurnPhase.Prepare;
-        public int turnCount = 0;
+        public int turnCount = 0;           // 轮数（所有玩家完成一轮算一回合）
+        private int roundStartPlayerIndex = 0;  // ⭐ 每轮开始的玩家索引
 
         [Header("游戏状态")]
         public bool gameStarted = false;
         public bool gameOver = false;
+
+        // ⭐ 判定结果标志（用于跳过阶段）
+        private bool skipDrawPhase = false;
+        private bool skipPlayPhase = false;
 
         private void Awake()
         {
@@ -66,8 +72,9 @@ namespace ThreeKingdoms
 
             gameStarted = true;
             gameOver = false;
-            turnCount = 0;
+            turnCount = 1;  // ⭐ 第一轮
             currentPlayerIndex = 0;
+            roundStartPlayerIndex = 0;  // ⭐ 记录第一轮开始的玩家
 
             // 给所有玩家发起始手牌
             foreach (var player in players)
@@ -89,13 +96,19 @@ namespace ThreeKingdoms
             if (gameOver) return;
 
             Player currentPlayer = GetCurrentPlayer();
-            turnCount++;
+            // ⭐ turnCount 改为在 EndTurn 中当所有玩家轮完时递增
 
-            Debug.Log($"========== 第 {turnCount} 回合 ==========");
+            Debug.Log($"========== 第 {turnCount} 轮 - {currentPlayer.playerName} 的回合 ==========");
             Debug.Log($"当前玩家: {currentPlayer.playerName}");
 
             // ⭐ 重置当前玩家的回合状态
             currentPlayer.ResetTurnState();
+
+            // ⭐ 触发回合开始事件（用于技能如仁德重置状态）
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerTurnStart(currentPlayer);
+            }
 
             // 更新UI
             UpdateUI();
@@ -123,13 +136,240 @@ namespace ThreeKingdoms
             Debug.Log("【判定阶段】");
             Player currentPlayer = GetCurrentPlayer();
 
+            // 重置跳过标志
+            skipDrawPhase = false;
+            skipPlayPhase = false;
+
             // 处理判定区的牌
             if (currentPlayer.judgeCards.Count > 0)
             {
-                // TODO: 处理判定
+                StartCoroutine(ProcessJudgePhase(currentPlayer));
+            }
+            else
+            {
+                NextPhase();
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 处理判定阶段（协程）
+        /// </summary>
+        private IEnumerator ProcessJudgePhase(Player player)
+        {
+            // 判定区的牌按后进先出顺序处理（从最后一张开始）
+            while (player.judgeCards.Count > 0)
+            {
+                // 取最后一张（最新放入的）
+                int lastIndex = player.judgeCards.Count - 1;
+                Card judgeCard = player.judgeCards[lastIndex];
+
+                Debug.Log($"[判定阶段] {player.playerName} 进行【{judgeCard.cardName}】的判定");
+
+                if (UI.BattleUI.Instance != null)
+                {
+                    string cardName = CardNameHelper.GetLocalizedCardName(judgeCard.cardName);
+                    UI.BattleUI.Instance.AddLocalizedLog("msg_judgment", player.playerName, cardName);
+                }
+
+                // ⭐ 询问无懈可击
+                bool nullified = false;
+                yield return StartCoroutine(RequestNullification(player, judgeCard, player, (result) =>
+                {
+                    nullified = result;
+                }));
+
+                if (nullified)
+                {
+                    Debug.Log($"[判定阶段] 【{judgeCard.cardName}】被无懈可击抵消");
+                    player.judgeCards.RemoveAt(lastIndex);
+                    DeckManager.Instance.DiscardCard(judgeCard);
+                    yield return new WaitForSeconds(0.3f);
+                    continue;
+                }
+
+                // 执行判定：从牌堆顶翻一张牌
+                Card judgmentResult = DeckManager.Instance.DrawCard();
+                if (judgmentResult == null)
+                {
+                    Debug.LogWarning("[判定阶段] 无法抽取判定牌！");
+                    break;
+                }
+
+                // 显示判定结果
+                string suitSymbol = GetSuitSymbol(judgmentResult.suit);
+                Debug.Log($"[判定阶段] 判定结果：{suitSymbol}{judgmentResult.point}");
+
+                if (UI.BattleUI.Instance != null)
+                {
+                    UI.BattleUI.Instance.AddLocalizedLog("msg_judgment_result", suitSymbol, judgmentResult.point.ToString());
+                }
+
+                // 显示判定牌动画
+                if (UI.PlayedCardDisplayManager.Instance != null)
+                {
+                    UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(judgmentResult, player, null);
+                }
+
+                yield return new WaitForSeconds(0.8f);
+
+                // 根据判定结果处理效果
+                ProcessJudgmentResult(player, judgeCard, judgmentResult);
+
+                // 将判定牌放入弃牌堆
+                DeckManager.Instance.DiscardCard(judgmentResult);
+
+                yield return new WaitForSeconds(0.5f);
             }
 
+            // 更新UI
+            UpdateUI();
+
+            // 进入下一阶段
             NextPhase();
+        }
+
+        /// <summary>
+        /// ⭐ 获取花色符号
+        /// </summary>
+        private string GetSuitSymbol(CardSuit suit)
+        {
+            return suit switch
+            {
+                CardSuit.Spade => "♠",
+                CardSuit.Heart => "♥",
+                CardSuit.Club => "♣",
+                CardSuit.Diamond => "♦",
+                _ => "?"
+            };
+        }
+
+        /// <summary>
+        /// ⭐ 处理判定结果
+        /// </summary>
+        private void ProcessJudgmentResult(Player player, Card judgeCard, Card result)
+        {
+            // 从判定区移除该牌
+            player.judgeCards.Remove(judgeCard);
+
+            switch (judgeCard.cardName)
+            {
+                case "乐不思蜀":
+                    // 判定结果不是红桃，跳过出牌阶段
+                    if (result.suit != CardSuit.Heart)
+                    {
+                        skipPlayPhase = true;
+                        Debug.Log($"[判定阶段] 乐不思蜀生效，{player.playerName} 将跳过出牌阶段");
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            UI.BattleUI.Instance.AddLocalizedLog("msg_indulgence_effect", player.playerName);
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[判定阶段] 乐不思蜀未生效");
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            UI.BattleUI.Instance.AddLocalizedLog("msg_indulgence_miss", player.playerName);
+                        }
+                    }
+                    DeckManager.Instance.DiscardCard(judgeCard);
+                    break;
+
+                case "闪电":
+                    // 判定结果是黑桃2-9，受到3点雷电伤害
+                    if (result.suit == CardSuit.Spade && result.point >= 2 && result.point <= 9)
+                    {
+                        Debug.Log($"[判定阶段] 闪电击中 {player.playerName}，受到3点雷电伤害！");
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            UI.BattleUI.Instance.AddLocalizedLog("msg_lightning_hit", player.playerName);
+                        }
+                        player.TakeDamage(3, null); // 雷电伤害，无来源
+
+                        if (EventManager.Instance != null)
+                        {
+                            EventManager.Instance.TriggerPlayerDamaged(player, null, 3, judgeCard);
+                        }
+
+                        DeckManager.Instance.DiscardCard(judgeCard);
+                    }
+                    else
+                    {
+                        // 闪电传给下家
+                        Debug.Log($"[判定阶段] 闪电未击中，传递给下家");
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            UI.BattleUI.Instance.AddLocalizedLog("msg_lightning_miss");
+                        }
+                        PassLightningToNext(player, judgeCard);
+                    }
+                    break;
+
+                case "兵粮寸断":
+                    // 判定结果不是梅花，跳过摸牌阶段
+                    if (result.suit != CardSuit.Club)
+                    {
+                        skipDrawPhase = true;
+                        Debug.Log($"[判定阶段] 兵粮寸断生效，{player.playerName} 将跳过摸牌阶段");
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            UI.BattleUI.Instance.AddLocalizedLog("msg_supply_shortage_effect", player.playerName);
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[判定阶段] 兵粮寸断未生效");
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            UI.BattleUI.Instance.AddLocalizedLog("msg_supply_shortage_miss", player.playerName);
+                        }
+                    }
+                    DeckManager.Instance.DiscardCard(judgeCard);
+                    break;
+
+                default:
+                    // 其他判定牌（如八卦阵等技能判定）
+                    DeckManager.Instance.DiscardCard(judgeCard);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 将闪电传给下一个存活的玩家
+        /// </summary>
+        private void PassLightningToNext(Player currentPlayer, Card lightning)
+        {
+            int currentIndex = players.IndexOf(currentPlayer);
+            for (int i = 1; i < players.Count; i++)
+            {
+                int nextIndex = (currentIndex + i) % players.Count;
+                Player nextPlayer = players[nextIndex];
+
+                if (nextPlayer.isAlive)
+                {
+                    // 检查下家判定区是否已有闪电
+                    bool hasLightning = false;
+                    foreach (var card in nextPlayer.judgeCards)
+                    {
+                        if (card.cardName == "闪电")
+                        {
+                            hasLightning = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasLightning)
+                    {
+                        nextPlayer.judgeCards.Add(lightning);
+                        Debug.Log($"[判定阶段] 闪电传递给 {nextPlayer.playerName}");
+                        return;
+                    }
+                }
+            }
+
+            // 如果没有合适的玩家接收，弃掉闪电
+            Debug.Log("[判定阶段] 无人可接收闪电，弃置");
+            DeckManager.Instance.DiscardCard(lightning);
         }
 
         /// <summary>
@@ -139,6 +379,15 @@ namespace ThreeKingdoms
         {
             Debug.Log("【摸牌阶段】");
             Player currentPlayer = GetCurrentPlayer();
+
+            // ⭐ 检查是否被兵粮寸断跳过
+            if (skipDrawPhase)
+            {
+                Debug.Log($"{currentPlayer.playerName} 因兵粮寸断跳过摸牌阶段");
+                skipDrawPhase = false;
+                NextPhase();
+                return;
+            }
 
             List<Card> drawnCards = DeckManager.Instance.DrawCards(drawPhaseCardCount);
             currentPlayer.DrawCards(drawnCards);
@@ -158,6 +407,15 @@ namespace ThreeKingdoms
         {
             Debug.Log("【出牌阶段】");
             Player currentPlayer = GetCurrentPlayer();
+
+            // ⭐ 检查是否被乐不思蜀跳过
+            if (skipPlayPhase)
+            {
+                Debug.Log($"{currentPlayer.playerName} 因乐不思蜀跳过出牌阶段");
+                skipPlayPhase = false;
+                NextPhase();
+                return;
+            }
 
             if (currentPlayer.isAI && currentPlayer.aiController != null)
             {
@@ -281,12 +539,26 @@ namespace ThreeKingdoms
         /// </summary>
         private void EndTurn()
         {
+            // ⭐ 触发回合结束事件
+            Player endingPlayer = GetCurrentPlayer();
+            if (EventManager.Instance != null && endingPlayer != null)
+            {
+                EventManager.Instance.TriggerTurnEnd(endingPlayer);
+            }
+
             // 切换到下一个玩家
             do
             {
                 currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
             }
             while (!players[currentPlayerIndex].isAlive && !AllPlayersDeadExceptOne());
+
+            // ⭐ 当轮回到起始玩家时，递增回合数（一轮完成）
+            if (currentPlayerIndex == roundStartPlayerIndex)
+            {
+                turnCount++;
+                Debug.Log($"========== 进入第 {turnCount} 轮 ==========");
+            }
 
             // 检查游戏是否结束
             if (CheckGameOver())
@@ -362,6 +634,18 @@ namespace ThreeKingdoms
         /// </summary>
         private IEnumerator HandleGameEnd(Player winner)
         {
+            // ⭐ 如果是故事模式，完全跳过BattleManager的游戏结束处理
+            // StoryBattleManager会处理对话和场景跳转
+            string storyBattleId = PlayerPrefs.GetString("StoryBattleId", "");
+            bool isStoryMode = !string.IsNullOrEmpty(storyBattleId);
+
+            var storyBattleManager = FindObjectOfType<StoryBattleManager>();
+            if (storyBattleManager != null || isStoryMode)
+            {
+                Debug.Log($"[BattleManager] 故事模式战斗(StoryBattleId={storyBattleId})，由StoryBattleManager处理游戏结束流程");
+                yield break; // StoryBattleManager会处理对话和场景跳转
+            }
+
             // 显示游戏结束UI
             ShowGameOverUI(winner);
 
@@ -447,6 +731,9 @@ namespace ThreeKingdoms
         /// </summary>
         private void NavigateAfterGameEnd()
         {
+            Debug.Log("[BattleManager] NavigateAfterGameEnd 被调用!");
+            Debug.Log($"[BattleManager] 调用堆栈:\n{System.Environment.StackTrace}");
+
             // 检查是否是故事模式
             string storyBattleId = PlayerPrefs.GetString("StoryBattleId", "");
 
@@ -505,7 +792,175 @@ namespace ThreeKingdoms
                 return false;
             }
 
+            // ⭐ 检查空城技能：手牌为空时不能被杀指定
+            if (IsKongchengActive(target))
+            {
+                errorMessage = $"{target.generalName} 发动【空城】，不能被【杀】指定";
+                return false;
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// ⭐ 检查玩家是否处于空城状态
+        /// </summary>
+        private bool IsKongchengActive(Player player)
+        {
+            if (player == null || player.skills == null) return false;
+
+            foreach (var skill in player.skills)
+            {
+                if (skill is DatabaseModule.Skills.Story.KongchengSkill kongcheng)
+                {
+                    if (kongcheng.IsKongchengActive())
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 检查玩家是否处于胆裂状态（不能使用或打出闪）
+        /// </summary>
+        private bool IsDanlieActive(Player player)
+        {
+            if (player == null || player.skills == null) return false;
+
+            foreach (var skill in player.skills)
+            {
+                if (skill is DatabaseModule.Skills.Story.DanlieSkill danlie)
+                {
+                    if (danlie.IsDanlieActive())
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 计算杀造成的伤害（考虑技能修改）
+        /// </summary>
+        private int CalculateSlashDamage(Player user, Player target, Card slashCard)
+        {
+            int baseDamage = 1;
+            int damageModifier = 0;
+
+            if (user == null || user.skills == null)
+            {
+                return Mathf.Max(0, baseDamage);
+            }
+
+            // 检查攻击者的技能
+            foreach (var skill in user.skills)
+            {
+                // 水战（蔡瑁）：杀的伤害+1
+                if (skill is DatabaseModule.Skills.Story.ShuizhanSkill shuizhan)
+                {
+                    int bonus = shuizhan.GetSlashDamageBonus();
+                    if (bonus > 0)
+                    {
+                        damageModifier += bonus;
+                        Debug.Log($"[水战] {user.generalName} 的杀伤害+{bonus}");
+                    }
+                }
+
+                // 伏击：对满血目标伤害+1
+                if (skill is DatabaseModule.Skills.Story.FujiSkill fuji)
+                {
+                    int bonus = fuji.GetDamageBonus(target);
+                    if (bonus > 0)
+                    {
+                        damageModifier += bonus;
+                    }
+                }
+
+                // 冲阵：对已受伤目标伤害+1
+                if (skill is DatabaseModule.Skills.Story.ChongzhenSkill chongzhen)
+                {
+                    int bonus = chongzhen.GetDamageBonus(target);
+                    if (bonus > 0)
+                    {
+                        damageModifier += bonus;
+                    }
+                }
+
+                // 胆裂（夏侯杰）：处于胆裂状态时伤害-1
+                if (skill is DatabaseModule.Skills.Story.DanlieSkill danlie)
+                {
+                    if (danlie.IsDanlieActive())
+                    {
+                        damageModifier -= 1;
+                        Debug.Log($"[胆裂] {user.generalName} 处于胆裂状态，伤害-1");
+                    }
+                }
+            }
+
+            int finalDamage = Mathf.Max(0, baseDamage + damageModifier);
+            if (damageModifier != 0)
+            {
+                Debug.Log($"[伤害计算] {user.generalName} 对 {target.generalName} 的杀伤害: 基础{baseDamage} + 修正{damageModifier} = {finalDamage}");
+            }
+
+            return finalDamage;
+        }
+
+        /// <summary>
+        /// ⭐ 计算通用伤害（决斗/南蛮/万箭等，不含水战加成）
+        /// </summary>
+        private int CalculateGeneralDamage(Player source, Player target, int baseDamage)
+        {
+            int damageModifier = 0;
+
+            if (source == null || source.skills == null)
+            {
+                return Mathf.Max(0, baseDamage);
+            }
+
+            foreach (var skill in source.skills)
+            {
+                // 伏击：对满血目标伤害+1
+                if (skill is DatabaseModule.Skills.Story.FujiSkill fuji)
+                {
+                    int bonus = fuji.GetDamageBonus(target);
+                    if (bonus > 0)
+                    {
+                        damageModifier += bonus;
+                    }
+                }
+
+                // 冲阵：对已受伤目标伤害+1
+                if (skill is DatabaseModule.Skills.Story.ChongzhenSkill chongzhen)
+                {
+                    int bonus = chongzhen.GetDamageBonus(target);
+                    if (bonus > 0)
+                    {
+                        damageModifier += bonus;
+                    }
+                }
+
+                // 胆裂：处于胆裂状态时伤害-1
+                if (skill is DatabaseModule.Skills.Story.DanlieSkill danlie)
+                {
+                    if (danlie.IsDanlieActive())
+                    {
+                        damageModifier -= 1;
+                        Debug.Log($"[胆裂] {source.generalName} 处于胆裂状态，伤害-1");
+                    }
+                }
+            }
+
+            int finalDamage = Mathf.Max(0, baseDamage + damageModifier);
+            if (damageModifier != 0)
+            {
+                Debug.Log($"[伤害计算] {source.generalName} 对 {target.generalName} 的伤害: 基础{baseDamage} + 修正{damageModifier} = {finalDamage}");
+            }
+
+            return finalDamage;
         }
 
         /// <summary>
@@ -590,11 +1045,27 @@ namespace ThreeKingdoms
             // 处理结果
             if (!dodged)
             {
-                target.TakeDamage(1, user);
+                // ⭐ 计算技能修正后的伤害
+                int damage = CalculateSlashDamage(user, target, slashCard);
 
-                if (EventManager.Instance != null)
+                if (damage > 0)
                 {
-                    EventManager.Instance.TriggerPlayerDamaged(target, user, 1, slashCard);
+                    target.TakeDamage(damage, user);
+
+                    if (EventManager.Instance != null)
+                    {
+                        EventManager.Instance.TriggerPlayerDamaged(target, user, damage, slashCard);
+                    }
+                }
+                else
+                {
+                    Debug.Log($"[伤害计算] {user.generalName} 对 {target.generalName} 的伤害被减免为0");
+                }
+
+                // ⭐ 赤壁之战：虎威效果（张飞杀命中30%令目标弃牌）
+                if (Story.StoryBattleManager.Instance != null)
+                {
+                    Story.StoryBattleManager.Instance.TryTriggerHuwei(user, target);
                 }
             }
 
@@ -607,6 +1078,13 @@ namespace ThreeKingdoms
         /// </summary>
         private bool AutoCheckForDodge(Player player)
         {
+            // ⭐ 胆裂检查：处于胆裂状态不能使用或打出闪
+            if (IsDanlieActive(player))
+            {
+                Debug.Log($"[胆裂] {player.generalName} 处于胆裂状态，不能使用或打出【闪】");
+                return false;
+            }
+
             foreach (var card in player.handCards)
             {
                 if (card.cardName == "闪")
@@ -684,6 +1162,17 @@ namespace ThreeKingdoms
         /// </summary>
         public void UseDuel(Player user, Player target, Card card)
         {
+            // ⭐ 检查空城技能：手牌为空时不能被决斗指定
+            if (IsKongchengActive(target))
+            {
+                Debug.Log($"[决斗] {target.generalName} 发动【空城】，不能被【决斗】指定");
+                if (UI.BattleUI.Instance != null)
+                {
+                    UI.BattleUI.Instance.ShowMessage($"{target.generalName} 发动【空城】，不能被【决斗】指定");
+                }
+                return;
+            }
+
             if (!user.PlayCard(card))
             {
                 Debug.LogWarning("无法打出此牌!");
@@ -705,6 +1194,29 @@ namespace ThreeKingdoms
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerCardUsed(user, card, target);
+            }
+
+            // 使用协程处理决斗（支持无懈可击）
+            StartCoroutine(ProcessDuel(user, target, card));
+        }
+
+        /// <summary>
+        /// ⭐ 处理决斗流程（协程，支持无懈可击）
+        /// </summary>
+        private IEnumerator ProcessDuel(Player user, Player target, Card card)
+        {
+            // ⭐ 询问无懈可击
+            bool nullified = false;
+            yield return StartCoroutine(RequestNullification(user, card, target, (result) =>
+            {
+                nullified = result;
+            }));
+
+            if (nullified)
+            {
+                Debug.Log($"[决斗] 【决斗】被无懈可击抵消");
+                UpdateUI();
+                yield break;
             }
 
             // 决斗流程：目标先出杀
@@ -732,6 +1244,15 @@ namespace ThreeKingdoms
                 DeckManager.Instance.DiscardCard(slashCard);
                 Debug.Log($"[决斗] {currentResponder.playerName} 打出了【杀】");
 
+                // 显示出牌动画
+                if (UI.PlayedCardDisplayManager.Instance != null)
+                {
+                    Vector3? startPos = GetPlayerUIPosition(currentResponder);
+                    UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(slashCard, currentResponder, startPos);
+                }
+
+                yield return new WaitForSeconds(0.3f);
+
                 // 交换响应者
                 Player temp = currentResponder;
                 currentResponder = opponent;
@@ -740,13 +1261,24 @@ namespace ThreeKingdoms
 
             // 决定谁受伤
             Player loser = targetLost ? target : user;
-            Debug.Log($"[决斗] {loser.playerName} 决斗失败，受到1点伤害");
-            loser.TakeDamage(1, loser == target ? user : target);
+            // ⭐ 计算技能修正后的伤害
+            Player winner = loser == target ? user : target;
+            int damage = CalculateGeneralDamage(winner, loser, 1);
+            Debug.Log($"[决斗] {loser.playerName} 决斗失败，受到{damage}点伤害");
 
-            // 触发受伤事件
-            if (EventManager.Instance != null)
+            if (damage > 0)
             {
-                EventManager.Instance.TriggerPlayerDamaged(loser, loser == target ? user : target, 1, card);
+                loser.TakeDamage(damage, winner);
+
+                // 触发受伤事件
+                if (EventManager.Instance != null)
+                {
+                    EventManager.Instance.TriggerPlayerDamaged(loser, winner, damage, card);
+                }
+            }
+            else
+            {
+                Debug.Log($"[伤害计算] {winner.generalName} 对 {loser.generalName} 的伤害被减免为0");
             }
 
             // 更新UI
@@ -780,11 +1312,42 @@ namespace ThreeKingdoms
             }
 
             Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【顺手牵羊】");
+
+            // ⭐ 显示出牌动画
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, user, startPos);
+            }
+
             DeckManager.Instance.DiscardCard(card);
 
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerCardUsed(user, card, target);
+            }
+
+            // 使用协程处理（支持无懈可击）
+            StartCoroutine(ProcessSnatch(user, target, card));
+        }
+
+        /// <summary>
+        /// ⭐ 处理顺手牵羊流程（协程，支持无懈可击）
+        /// </summary>
+        private IEnumerator ProcessSnatch(Player user, Player target, Card card)
+        {
+            // ⭐ 询问无懈可击
+            bool nullified = false;
+            yield return StartCoroutine(RequestNullification(user, card, target, (result) =>
+            {
+                nullified = result;
+            }));
+
+            if (nullified)
+            {
+                Debug.Log($"[顺手牵羊] 【顺手牵羊】被无懈可击抵消");
+                UpdateUI();
+                yield break;
             }
 
             if (target.handCards.Count == 0)
@@ -795,7 +1358,7 @@ namespace ThreeKingdoms
                     UI.BattleUI.Instance.AddLog($"{target.playerName} 没有手牌");
                 }
                 UpdateUI();
-                return;
+                yield break;
             }
 
             int randomIndex = Random.Range(0, target.handCards.Count);
@@ -827,11 +1390,42 @@ namespace ThreeKingdoms
             }
 
             Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【过河拆桥】");
+
+            // ⭐ 显示出牌动画
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, user, startPos);
+            }
+
             DeckManager.Instance.DiscardCard(card);
 
             if (EventManager.Instance != null)
             {
                 EventManager.Instance.TriggerCardUsed(user, card, target);
+            }
+
+            // 使用协程处理（支持无懈可击）
+            StartCoroutine(ProcessDismantlement(user, target, card));
+        }
+
+        /// <summary>
+        /// ⭐ 处理过河拆桥流程（协程，支持无懈可击）
+        /// </summary>
+        private IEnumerator ProcessDismantlement(Player user, Player target, Card card)
+        {
+            // ⭐ 询问无懈可击
+            bool nullified = false;
+            yield return StartCoroutine(RequestNullification(user, card, target, (result) =>
+            {
+                nullified = result;
+            }));
+
+            if (nullified)
+            {
+                Debug.Log($"[过河拆桥] 【过河拆桥】被无懈可击抵消");
+                UpdateUI();
+                yield break;
             }
 
             int totalCards = target.handCards.Count + target.equipments.Count;
@@ -843,7 +1437,7 @@ namespace ThreeKingdoms
                     UI.BattleUI.Instance.AddLog($"{target.playerName} 没有可弃置的牌");
                 }
                 UpdateUI();
-                return;
+                yield break;
             }
 
             int randomChoice = Random.Range(0, totalCards);
@@ -975,13 +1569,27 @@ namespace ThreeKingdoms
         }
 
         /// <summary>
-        /// 处理南蛮入侵的响应（协程）
+        /// 处理南蛮入侵的响应（协程，支持无懈可击）
         /// </summary>
         private IEnumerator ProcessSavageAssaultResponses(Player user, Card card)
         {
             foreach (var player in players)
             {
                 if (player == user || !player.isAlive) continue;
+
+                // ⭐ 对每个目标询问无懈可击
+                bool nullified = false;
+                yield return StartCoroutine(RequestNullification(user, card, player, (result) =>
+                {
+                    nullified = result;
+                }));
+
+                if (nullified)
+                {
+                    Debug.Log($"[南蛮入侵] 对 {player.playerName} 的效果被无懈可击抵消");
+                    yield return new WaitForSeconds(0.3f);
+                    continue;
+                }
 
                 Debug.Log($"[南蛮入侵] {player.playerName} 需要打出【杀】");
 
@@ -1015,12 +1623,22 @@ namespace ThreeKingdoms
                 }
                 else
                 {
-                    Debug.Log($"[南蛮入侵] {player.playerName} 没有【杀】，受到1点伤害");
-                    player.TakeDamage(1, user);
+                    // ⭐ 计算技能修正后的伤害
+                    int damage = CalculateGeneralDamage(user, player, 1);
+                    Debug.Log($"[南蛮入侵] {player.playerName} 没有【杀】，受到{damage}点伤害");
 
-                    if (EventManager.Instance != null)
+                    if (damage > 0)
                     {
-                        EventManager.Instance.TriggerPlayerDamaged(player, user, 1, card);
+                        player.TakeDamage(damage, user);
+
+                        if (EventManager.Instance != null)
+                        {
+                            EventManager.Instance.TriggerPlayerDamaged(player, user, damage, card);
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[伤害计算] {user.generalName} 对 {player.generalName} 的伤害被减免为0");
                     }
                 }
 
@@ -1066,13 +1684,27 @@ namespace ThreeKingdoms
         }
 
         /// <summary>
-        /// 处理万箭齐发的响应（协程）
+        /// 处理万箭齐发的响应（协程，支持无懈可击）
         /// </summary>
         private IEnumerator ProcessArrowBarrageResponses(Player user, Card card)
         {
             foreach (var player in players)
             {
                 if (player == user || !player.isAlive) continue;
+
+                // ⭐ 对每个目标询问无懈可击
+                bool nullified = false;
+                yield return StartCoroutine(RequestNullification(user, card, player, (result) =>
+                {
+                    nullified = result;
+                }));
+
+                if (nullified)
+                {
+                    Debug.Log($"[万箭齐发] 对 {player.playerName} 的效果被无懈可击抵消");
+                    yield return new WaitForSeconds(0.3f);
+                    continue;
+                }
 
                 Debug.Log($"[万箭齐发] {player.playerName} 需要打出【闪】");
 
@@ -1106,12 +1738,22 @@ namespace ThreeKingdoms
                 }
                 else
                 {
-                    Debug.Log($"[万箭齐发] {player.playerName} 没有【闪】，受到1点伤害");
-                    player.TakeDamage(1, user);
+                    // ⭐ 计算技能修正后的伤害
+                    int damage = CalculateGeneralDamage(user, player, 1);
+                    Debug.Log($"[万箭齐发] {player.playerName} 没有【闪】，受到{damage}点伤害");
 
-                    if (EventManager.Instance != null)
+                    if (damage > 0)
                     {
-                        EventManager.Instance.TriggerPlayerDamaged(player, user, 1, card);
+                        player.TakeDamage(damage, user);
+
+                        if (EventManager.Instance != null)
+                        {
+                            EventManager.Instance.TriggerPlayerDamaged(player, user, damage, card);
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[伤害计算] {user.generalName} 对 {player.generalName} 的伤害被减免为0");
                     }
                 }
 
@@ -1154,6 +1796,185 @@ namespace ThreeKingdoms
                 }
             }
         }
+
+        #region 延时锦囊
+
+        /// <summary>
+        /// ⭐ 使用【乐不思蜀】- 放入目标判定区
+        /// </summary>
+        public void UseIndulgence(Player user, Player target, Card card)
+        {
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
+            // 检查目标判定区是否已有乐不思蜀
+            foreach (var judgeCard in target.judgeCards)
+            {
+                if (judgeCard.cardName == "乐不思蜀")
+                {
+                    Debug.Log($"[乐不思蜀] {target.playerName} 判定区已有乐不思蜀");
+                    if (UI.BattleUI.Instance != null)
+                    {
+                        UI.BattleUI.Instance.AddLog($"{target.playerName} 判定区已有乐不思蜀");
+                    }
+                    // 退回手牌
+                    user.handCards.Add(card);
+                    UpdateUI();
+                    return;
+                }
+            }
+
+            Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【乐不思蜀】");
+
+            // 显示出牌动画
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, user, startPos);
+            }
+
+            // 放入目标判定区
+            target.judgeCards.Add(card);
+
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, target);
+            }
+
+            if (UI.BattleUI.Instance != null)
+            {
+                UI.BattleUI.Instance.AddLog($"{user.playerName} 对 {target.playerName} 使用了【乐不思蜀】");
+            }
+
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// ⭐ 使用【闪电】- 放入自己判定区
+        /// </summary>
+        public void UseLightning(Player user, Card card)
+        {
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
+            // 检查自己判定区是否已有闪电
+            foreach (var judgeCard in user.judgeCards)
+            {
+                if (judgeCard.cardName == "闪电")
+                {
+                    Debug.Log($"[闪电] {user.playerName} 判定区已有闪电");
+                    if (UI.BattleUI.Instance != null)
+                    {
+                        UI.BattleUI.Instance.AddLog($"{user.playerName} 判定区已有闪电");
+                    }
+                    // 退回手牌
+                    user.handCards.Add(card);
+                    UpdateUI();
+                    return;
+                }
+            }
+
+            Debug.Log($"{user.playerName} 使用了【闪电】");
+
+            // 显示出牌动画
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, user, startPos);
+            }
+
+            // 放入自己判定区
+            user.judgeCards.Add(card);
+
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, null);
+            }
+
+            if (UI.BattleUI.Instance != null)
+            {
+                UI.BattleUI.Instance.AddLog($"{user.playerName} 使用了【闪电】");
+            }
+
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// ⭐ 使用【兵粮寸断】- 放入距离1的目标判定区
+        /// </summary>
+        public void UseSupplyShortage(Player user, Player target, Card card)
+        {
+            if (!user.PlayCard(card))
+            {
+                Debug.LogWarning("无法打出此牌!");
+                return;
+            }
+
+            // 检查距离（兵粮寸断只能对距离1的角色使用）
+            int distance = user.GetDistanceTo(target);
+            if (distance > 1)
+            {
+                Debug.Log($"[兵粮寸断] {target.playerName} 距离过远（距离={distance}）");
+                if (UI.BattleUI.Instance != null)
+                {
+                    UI.BattleUI.Instance.AddLog($"目标距离过远");
+                }
+                // 退回手牌
+                user.handCards.Add(card);
+                UpdateUI();
+                return;
+            }
+
+            // 检查目标判定区是否已有兵粮寸断
+            foreach (var judgeCard in target.judgeCards)
+            {
+                if (judgeCard.cardName == "兵粮寸断")
+                {
+                    Debug.Log($"[兵粮寸断] {target.playerName} 判定区已有兵粮寸断");
+                    if (UI.BattleUI.Instance != null)
+                    {
+                        UI.BattleUI.Instance.AddLog($"{target.playerName} 判定区已有兵粮寸断");
+                    }
+                    // 退回手牌
+                    user.handCards.Add(card);
+                    UpdateUI();
+                    return;
+                }
+            }
+
+            Debug.Log($"{user.playerName} 对 {target.playerName} 使用了【兵粮寸断】");
+
+            // 显示出牌动画
+            if (UI.PlayedCardDisplayManager.Instance != null)
+            {
+                Vector3? startPos = GetPlayerUIPosition(user);
+                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(card, user, startPos);
+            }
+
+            // 放入目标判定区
+            target.judgeCards.Add(card);
+
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.TriggerCardUsed(user, card, target);
+            }
+
+            if (UI.BattleUI.Instance != null)
+            {
+                UI.BattleUI.Instance.AddLog($"{user.playerName} 对 {target.playerName} 使用了【兵粮寸断】");
+            }
+
+            UpdateUI();
+        }
+
+        #endregion
+
         /// <summary>
         /// 更新UI
         /// </summary>
@@ -1187,5 +2008,550 @@ namespace ThreeKingdoms
             }
             return null;
         }
+
+        #region 濒死处理
+
+        /// <summary>
+        /// ⭐ 处理濒死求桃流程
+        /// </summary>
+        public IEnumerator ProcessNearDeath(Player dyingPlayer, Player killer)
+        {
+            Debug.Log($"[濒死] {dyingPlayer.playerName} 进入濒死状态，需要 {dyingPlayer.GetPeachesNeeded()} 张桃");
+
+            // 添加濒死日志
+            if (UI.BattleUI.Instance != null)
+            {
+                UI.BattleUI.Instance.AddLog($"{dyingPlayer.playerName} 进入濒死状态！");
+            }
+
+            // 循环直到脱离濒死或确认死亡
+            while (dyingPlayer.isNearDeath && dyingPlayer.currentHP <= 0)
+            {
+                bool saved = false;
+
+                // 从濒死玩家开始，按座位顺序询问每个玩家
+                int startIndex = players.IndexOf(dyingPlayer);
+                if (startIndex < 0) startIndex = 0;
+
+                for (int i = 0; i < players.Count; i++)
+                {
+                    int playerIndex = (startIndex + i) % players.Count;
+                    Player askPlayer = players[playerIndex];
+
+                    if (!askPlayer.isAlive) continue;
+
+                    // 检查该玩家是否有桃
+                    bool hasPeach = HasPeachCard(askPlayer);
+                    if (!hasPeach) continue;
+
+                    Debug.Log($"[濒死] 询问 {askPlayer.playerName} 是否使用【桃】救 {dyingPlayer.playerName}");
+
+                    bool responseReceived = false;
+                    bool usedPeach = false;
+
+                    if (askPlayer.isAI)
+                    {
+                        // AI决策：是否救人
+                        usedPeach = AIDecideSaveDyingPlayer(askPlayer, dyingPlayer);
+                        responseReceived = true;
+
+                        if (usedPeach)
+                        {
+                            Card peachCard = FindPeachCard(askPlayer);
+                            if (peachCard != null)
+                            {
+                                askPlayer.PlayCard(peachCard);
+                                DeckManager.Instance.DiscardCard(peachCard);
+
+                                // 显示出牌动画
+                                if (UI.PlayedCardDisplayManager.Instance != null)
+                                {
+                                    Vector3? startPos = GetPlayerUIPosition(askPlayer);
+                                    UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(peachCard, askPlayer, startPos);
+                                }
+
+                                Debug.Log($"[濒死] {askPlayer.playerName} 使用【桃】救了 {dyingPlayer.playerName}");
+
+                                if (UI.BattleUI.Instance != null)
+                                {
+                                    UI.BattleUI.Instance.AddLog($"{askPlayer.playerName} 使用【桃】救了 {dyingPlayer.playerName}");
+                                }
+                            }
+                        }
+
+                        yield return new WaitForSeconds(0.5f);
+                    }
+                    else
+                    {
+                        // 人类玩家，显示求桃界面
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            // 设置濒死目标信息
+                            UI.BattleUI.Instance.SetNearDeathTarget(dyingPlayer);
+
+                            UI.BattleUI.Instance.RequestResponse(askPlayer, UI.ResponseType.Peach, (responseCard) =>
+                            {
+                                responseReceived = true;
+                                usedPeach = responseCard != null;
+                            });
+
+                            // 等待响应
+                            while (!responseReceived)
+                            {
+                                yield return null;
+                            }
+
+                            // 清除濒死目标
+                            UI.BattleUI.Instance.SetNearDeathTarget(null);
+                        }
+                        else
+                        {
+                            // 无UI时自动决策
+                            usedPeach = AutoCheckForPeach(askPlayer);
+                            responseReceived = true;
+                        }
+                    }
+
+                    if (usedPeach)
+                    {
+                        dyingPlayer.SaveFromNearDeath(askPlayer);
+                        saved = true;
+
+                        // 如果还需要更多桃（HP仍<=0），继续循环
+                        if (dyingPlayer.currentHP > 0)
+                        {
+                            break; // 已救活，退出询问循环
+                        }
+                    }
+                }
+
+                // 如果这一轮没人救，玩家死亡
+                if (!saved || dyingPlayer.currentHP <= 0)
+                {
+                    if (dyingPlayer.currentHP <= 0)
+                    {
+                        Debug.Log($"[濒死] 无人救援，{dyingPlayer.playerName} 死亡");
+                        if (UI.BattleUI.Instance != null)
+                        {
+                            UI.BattleUI.Instance.AddLog($"无人救援，{dyingPlayer.playerName} 阵亡！");
+                        }
+                        dyingPlayer.ExecuteDeath(killer);
+                    }
+                    break;
+                }
+            }
+
+            // 更新UI
+            UpdateUI();
+        }
+
+        /// <summary>
+        /// ⭐ 检查玩家是否有桃
+        /// </summary>
+        private bool HasPeachCard(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "桃")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 查找玩家手牌中的桃
+        /// </summary>
+        private Card FindPeachCard(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "桃")
+                {
+                    return card;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ⭐ AI决定是否救濒死玩家
+        /// </summary>
+        private bool AIDecideSaveDyingPlayer(Player aiPlayer, Player dyingPlayer)
+        {
+            // 检查是否是自己濒死
+            if (aiPlayer == dyingPlayer)
+            {
+                // 自己濒死，一定救
+                return true;
+            }
+
+            // 检查是否是盟友
+            bool isAlly = false;
+
+            // 优先使用故事模式的盟友判断
+            if (StoryBattleManager.Instance != null && StoryBattleManager.Instance.isBattleActive)
+            {
+                isAlly = StoryBattleManager.Instance.IsAlly(aiPlayer, dyingPlayer);
+
+                // 检查是否有禁止对盟友用桃的规则
+                if (isAlly && !StoryBattleManager.Instance.CanUsePeachOn(aiPlayer, dyingPlayer))
+                {
+                    Debug.Log($"[AI] {aiPlayer.playerName} 因规则限制无法对盟友 {dyingPlayer.playerName} 使用桃");
+                    return false;
+                }
+            }
+            else
+            {
+                // 普通模式：同阵营是盟友
+                isAlly = aiPlayer.faction == dyingPlayer.faction;
+            }
+
+            if (isAlly)
+            {
+                // 盟友濒死，80%概率救（考虑保留桃给自己）
+                bool shouldSave = Random.value < 0.8f;
+                Debug.Log($"[AI] {aiPlayer.playerName} {(shouldSave ? "决定救" : "决定不救")} 盟友 {dyingPlayer.playerName}");
+                return shouldSave;
+            }
+            else
+            {
+                // 敌人濒死，不救
+                Debug.Log($"[AI] {aiPlayer.playerName} 不救敌人 {dyingPlayer.playerName}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 自动检查并使用桃（无UI时的备用逻辑）
+        /// </summary>
+        private bool AutoCheckForPeach(Player player)
+        {
+            Card peach = FindPeachCard(player);
+            if (peach != null)
+            {
+                player.PlayCard(peach);
+                DeckManager.Instance.DiscardCard(peach);
+                Debug.Log($"{player.playerName} 自动使用了【桃】");
+
+                if (UI.PlayedCardDisplayManager.Instance != null)
+                {
+                    Vector3? startPos = GetPlayerUIPosition(player);
+                    UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(peach, player, startPos);
+                }
+
+                return true;
+            }
+            return false;
+        }
+
+        #endregion
+
+        #region 无懈可击系统
+
+        /// <summary>
+        /// ⭐ 询问是否有人使用无懈可击（协程）
+        /// </summary>
+        /// <param name="trickUser">锦囊使用者</param>
+        /// <param name="trickCard">锦囊牌</param>
+        /// <param name="target">锦囊目标(可为null，如南蛮入侵等群体锦囊对单个目标结算时传入当前目标)</param>
+        /// <param name="callback">回调，true表示锦囊被抵消</param>
+        public IEnumerator RequestNullification(Player trickUser, Card trickCard, Player target, System.Action<bool> callback)
+        {
+            bool nullified = false;
+            yield return StartCoroutine(ProcessNullificationChain(trickUser, trickCard, target, false, (result) =>
+            {
+                nullified = result;
+            }));
+            callback?.Invoke(nullified);
+        }
+
+        /// <summary>
+        /// ⭐ 处理无懈可击链（协程）
+        /// </summary>
+        /// <param name="trickUser">原锦囊使用者</param>
+        /// <param name="trickCard">原锦囊牌</param>
+        /// <param name="target">锦囊目标</param>
+        /// <param name="isCountering">是否在反制无懈可击</param>
+        /// <param name="callback">回调</param>
+        private IEnumerator ProcessNullificationChain(Player trickUser, Card trickCard, Player target, bool isCountering, System.Action<bool> callback)
+        {
+            // 从锦囊使用者位置开始，按座位顺序询问
+            int startIndex = players.IndexOf(trickUser);
+            if (startIndex < 0) startIndex = 0;
+
+            for (int i = 0; i < players.Count; i++)
+            {
+                int playerIndex = (startIndex + i) % players.Count;
+                Player askPlayer = players[playerIndex];
+
+                if (!askPlayer.isAlive) continue;
+
+                // 检查是否有无懈可击
+                if (!HasNullificationCard(askPlayer)) continue;
+
+                // AI决策或玩家选择
+                bool wantsToNullify = false;
+                bool responseReceived = false;
+
+                if (askPlayer.isAI)
+                {
+                    // AI决策是否使用无懈可击
+                    wantsToNullify = AIDecideNullify(askPlayer, trickUser, trickCard, target, isCountering);
+                    responseReceived = true;
+
+                    if (wantsToNullify)
+                    {
+                        // AI使用无懈可击
+                        Card nullifyCard = FindNullificationCard(askPlayer);
+                        if (nullifyCard != null)
+                        {
+                            askPlayer.PlayCard(nullifyCard);
+                            DeckManager.Instance.DiscardCard(nullifyCard);
+
+                            // 显示出牌动画
+                            if (UI.PlayedCardDisplayManager.Instance != null)
+                            {
+                                Vector3? startPos = GetPlayerUIPosition(askPlayer);
+                                UI.PlayedCardDisplayManager.Instance.ShowPlayedCard(nullifyCard, askPlayer, startPos);
+                            }
+
+                            string cardName = CardNameHelper.GetLocalizedCardName(trickCard.cardName);
+                            Debug.Log($"[无懈可击] {askPlayer.playerName} 使用【无懈可击】{(isCountering ? "反制" : "抵消")}【{cardName}】");
+
+                            if (UI.BattleUI.Instance != null)
+                            {
+                                if (isCountering)
+                                {
+                                    UI.BattleUI.Instance.AddLocalizedLog("msg_nullify_counter", askPlayer.playerName);
+                                }
+                                else
+                                {
+                                    UI.BattleUI.Instance.AddLocalizedLog("msg_nullify_trick", askPlayer.playerName, cardName);
+                                }
+                            }
+                        }
+                    }
+
+                    yield return new WaitForSeconds(0.3f);
+                }
+                else
+                {
+                    // 人类玩家，显示无懈可击选项
+                    if (UI.BattleUI.Instance != null)
+                    {
+                        UI.BattleUI.Instance.RequestResponse(askPlayer, UI.ResponseType.Nullify, (responseCard) =>
+                        {
+                            responseReceived = true;
+                            wantsToNullify = responseCard != null;
+                        });
+
+                        while (!responseReceived)
+                        {
+                            yield return null;
+                        }
+                    }
+                    else
+                    {
+                        responseReceived = true;
+                        wantsToNullify = false;
+                    }
+                }
+
+                if (wantsToNullify)
+                {
+                    // 有人使用无懈可击，询问是否有人反制
+                    bool counterNullified = false;
+                    yield return StartCoroutine(ProcessNullificationChain(askPlayer, trickCard, target, !isCountering, (result) =>
+                    {
+                        counterNullified = result;
+                    }));
+
+                    // 如果反制成功，则本次无懈可击无效，继续询问其他玩家
+                    if (counterNullified)
+                    {
+                        Debug.Log($"[无懈可击] {askPlayer.playerName} 的无懈可击被反制");
+                        continue;
+                    }
+                    else
+                    {
+                        // 无懈可击生效
+                        callback?.Invoke(true);
+                        yield break;
+                    }
+                }
+            }
+
+            // 没有人使用无懈可击
+            callback?.Invoke(false);
+        }
+
+        /// <summary>
+        /// ⭐ 检查玩家是否有无懈可击
+        /// </summary>
+        private bool HasNullificationCard(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "无懈可击")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 查找玩家手牌中的无懈可击
+        /// </summary>
+        private Card FindNullificationCard(Player player)
+        {
+            foreach (var card in player.handCards)
+            {
+                if (card.cardName == "无懈可击")
+                {
+                    return card;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// ⭐ AI决定是否使用无懈可击
+        /// </summary>
+        /// <param name="aiPlayer">AI玩家</param>
+        /// <param name="trickUser">锦囊使用者</param>
+        /// <param name="trickCard">锦囊牌</param>
+        /// <param name="target">锦囊目标</param>
+        /// <param name="isCountering">是否在反制无懈可击</param>
+        private bool AIDecideNullify(Player aiPlayer, Player trickUser, Card trickCard, Player target, bool isCountering)
+        {
+            // 判断锦囊使用者和目标与AI的关系
+            bool userIsAlly = IsAllyForAI(aiPlayer, trickUser);
+            bool targetIsAlly = target != null && IsAllyForAI(aiPlayer, target);
+            bool targetIsSelf = target == aiPlayer;
+
+            // 判断锦囊类型
+            bool isHarmfulTrick = IsHarmfulTrick(trickCard.cardName);
+            bool isBeneficialTrick = IsBeneficialTrick(trickCard.cardName);
+
+            // 如果是反制阶段
+            if (isCountering)
+            {
+                // 反制逻辑：如果原无懈可击会伤害盟友，则反制
+                // 这里简化为：如果原锦囊对自己或盟友有害，且有人想抵消，我们不反制
+                // 如果原锦囊对敌人有害，我们反制别人的无懈可击
+                if (isHarmfulTrick)
+                {
+                    // 原锦囊是伤害性的
+                    if (targetIsSelf || targetIsAlly)
+                    {
+                        // 目标是自己或盟友，不反制（让无懈可击生效保护自己）
+                        return false;
+                    }
+                    else
+                    {
+                        // 目标是敌人，反制（让伤害锦囊生效）
+                        return Random.value < 0.6f; // 60%概率反制
+                    }
+                }
+                else if (isBeneficialTrick)
+                {
+                    // 原锦囊是有益的
+                    if (userIsAlly)
+                    {
+                        // 盟友使用的有益锦囊被无懈，反制保护盟友的锦囊
+                        return Random.value < 0.5f;
+                    }
+                }
+                return false;
+            }
+
+            // 非反制阶段：决定是否使用无懈可击抵消锦囊
+            if (isHarmfulTrick)
+            {
+                // 伤害性锦囊
+                if (targetIsSelf)
+                {
+                    // 目标是自己，高概率使用无懈可击
+                    return Random.value < 0.8f;
+                }
+                else if (targetIsAlly)
+                {
+                    // 目标是盟友，中等概率使用
+                    return Random.value < 0.5f;
+                }
+                else if (!userIsAlly && target == null)
+                {
+                    // 群体伤害锦囊（目标为null表示还未结算到具体目标）
+                    // 暂不使用，等结算到自己时再用
+                    return false;
+                }
+            }
+            else if (isBeneficialTrick)
+            {
+                // 有益锦囊
+                if (!userIsAlly)
+                {
+                    // 敌人使用有益锦囊，考虑抵消
+                    return Random.value < 0.4f;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 判断两个玩家是否是盟友（AI用）
+        /// </summary>
+        private bool IsAllyForAI(Player aiPlayer, Player otherPlayer)
+        {
+            if (aiPlayer == otherPlayer) return true;
+
+            // 故事模式
+            if (StoryBattleManager.Instance != null && StoryBattleManager.Instance.isBattleActive)
+            {
+                return StoryBattleManager.Instance.IsAlly(aiPlayer, otherPlayer);
+            }
+
+            // 普通模式：同阵营是盟友
+            return aiPlayer.faction == otherPlayer.faction;
+        }
+
+        /// <summary>
+        /// ⭐ 判断锦囊是否是伤害性的
+        /// </summary>
+        private bool IsHarmfulTrick(string cardName)
+        {
+            return cardName switch
+            {
+                "南蛮入侵" => true,
+                "万箭齐发" => true,
+                "决斗" => true,
+                "顺手牵羊" => true,
+                "过河拆桥" => true,
+                "乐不思蜀" => true,
+                "兵粮寸断" => true,
+                "闪电" => true,
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// ⭐ 判断锦囊是否是有益的
+        /// </summary>
+        private bool IsBeneficialTrick(string cardName)
+        {
+            return cardName switch
+            {
+                "桃园结义" => true,
+                "五谷丰登" => true,
+                "无中生有" => true,
+                _ => false
+            };
+        }
+
+        #endregion
     }
 }

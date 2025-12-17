@@ -22,7 +22,7 @@ namespace ThreeKingdoms.Story
 
         // 存档key
         private const string SAVE_KEY = "StoryProgress";
-        private const int DATA_VERSION = 3; // ⭐ 数据版本号，修改战役数据时增加此值
+        private const int DATA_VERSION = 4; // ⭐ 数据版本号，修改战役数据时增加此值（添加官渡/讨董详细数据）
         private const string VERSION_KEY = "StoryDataVersion";
 
         private void Awake()
@@ -91,111 +91,13 @@ namespace ThreeKingdoms.Story
         {
             List<CampaignData> defaultCampaigns = new List<CampaignData>();
 
-            // 战役1：董卓讨伐战
-            CampaignData campaign1 = new CampaignData
-            {
-                campaignId = "dong_zhuo",
-                nameKey = "campaign_dong_zhuo",
-                descriptionKey = "campaign_dong_zhuo_desc",
-                isUnlocked = true,
-                battles = new List<BattleData>
-                {
-                    new BattleData
-                    {
-                        battleId = "dz_1",
-                        nameKey = "battle_dz_1",
-                        descriptionKey = "battle_dz_1_desc",
-                        briefingKey = "battle_dz_1_brief",
-                        difficulty = 1,
-                        isUnlocked = true,
-                        playerGeneralId = "caocao",
-                        enemyGeneralIds = new List<string> { "huaxiong" }
-                    },
-                    new BattleData
-                    {
-                        battleId = "dz_2",
-                        nameKey = "battle_dz_2",
-                        descriptionKey = "battle_dz_2_desc",
-                        briefingKey = "battle_dz_2_brief",
-                        difficulty = 1,
-                        playerGeneralId = "guanyu",
-                        enemyGeneralIds = new List<string> { "huaxiong" }
-                    },
-                    new BattleData
-                    {
-                        battleId = "dz_3",
-                        nameKey = "battle_dz_3",
-                        descriptionKey = "battle_dz_3_desc",
-                        briefingKey = "battle_dz_3_brief",
-                        difficulty = 2,
-                        playerGeneralId = "liubei",
-                        enemyGeneralIds = new List<string> { "lvbu" }
-                    },
-                    new BattleData
-                    {
-                        battleId = "dz_4",
-                        nameKey = "battle_dz_4",
-                        descriptionKey = "battle_dz_4_desc",
-                        briefingKey = "battle_dz_4_brief",
-                        difficulty = 2,
-                        playerGeneralId = "caocao",
-                        enemyGeneralIds = new List<string> { "dongzhuo", "lvbu" }
-                    }
-                }
-            };
+            // 战役1：讨董之战（使用详细的Taodong数据）
+            CampaignData campaign1 = TaodongCampaignData.CreateCampaign();
+            campaign1.isUnlocked = true; // 第一个战役默认解锁
             defaultCampaigns.Add(campaign1);
 
-            // 战役2：官渡之战
-            CampaignData campaign2 = new CampaignData
-            {
-                campaignId = "guandu",
-                nameKey = "campaign_guandu",
-                descriptionKey = "campaign_guandu_desc",
-                battles = new List<BattleData>
-                {
-                    new BattleData
-                    {
-                        battleId = "gd_1",
-                        nameKey = "battle_gd_1",
-                        descriptionKey = "battle_gd_1_desc",
-                        briefingKey = "battle_gd_1_brief",
-                        difficulty = 2,
-                        playerGeneralId = "caocao",
-                        enemyGeneralIds = new List<string> { "yuanshao" }
-                    },
-                    new BattleData
-                    {
-                        battleId = "gd_2",
-                        nameKey = "battle_gd_2",
-                        descriptionKey = "battle_gd_2_desc",
-                        briefingKey = "battle_gd_2_brief",
-                        difficulty = 2,
-                        playerGeneralId = "guanyu",
-                        enemyGeneralIds = new List<string> { "yanliang", "wenchou" }
-                    },
-                    new BattleData
-                    {
-                        battleId = "gd_3",
-                        nameKey = "battle_gd_3",
-                        descriptionKey = "battle_gd_3_desc",
-                        briefingKey = "battle_gd_3_brief",
-                        difficulty = 2,
-                        playerGeneralId = "caocao",
-                        enemyGeneralIds = new List<string> { "yuanshao", "yanliang", "wenchou" }
-                    },
-                    new BattleData
-                    {
-                        battleId = "gd_4",
-                        nameKey = "battle_gd_4",
-                        descriptionKey = "battle_gd_4_desc",
-                        briefingKey = "battle_gd_4_brief",
-                        difficulty = 3,
-                        playerGeneralId = "caocao",
-                        enemyGeneralIds = new List<string> { "yuanshao" },
-                        specialRuleKey = "rule_burn_supplies"
-                    }
-                }
-            };
+            // 战役2：官渡之战（使用详细的Guandu数据）
+            CampaignData campaign2 = GuanduCampaignData.CreateCampaign();
             defaultCampaigns.Add(campaign2);
 
             // 战役3：赤壁之战（使用详细的ChiBi数据）

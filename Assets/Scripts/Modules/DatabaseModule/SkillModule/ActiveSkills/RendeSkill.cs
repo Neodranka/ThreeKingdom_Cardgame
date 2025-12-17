@@ -13,14 +13,19 @@ namespace ThreeKingdoms.DatabaseModule.Skills
 
         protected override void RegisterEvents()
         {
-            // TODO: 注册回合开始事件
-            // EventManager.Instance.OnTurnStart += OnTurnStart;
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart += OnTurnStart;
+                Debug.Log($"[仁德] 注册了回合开始事件");
+            }
         }
 
         protected override void UnregisterEvents()
         {
-            // TODO: 取消注册事件
-            // EventManager.Instance.OnTurnStart -= OnTurnStart;
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnTurnStart -= OnTurnStart;
+            }
         }
 
         protected override bool CheckTriggerCondition()
