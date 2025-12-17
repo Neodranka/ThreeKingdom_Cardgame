@@ -409,6 +409,26 @@ namespace ThreeKingdoms.DatabaseModule.Skills.Story
                 viewCount = 0; // 重置连续计数
             }
 
+            // ⭐ 赤壁之战：中计规则 - 蒋干查看周瑜手牌时检查是否有黑牌
+            string targetId = target.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (targetId.Contains("zhouyu") || targetId.Contains("周瑜"))
+            {
+                if (ThreeKingdoms.Story.StoryBattleManager.Instance != null)
+                {
+                    bool isFakeInfo = ThreeKingdoms.Story.StoryBattleManager.Instance.CheckTrickRule(target);
+                    if (isFakeInfo)
+                    {
+                        Log($"{Owner.generalName} 获得了假情报！");
+                    }
+                    else
+                    {
+                        Log($"{Owner.generalName} 获得了真实情报！");
+                    }
+                    // 触发盗书事件（用于显示对白）
+                    EventManager.Instance?.TriggerStoryEvent("hand_viewed_zhouyu", isFakeInfo ? "fake" : "real");
+                }
+            }
+
             EventManager.Instance?.TriggerStoryEvent("skill_daoshu", Owner.generalName);
         }
 
@@ -688,6 +708,12 @@ namespace ThreeKingdoms.DatabaseModule.Skills.Story
             {
                 target.TakeDamage(1, Owner);
                 Log($"{target.generalName} 猜错了，受到1点伤害");
+
+                // ⭐ 赤壁之战：伪造书信规则 - 反间成功获得标记
+                if (ThreeKingdoms.Story.StoryBattleManager.Instance != null)
+                {
+                    ThreeKingdoms.Story.StoryBattleManager.Instance.OnFanjianSuccess(Owner);
+                }
             }
             else
             {

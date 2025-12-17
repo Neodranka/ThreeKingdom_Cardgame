@@ -15,13 +15,11 @@ namespace ThreeKingdomsKill.UI
         [Header("UI References")]
         [SerializeField] private Button battleModeButton;
         [SerializeField] private Button storyModeButton;
-        [SerializeField] private Button settingsButton;
         [SerializeField] private TextMeshProUGUI titleText; // ⭐ 游戏标题文本
 
         // ⭐ 按钮文本引用
         private TextMeshProUGUI battleModeText;
         private TextMeshProUGUI storyModeText;
-        private TextMeshProUGUI settingsText;
 
         private void Start()
         {
@@ -34,9 +32,6 @@ namespace ThreeKingdomsKill.UI
 
             if (storyModeButton != null)
                 storyModeButton.onClick.AddListener(OnStoryModeClicked);
-
-            if (settingsButton != null)
-                settingsButton.onClick.AddListener(OnSettingsClicked);
 
             // ⭐ 初始化UI文本
             RefreshUIText();
@@ -65,9 +60,6 @@ namespace ThreeKingdomsKill.UI
 
             if (storyModeButton != null)
                 storyModeText = storyModeButton.GetComponentInChildren<TextMeshProUGUI>();
-
-            if (settingsButton != null)
-                settingsText = settingsButton.GetComponentInChildren<TextMeshProUGUI>();
         }
 
         /// <summary>
@@ -103,7 +95,6 @@ namespace ThreeKingdomsKill.UI
             // 更新按钮文本
             UpdateButtonText(battleModeButton, battleModeText, "ui_battle_mode");
             UpdateButtonText(storyModeButton, storyModeText, "ui_story_mode");
-            UpdateButtonText(settingsButton, settingsText, "ui_settings");
 
             Debug.Log("[MainMenu] UI文本刷新完成");
         }
@@ -150,27 +141,6 @@ namespace ThreeKingdomsKill.UI
             SceneManager.LoadScene("StoryMode");
         }
 
-        /// <summary>
-        /// 打开设置界面（暂未实现）
-        /// </summary>
-        private void OnSettingsClicked()
-        {
-            Debug.Log("设置功能开发中...");
-            string message = ThreeKingdoms.LocalizationManager.Instance != null
-                ? ThreeKingdoms.LocalizationManager.Instance.GetText("msg_settings_coming_soon")
-                : "设置功能开发中，敬请期待！";
-            ShowComingSoonMessage(message);
-        }
-
-        /// <summary>
-        /// 显示"开发中"提示信息
-        /// </summary>
-        private void ShowComingSoonMessage(string message)
-        {
-            Debug.Log(message);
-            // TODO: 显示UI提示框
-        }
-
         private void OnDestroy()
         {
             // 清理事件监听，防止内存泄漏
@@ -179,9 +149,6 @@ namespace ThreeKingdomsKill.UI
 
             if (storyModeButton != null)
                 storyModeButton.onClick.RemoveListener(OnStoryModeClicked);
-
-            if (settingsButton != null)
-                settingsButton.onClick.RemoveListener(OnSettingsClicked);
 
             // ⭐ 取消监听语言切换
             if (ThreeKingdoms.LocalizationManager.Instance != null)

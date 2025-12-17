@@ -90,6 +90,43 @@ namespace ThreeKingdoms.DatabaseModule
             {"paoxiao_story", "咆哮"}, {"yijue", "义绝"},
         };
 
+        // ⭐ 技能ID到技能类型的映射（主动/被动/触发）
+        private static readonly Dictionary<string, SkillType> skillTypeClassMap = new Dictionary<string, SkillType>
+        {
+            // 主动技能 - 出牌阶段可主动发动
+            {"rende", SkillType.Active},        // 仁德
+            {"zhiheng", SkillType.Active},      // 制衡
+            {"fanjian", SkillType.Active},      // 反间
+            {"kurou", SkillType.Active},        // 苦肉
+            {"kurou_zhaxiang", SkillType.Active}, // 苦肉诈降
+            {"dimeng", SkillType.Active},       // 缔盟
+            {"guanxing", SkillType.Active},     // 观星
+            {"tuxi", SkillType.Active},         // 突袭
+            {"shenshu", SkillType.Active},      // 神速
+
+            // 被动/锁定技能 - 条件触发，无需玩家操作
+            {"paoxiao", SkillType.Passive},     // 咆哮
+            {"paoxiao_story", SkillType.Passive},
+            {"wusheng", SkillType.Passive},     // 武圣
+            {"yingzi", SkillType.Passive},      // 英姿
+            {"kongcheng", SkillType.Passive},   // 空城
+            {"keji", SkillType.Passive},        // 克己
+            {"danlie", SkillType.Passive},      // 胆裂
+            {"beiren", SkillType.Passive},      // 北人
+            {"shuizhan", SkillType.Passive},    // 水战
+            {"xiaoji_passive", SkillType.Passive}, // 消极
+            {"laodang", SkillType.Passive},     // 老当
+
+            // 触发技能 - 特定时机触发，玩家可选择
+            {"jianxiong", SkillType.Trigger},   // 奸雄
+            {"ganglie", SkillType.Trigger},     // 刚烈
+            {"longdan", SkillType.Trigger},     // 龙胆
+            {"yijue", SkillType.Trigger},       // 义绝
+            {"zhuhe", SkillType.Trigger},       // 主和
+            {"jienan", SkillType.Trigger},      // 诘难
+            {"daoshu", SkillType.Trigger},      // 盗书
+        };
+
         /// <summary>
         /// 从技能ID创建技能实例
         /// </summary>
@@ -127,6 +164,8 @@ namespace ThreeKingdoms.DatabaseModule
                 tempData.skillId = normalizedId;
                 tempData.skillName = GetSkillName(normalizedId);
                 tempData.skillClassName = skillType.FullName;
+                // ⭐ 设置技能类型
+                tempData.skillType = GetSkillType(normalizedId);
 
                 // 初始化技能
                 skill.Initialize(tempData, owner);
@@ -181,6 +220,22 @@ namespace ThreeKingdoms.DatabaseModule
                 return name;
             }
             return skillId;
+        }
+
+        /// <summary>
+        /// ⭐ 获取技能类型（主动/被动/触发）
+        /// </summary>
+        public static SkillType GetSkillType(string skillId)
+        {
+            if (string.IsNullOrEmpty(skillId)) return SkillType.Passive;
+
+            string normalizedId = skillId.ToLower().Trim();
+            if (skillTypeClassMap.TryGetValue(normalizedId, out SkillType type))
+            {
+                return type;
+            }
+            // 默认为被动技能
+            return SkillType.Passive;
         }
 
         /// <summary>

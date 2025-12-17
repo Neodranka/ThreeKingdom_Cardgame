@@ -36,7 +36,8 @@ namespace ThreeKingdoms
 
         [Header("回合信息")]
         public TurnPhase currentPhase = TurnPhase.Prepare;
-        public int turnCount = 0;
+        public int turnCount = 0;           // 轮数（所有玩家完成一轮算一回合）
+        private int roundStartPlayerIndex = 0;  // ⭐ 每轮开始的玩家索引
 
         [Header("游戏状态")]
         public bool gameStarted = false;
@@ -71,8 +72,9 @@ namespace ThreeKingdoms
 
             gameStarted = true;
             gameOver = false;
-            turnCount = 0;
+            turnCount = 1;  // ⭐ 第一轮
             currentPlayerIndex = 0;
+            roundStartPlayerIndex = 0;  // ⭐ 记录第一轮开始的玩家
 
             // 给所有玩家发起始手牌
             foreach (var player in players)
@@ -94,9 +96,9 @@ namespace ThreeKingdoms
             if (gameOver) return;
 
             Player currentPlayer = GetCurrentPlayer();
-            turnCount++;
+            // ⭐ turnCount 改为在 EndTurn 中当所有玩家轮完时递增
 
-            Debug.Log($"========== 第 {turnCount} 回合 ==========");
+            Debug.Log($"========== 第 {turnCount} 轮 - {currentPlayer.playerName} 的回合 ==========");
             Debug.Log($"当前玩家: {currentPlayer.playerName}");
 
             // ⭐ 重置当前玩家的回合状态
@@ -550,6 +552,13 @@ namespace ThreeKingdoms
                 currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
             }
             while (!players[currentPlayerIndex].isAlive && !AllPlayersDeadExceptOne());
+
+            // ⭐ 当轮回到起始玩家时，递增回合数（一轮完成）
+            if (currentPlayerIndex == roundStartPlayerIndex)
+            {
+                turnCount++;
+                Debug.Log($"========== 进入第 {turnCount} 轮 ==========");
+            }
 
             // 检查游戏是否结束
             if (CheckGameOver())
@@ -1051,6 +1060,12 @@ namespace ThreeKingdoms
                 else
                 {
                     Debug.Log($"[伤害计算] {user.generalName} 对 {target.generalName} 的伤害被减免为0");
+                }
+
+                // ⭐ 赤壁之战：虎威效果（张飞杀命中30%令目标弃牌）
+                if (Story.StoryBattleManager.Instance != null)
+                {
+                    Story.StoryBattleManager.Instance.TryTriggerHuwei(user, target);
                 }
             }
 

@@ -58,6 +58,19 @@ namespace ThreeKingdoms.Story
         private int extraSlashCount = 0; // 额外出杀次数
         private int extraSlashRound = 0; // 额外出杀生效回合
 
+        // ⭐ 赤壁之战 Custom 规则状态
+        private bool huweiRule = false;              // 虎威：张飞杀有30%令目标弃牌
+        private bool noPeachRule = false;            // 单骑断桥：张飞不能用桃
+        private bool debateRule = false;             // 舌战模式
+        private bool persuadeRule = false;           // 以理服人：诸葛亮杀伤可改弃2牌
+        private bool forgeLetterRule = false;        // 伪造书信：反间成功获得标记
+        private bool trickRule = false;              // 中计：黑牌视为假情报
+        private bool suspicionRule = false;          // 曹操猜忌：标记减蔡瑁HP
+        private bool seasickRule = false;            // 水土不服：曹军30%掉血
+        private bool guanyuPriorityRule = false;     // 关羽优先攻击最低血敌人
+        private int fanjianMarkerCount = 0;          // 反间标记计数
+        private int stealSuccessCount = 0;           // 蒋干盗书成功次数（连续）
+
         private void Awake()
         {
             if (Instance == null)
@@ -470,6 +483,17 @@ namespace ThreeKingdoms.Story
                     Debug.Log("[规则] 禁止对盟友使用桃");
                     break;
 
+                case RuleType.Custom:
+                    // ⭐ 自定义规则处理
+                    ApplyCustomRule(rule);
+                    break;
+
+                case RuleType.AllyAutoSupport:
+                    // ⭐ 盟友自动支援（鲁肃斡旋）
+                    markers["ally_auto_support"] = 1;
+                    Debug.Log("[规则] 盟友自动支援生效");
+                    break;
+
                 default:
                     Debug.Log($"[StoryBattle] 未处理的规则类型: {rule.type}");
                     break;
@@ -560,6 +584,342 @@ namespace ThreeKingdoms.Story
                 if (player != null) targets.Add(player);
             }
             return targets;
+        }
+
+        /// <summary>
+        /// ⭐ 应用自定义规则（赤壁之战专用）
+        /// </summary>
+        private void ApplyCustomRule(SpecialRule rule)
+        {
+            string ruleId = rule.ruleId?.ToLower() ?? "";
+            Debug.Log($"[Custom规则] 应用规则: {ruleId}");
+
+            switch (ruleId)
+            {
+                case "tutorial":
+                    // 新手教学 - 暂无特殊处理，仅标记
+                    markers["tutorial"] = 1;
+                    break;
+
+                case "huwei":
+                    // 虎威：张飞使用【杀】时，有30%概率令目标弃置1张手牌
+                    huweiRule = true;
+                    Debug.Log("[规则] 虎威生效：张飞使用杀有30%令目标弃牌");
+                    break;
+
+                case "no_peach":
+                    // 单骑断桥：张飞不能使用【桃】
+                    noPeachRule = true;
+                    Debug.Log("[规则] 单骑断桥生效：张飞不能使用桃");
+                    break;
+
+                case "debate":
+                    // 舌战模式：所有伤害代表"辩论失利"
+                    debateRule = true;
+                    Debug.Log("[规则] 舌战模式生效：伤害代表辩论失利");
+                    break;
+
+                case "persuade":
+                    // 以理服人：诸葛亮使用【杀】造成伤害时，可选择改为令目标弃2张牌
+                    persuadeRule = true;
+                    Debug.Log("[规则] 以理服人生效：诸葛亮杀伤可改弃2牌");
+                    break;
+
+                case "forge_letter":
+                    // 伪造书信：周瑜每次成功发动【反间】获得1个"反间"标记
+                    forgeLetterRule = true;
+                    fanjianMarkerCount = 0;
+                    Debug.Log("[规则] 伪造书信生效：反间成功获得标记");
+                    break;
+
+                case "trick":
+                    // 中计：当蒋干查看手牌时，若周瑜手牌中有黑色牌，视为"假情报"
+                    trickRule = true;
+                    Debug.Log("[规则] 中计生效：黑牌视为假情报");
+                    break;
+
+                case "suspicion":
+                    // 曹操猜忌：每累积1个反间标记，蔡瑁体力上限-1
+                    suspicionRule = true;
+                    Debug.Log("[规则] 曹操猜忌生效：标记减蔡瑁HP");
+                    break;
+
+                case "seasick":
+                    // 水土不服：曹军水兵每回合30%概率掉1血
+                    seasickRule = true;
+                    Debug.Log("[规则] 水土不服生效：曹军30%掉血");
+                    break;
+
+                case "guanyu_priority":
+                    // 关羽优先攻击血量最低的敌人
+                    guanyuPriorityRule = true;
+                    Debug.Log("[规则] 关羽归来生效：优先攻击最低血敌人");
+                    break;
+
+                default:
+                    Debug.Log($"[Custom规则] 未知规则ID: {ruleId}");
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region 赤壁之战 Custom 规则公共API
+
+        /// <summary>
+        /// ⭐ 检查角色是否可以使用桃（单骑断桥规则）
+        /// </summary>
+        public bool CanUsePeach(Player player)
+        {
+            if (!noPeachRule) return true;
+
+            // 检查是否是张飞
+            string playerId = player?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (playerId.Contains("zhangfei") || playerId.Contains("张飞"))
+            {
+                Debug.Log("[规则] 单骑断桥：张飞不能使用桃");
+                return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// ⭐ 杀命中后触发虎威效果（30%概率令目标弃牌）
+        /// </summary>
+        public void TryTriggerHuwei(Player attacker, Player target)
+        {
+            if (!huweiRule) return;
+
+            // 检查攻击者是否是张飞
+            string attackerId = attacker?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (!attackerId.Contains("zhangfei") && !attackerId.Contains("张飞")) return;
+
+            // 30%概率
+            if (Random.Range(0, 100) < 30)
+            {
+                if (target.handCards.Count > 0)
+                {
+                    // 随机弃置1张手牌
+                    int randomIndex = Random.Range(0, target.handCards.Count);
+                    Card discardCard = target.handCards[randomIndex];
+                    target.DiscardCard(discardCard);
+                    Debug.Log($"[虎威] {target.generalName} 被气势震慑，弃置了1张手牌");
+
+                    // 显示提示
+                    if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                    {
+                        ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【虎威】{target.generalName} 弃置1张手牌！");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 检查是否触发以理服人（诸葛亮杀伤可改弃2牌）
+        /// 返回true表示应该让玩家选择，false表示不适用此规则
+        /// </summary>
+        public bool ShouldOfferPersuade(Player attacker, Player target)
+        {
+            if (!persuadeRule) return false;
+
+            // 检查攻击者是否是诸葛亮且是玩家控制
+            string attackerId = attacker?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (!attackerId.Contains("zhugeliang") && !attackerId.Contains("诸葛亮")) return false;
+
+            // 检查目标手牌数是否足够
+            if (target.handCards.Count < 2) return false;
+
+            return !attacker.isAI; // 只对玩家提供选择
+        }
+
+        /// <summary>
+        /// ⭐ 执行以理服人效果（目标弃2牌代替伤害）
+        /// </summary>
+        public void ExecutePersuade(Player target)
+        {
+            if (target.handCards.Count >= 2)
+            {
+                // 弃置2张手牌
+                for (int i = 0; i < 2 && target.handCards.Count > 0; i++)
+                {
+                    int randomIndex = Random.Range(0, target.handCards.Count);
+                    Card discardCard = target.handCards[randomIndex];
+                    target.DiscardCard(discardCard);
+                }
+                Debug.Log($"[以理服人] {target.generalName} 被说服，弃置了2张手牌");
+
+                if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                {
+                    ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【以理服人】{target.generalName} 弃置2张手牌");
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 周瑜反间成功时触发（伪造书信规则）
+        /// </summary>
+        public void OnFanjianSuccess(Player zhouyu)
+        {
+            if (!forgeLetterRule) return;
+
+            fanjianMarkerCount++;
+            Debug.Log($"[伪造书信] 周瑜获得第{fanjianMarkerCount}个反间标记");
+
+            if (ThreeKingdoms.UI.BattleUI.Instance != null)
+            {
+                ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【伪造书信】获得反间标记（{fanjianMarkerCount}/3）");
+            }
+
+            // 触发事件
+            TriggerEvents(EventTrigger.OnMarkerGained, $"fanjian_{fanjianMarkerCount}");
+
+            // 曹操猜忌：每个标记减蔡瑁HP
+            if (suspicionRule)
+            {
+                ApplySuspicionEffect();
+            }
+
+            // 检查胜利条件
+            CheckVictoryCondition();
+        }
+
+        /// <summary>
+        /// ⭐ 应用曹操猜忌效果（减蔡瑁HP）
+        /// </summary>
+        private void ApplySuspicionEffect()
+        {
+            Player caimao = FindPlayer("caimao");
+            if (caimao != null && caimao.isAlive)
+            {
+                caimao.maxHP--;
+                if (caimao.currentHP > caimao.maxHP)
+                {
+                    caimao.currentHP = caimao.maxHP;
+                }
+                Debug.Log($"[曹操猜忌] 蔡瑁体力上限降至{caimao.maxHP}");
+
+                if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                {
+                    ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【曹操猜忌】蔡瑁体力上限-1");
+                    ThreeKingdoms.UI.BattleUI.Instance.UpdateAllPlayerInfo();
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 蒋干盗书时检查是否中计（周瑜手牌有黑牌=假情报）
+        /// </summary>
+        public bool CheckTrickRule(Player zhouyu)
+        {
+            if (!trickRule) return false;
+
+            // 检查周瑜手牌是否有黑色牌
+            foreach (var card in zhouyu.handCards)
+            {
+                if (card.suit == CardSuit.Spade || card.suit == CardSuit.Club)
+                {
+                    Debug.Log("[中计] 周瑜手中有黑色牌，蒋干获得假情报");
+                    stealSuccessCount = 0; // 重置连续成功计数
+                    return true; // 有黑牌 = 假情报
+                }
+            }
+
+            // 没有黑牌 = 真实情报，计入失败条件
+            stealSuccessCount++;
+            Debug.Log($"[中计] 周瑜手中无黑色牌，蒋干获得真实情报（连续{stealSuccessCount}次）");
+
+            // 检查失败条件
+            if (stealSuccessCount >= 3)
+            {
+                Debug.Log("[中计] 蒋干连续3次获得真实情报，计谋败露！");
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 回合开始时触发水土不服（曹军30%掉血）
+        /// </summary>
+        public void TrySeasickEffect(Player player)
+        {
+            if (!seasickRule) return;
+
+            // 检查是否是曹军水兵
+            string playerId = player?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (!playerId.Contains("caojun") && !playerId.Contains("曹军") && !playerId.Contains("sailor"))
+                return;
+
+            // 30%概率
+            if (Random.Range(0, 100) < 30)
+            {
+                player.TakeDamage(1, null);
+                Debug.Log($"[水土不服] {player.generalName} 晕船，失去1点体力");
+
+                if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                {
+                    ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【水土不服】{player.generalName} 晕船-1HP");
+                }
+
+                // 触发事件
+                TriggerEvents(EventTrigger.OnSkillActivate, "beiren");
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取关羽应该优先攻击的目标（最低血敌人）
+        /// </summary>
+        public Player GetGuanyuPriorityTarget(Player guanyu)
+        {
+            if (!guanyuPriorityRule) return null;
+
+            // 检查是否是关羽
+            string playerId = guanyu?.generalName?.ToLower().Replace("_story", "") ?? "";
+            if (!playerId.Contains("guanyu") && !playerId.Contains("关羽")) return null;
+
+            // 获取所有存活的敌人
+            List<Player> enemies = GetEnemyPlayers();
+            Player lowestHPEnemy = null;
+            int lowestHP = int.MaxValue;
+
+            foreach (var enemy in enemies)
+            {
+                if (enemy.isAlive && enemy.currentHP < lowestHP)
+                {
+                    lowestHP = enemy.currentHP;
+                    lowestHPEnemy = enemy;
+                }
+            }
+
+            if (lowestHPEnemy != null)
+            {
+                Debug.Log($"[关羽归来] 优先攻击血量最低的敌人：{lowestHPEnemy.generalName}（{lowestHP}血）");
+            }
+
+            return lowestHPEnemy;
+        }
+
+        /// <summary>
+        /// ⭐ 获取当前反间标记数
+        /// </summary>
+        public int GetFanjianMarkerCount()
+        {
+            return fanjianMarkerCount;
+        }
+
+        /// <summary>
+        /// ⭐ 获取蒋干连续盗书成功次数
+        /// </summary>
+        public int GetStealSuccessCount()
+        {
+            return stealSuccessCount;
+        }
+
+        /// <summary>
+        /// ⭐ 检查是否是舌战模式
+        /// </summary>
+        public bool IsDebateMode()
+        {
+            return debateRule;
         }
 
         #endregion
@@ -918,6 +1278,9 @@ namespace ThreeKingdoms.Story
                 player.maxSlashPerTurn += extraSlashCount;
                 Debug.Log($"[规则] {player.generalName} 本回合可额外出 {extraSlashCount} 张杀");
             }
+
+            // ⭐ 赤壁之战：水土不服规则（曹军水兵30%掉血）
+            TrySeasickEffect(player);
 
             // 检查回合开始事件
             TriggerEvents(EventTrigger.OnTurnStart, player.generalName);
@@ -1363,11 +1726,19 @@ namespace ThreeKingdoms.Story
                     break;
 
                 case VictoryType.AccumulateMarks:
-                    if (markers.TryGetValue("zhaxiang", out int count))
+                    // ⭐ 优先检查反间标记（第四章蒋干盗书）
+                    int markCount = fanjianMarkerCount;
+                    // 也检查通用markers字典
+                    if (markers.TryGetValue("fanjian", out int fanjianCount))
                     {
-                        victory = count >= condition.targetCount;
-                        if (victory) Debug.Log($"[StoryBattle] 胜利条件达成: 累积 {count} 个标记");
+                        markCount = System.Math.Max(markCount, fanjianCount);
                     }
+                    if (markers.TryGetValue("zhaxiang", out int zhaxiangCount))
+                    {
+                        markCount = System.Math.Max(markCount, zhaxiangCount);
+                    }
+                    victory = markCount >= condition.targetCount;
+                    if (victory) Debug.Log($"[StoryBattle] 胜利条件达成: 累积 {markCount} 个标记");
                     break;
 
                 case VictoryType.ProtectAlly:

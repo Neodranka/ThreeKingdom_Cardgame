@@ -243,6 +243,8 @@ namespace ThreeKingdoms
             // 错误/警告消息
             AddTranslation("msg_cannot_use", "不能使用此牌", "Cannot use this card", "이 카드를 사용할 수 없음");
             AddTranslation("msg_dodge_only_response", "【闪】只能在响应【杀】时使用", "[Dodge] can only be used to respond to [Slash]", "[섬]은 [살]에 대응할 때만 사용 가능");
+            AddTranslation("msg_longdan_dodge_as_slash", "{0} 发动【龙胆】，将【闪】当【杀】对 {1} 使用", "{0} used [Longdan], using [Dodge] as [Slash] against {1}", "{0}이(가) [용담]을 발동, [섬]을 [살]로 {1}에게 사용");
+            AddTranslation("msg_longdan_hint", "【龙胆】可选择目标当杀使用", "[Longdan] Can select target to use as Slash", "[용담] 대상 선택 시 [살]로 사용 가능");
             AddTranslation("msg_out_of_range", "目标不在攻击范围内", "Target out of range", "대상이 공격 범위 밖");
             AddTranslation("msg_already_used_slash", "本回合已使用过【杀】", "Already used [Slash] this turn", "이번 턴에 이미 [살] 사용함");
             AddTranslation("msg_card_effect_unimplemented", "卡牌【{0}】的效果尚未实现", "Card [{0}] effect not implemented", "카드 [{0}] 효과 미구현");
@@ -326,6 +328,14 @@ namespace ThreeKingdoms
             AddTranslation("msg_no_cards_to_discard", "目标没有可弃置的牌!", "Target has no cards to discard!", "대상에게 버릴 카드가 없습니다!");
             AddTranslation("msg_nullification_only_response", "【无懈可击】只能在响应锦囊牌时使用", "[Nullification] can only be used to counter trick cards", "[무해가격]은 계략 카드에 대응할 때만 사용 가능");
             AddTranslation("msg_delayed_trick_not_implemented", "延时锦囊暂未实现", "Delayed tricks not implemented yet", "지연 계략 미구현");
+
+            // 延时锦囊
+            AddTranslation("msg_already_has_indulgence", "目标判定区已有【乐不思蜀】", "Target already has [Indulgence] in judgment area", "대상의 판정 구역에 이미 [낙불사촉]이 있습니다");
+            AddTranslation("msg_already_has_lightning", "判定区已有【闪电】", "Already has [Lightning] in judgment area", "판정 구역에 이미 [번개]가 있습니다");
+            AddTranslation("msg_already_has_supply_shortage", "目标判定区已有【兵粮寸断】", "Target already has [Supply Shortage] in judgment area", "대상의 판정 구역에 이미 [병량촌단]이 있습니다");
+            AddTranslation("msg_supply_shortage_distance", "【兵粮寸断】只能对距离1的角色使用", "[Supply Shortage] can only be used on targets at distance 1", "[병량촌단]은 거리 1인 대상에게만 사용 가능");
+            AddTranslation("msg_used_delayed_trick", "{0} 对 {2} 使用了【{1}】", "{0} used [{1}] on {2}", "{0}이(가) {2}에게 [{1}]을 사용했습니다");
+            AddTranslation("msg_used_lightning", "{0} 放置了【闪电】", "{0} placed [Lightning]", "{0}이(가) [번개]를 배치했습니다");
 
             // 阶段和阵营
             AddTranslation("phase_unknown", "未知阶段", "Unknown Phase", "알 수 없는 단계");
@@ -468,6 +478,19 @@ namespace ThreeKingdoms
             AddTranslation("rule_huarong_path", "华容道：关羽选择是否放走曹操", "Huarong Path: Guan Yu chooses whether to release Cao Cao", "화용도: 관우가 조조를 놓아줄지 선택합니다");
             AddTranslation("rule_northern_expedition", "北伐：蜀军士气高涨，摸牌+1", "Northern Expedition: Shu army morale is high, draw +1 card", "북벌: 촉군의 사기가 높아 카드를 1장 더 뽑습니다");
             AddTranslation("rule_final_battle", "终极决战：所有角色体力上限+1", "Final Battle: All characters gain +1 max HP", "최종 결전: 모든 캐릭터의 체력 상한이 +1 증가합니다");
+
+            // ⭐ 赤壁之战 Custom 规则相关消息
+            AddTranslation("msg_no_peach_rule", "【单骑断桥】不能使用桃！", "[Single Rider Bridge] Cannot use Peach!", "[단기단교] 도를 사용할 수 없습니다!");
+            AddTranslation("msg_huwei_trigger", "【虎威】{0} 弃置1张手牌！", "[Tiger's Might] {0} discards 1 card!", "[호위] {0}이(가) 1장을 버립니다!");
+            AddTranslation("msg_huwei_no_cards", "【虎威】{0} 没有手牌可弃", "[Tiger's Might] {0} has no cards to discard", "[호위] {0}은(는) 버릴 카드가 없음");
+            AddTranslation("msg_persuade_offer", "【以理服人】是否令目标弃2牌代替伤害？", "[Persuasion] Make target discard 2 cards instead of damage?", "[이리복인] 피해 대신 대상이 2장 버리게 하시겠습니까?");
+            AddTranslation("msg_persuade_effect", "【以理服人】{0} 弃置2张牌代替受到伤害", "[Persuasion] {0} discards 2 cards instead of taking damage", "[이리복인] {0}이(가) 피해 대신 2장을 버립니다");
+            AddTranslation("msg_forge_letter", "【伪造书信】获得反间标记！({0}/3)", "[Forged Letter] Gained counter-intelligence mark! ({0}/3)", "[위조서신] 반간 표시 획득! ({0}/3)");
+            AddTranslation("msg_trick_fake_intel", "【中计】蒋干发现假情报！", "[Tricked] Jiang Gan found fake intelligence!", "[중계] 장간이 가짜 정보를 발견했습니다!");
+            AddTranslation("msg_suspicion_effect", "【猜忌】曹操对蔡瑁产生怀疑，蔡瑁体力-{0}", "[Suspicion] Cao Cao suspects Cai Mao. Cai Mao HP -{0}", "[의심] 조조가 채모를 의심합니다. 채모 체력 -{0}");
+            AddTranslation("msg_seasick_effect", "【水土不服】{0} 不适应水战，损失1点体力", "[Seasickness] {0} is not used to naval combat, loses 1 HP", "[수토불복] {0}이(가) 수전에 적응 못해 체력 1 손실");
+            AddTranslation("msg_guanyu_priority", "【关羽】优先攻击血量最低的敌人", "[Guan Yu] Prioritizes attacking the lowest HP enemy", "[관우] 체력이 가장 낮은 적을 우선 공격합니다");
+            AddTranslation("msg_debate_mode", "【舌战模式】杀和闪无效，只能使用锦囊牌", "[Debate Mode] Slash and Dodge ineffective, only Trick cards work", "[설전모드] 살과 섬 무효, 금낭패만 사용 가능");
 
             // ==================== 赤壁之战 · 详细数据 ====================
 
