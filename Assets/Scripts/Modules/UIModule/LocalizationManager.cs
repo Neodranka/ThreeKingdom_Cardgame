@@ -80,14 +80,47 @@ namespace ThreeKingdoms
 
             // ==================== 武将 (Generals) ====================
 
+            // --- 魏国 (Wei) ---
             AddTranslation("general_caocao", "曹操", "Cao Cao", "조조");
+            AddTranslation("general_xiahoudun", "夏侯惇", "Xiahou Dun", "하후돈");
+            AddTranslation("general_xiahouyuan", "夏侯渊", "Xiahou Yuan", "하후연");
+            AddTranslation("general_zhangliao", "张辽", "Zhang Liao", "장료");
+            AddTranslation("general_xuhuang", "徐晃", "Xu Huang", "서황");
+            AddTranslation("general_xuzhu", "许褚", "Xu Zhu", "허저");
+            AddTranslation("general_simayi", "司马懿", "Sima Yi", "사마의");
+
+            // --- 蜀国 (Shu) ---
             AddTranslation("general_liubei", "刘备", "Liu Bei", "유비");
-            AddTranslation("general_sunquan", "孙权", "Sun Quan", "손권");
             AddTranslation("general_guanyu", "关羽", "Guan Yu", "관우");
             AddTranslation("general_zhangfei", "张飞", "Zhang Fei", "장비");
             AddTranslation("general_zhugeliang", "诸葛亮", "Zhuge Liang", "제갈량");
             AddTranslation("general_zhaoyun", "赵云", "Zhao Yun", "조운");
+            AddTranslation("general_huangzhong", "黄忠", "Huang Zhong", "황충");
             AddTranslation("general_machao", "马超", "Ma Chao", "마초");
+
+            // --- 吴国 (Wu) ---
+            AddTranslation("general_sunquan", "孙权", "Sun Quan", "손권");
+            AddTranslation("general_zhouyu", "周瑜", "Zhou Yu", "주유");
+            AddTranslation("general_lvmeng", "吕蒙", "Lv Meng", "여몽");
+            AddTranslation("general_huanggai", "黄盖", "Huang Gai", "황개");
+            AddTranslation("general_sunjian", "孙坚", "Sun Jian", "손견");
+            AddTranslation("general_luxun", "陆逊", "Lu Xun", "육손");
+            AddTranslation("general_ganning", "甘宁", "Gan Ning", "감녕");
+
+            // --- 群雄 (Qun) ---
+            AddTranslation("general_lvbu", "吕布", "Lv Bu", "여포");
+            AddTranslation("general_diaochan", "貂蝉", "Diao Chan", "초선");
+            AddTranslation("general_huatuo", "华佗", "Hua Tuo", "화타");
+            AddTranslation("general_dongzhuo", "董卓", "Dong Zhuo", "동탁");
+            AddTranslation("general_yuanshao", "袁绍", "Yuan Shao", "원소");
+            AddTranslation("general_huaxiong", "华雄", "Hua Xiong", "화웅");
+            AddTranslation("general_yanliang", "颜良", "Yan Liang", "안량");
+            AddTranslation("general_wenchou", "文丑", "Wen Chou", "문추");
+            AddTranslation("general_zhanghe", "张郃", "Zhang He", "장합");
+            AddTranslation("general_gaolan", "高览", "Gao Lan", "고람");
+            AddTranslation("general_chunyuqiong", "淳于琼", "Chunyu Qiong", "순우경");
+            AddTranslation("general_lijue", "李傕", "Li Jue", "이각");
+            AddTranslation("general_guosi", "郭汜", "Guo Si", "곽사");
 
             // 阵营
             AddTranslation("faction_wei", "魏", "Wei", "위");

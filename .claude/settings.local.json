@@ -3,7 +3,11 @@
     "allow": [
       "Bash(powershell -Command \"$word = New-Object -ComObject Word.Application; $doc = $word.Documents.Open(''C:\\Users\\user\\Desktop\\TP\\ThreeKingdom_Cardgame\\赤壁a.docx''); $doc.Content.Text; $doc.Close(); $word.Quit()\")",
       "Bash(unzip:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Get-ChildItem ''C:\\Users\\user\\Desktop\\TP\\ThreeKingdom_Cardgame'' | Where-Object { $_Name -like ''*nul*'' -or $_Name -like ''*delete*'' }\")",
+      "Bash(cmd /c \"dir C:\\Users\\user\\Desktop\\TP\\ThreeKingdom_Cardgame\\nul\")",
+      "Bash(cmd /c \"del /f /q /a \\?\\C:\\Users\\user\\Desktop\\TP\\ThreeKingdom_Cardgame\\nul\")"
     ]
   }
 }
