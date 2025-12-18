@@ -103,7 +103,49 @@ namespace ThreeKingdoms.UI
         private void Start()
         {
             SetupButtons();
+            LocalizeButtonTexts();
             UpdateButtonStates();
+        }
+
+        /// <summary>
+        /// ⭐ 本地化按钮文本
+        /// </summary>
+        private void LocalizeButtonTexts()
+        {
+            if (LocalizationManager.Instance == null) return;
+
+            // 结束出牌按钮
+            if (endPhaseButton != null)
+            {
+                var text = endPhaseButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (text != null)
+                {
+                    text.text = LocalizationManager.Instance.GetText("ui_end_phase");
+                    TMPFontHelper.SetFontByLanguage(text);
+                }
+            }
+
+            // 使用卡牌按钮
+            if (useCardButton != null)
+            {
+                var text = useCardButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (text != null)
+                {
+                    text.text = LocalizationManager.Instance.GetText("ui_use_card");
+                    TMPFontHelper.SetFontByLanguage(text);
+                }
+            }
+
+            // 取消按钮
+            if (cancelButton != null)
+            {
+                var text = cancelButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (text != null)
+                {
+                    text.text = LocalizationManager.Instance.GetText("ui_cancel");
+                    TMPFontHelper.SetFontByLanguage(text);
+                }
+            }
         }
 
         private void Update()
@@ -632,6 +674,18 @@ namespace ThreeKingdoms.UI
                     AddLocalizedLog("msg_used_delayed_trick", user.playerName, CardNameHelper.GetLocalizedCardName("兵粮寸断"), selectedTarget.playerName);
                     break;
 
+                // ==================== 装备牌 ====================
+                // +1马（防御马）
+                case "的卢":
+                case "爪黄飞电":
+                case "绝影":
+                // -1马（进攻马）
+                case "赤兔":
+                case "大宛":
+                case "紫骍":
+                    UseEquipment(user, card);
+                    break;
+
                 default:
                     string cardName = CardNameHelper.GetLocalizedCardName(card.cardName);
                     ShowMessage(LocalizationManager.Instance != null
@@ -710,6 +764,65 @@ namespace ThreeKingdoms.UI
             if (playerInfoUIs.ContainsKey(target))
             {
                 playerInfoUIs[target].PlayDamageAnimation();
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 使用装备牌
+        /// </summary>
+        private void UseEquipment(Player user, Card card)
+        {
+            if (card.cardType != CardType.Equipment)
+            {
+                ShowMessage("这不是装备牌！");
+                return;
+            }
+
+            // 从手牌中移除
+            user.PlayCard(card);
+            RemoveCardUI(card);
+
+            // 装备到玩家身上，获取被替换的旧装备
+            Card oldEquipment = user.Equip(card);
+
+            // 如果有旧装备被替换，放入弃牌堆
+            if (oldEquipment != null)
+            {
+                DeckManager.Instance.DiscardCard(oldEquipment);
+                AddLocalizedLog("msg_equipment_replaced", user.playerName,
+                    CardNameHelper.GetLocalizedCardName(oldEquipment.cardName),
+                    CardNameHelper.GetLocalizedCardName(card.cardName));
+            }
+            else
+            {
+                AddLocalizedLog("msg_equipped", user.playerName, CardNameHelper.GetLocalizedCardName(card.cardName));
+            }
+
+            // 显示装备类型提示
+            string equipTypeHint = GetEquipmentTypeHint(card.equipmentType);
+            ShowMessage($"{user.playerName} 装备了【{card.cardName}】{equipTypeHint}");
+
+            // 更新UI
+            UpdateAllPlayerInfo();
+        }
+
+        /// <summary>
+        /// ⭐ 获取装备类型提示文本
+        /// </summary>
+        private string GetEquipmentTypeHint(EquipmentType type)
+        {
+            switch (type)
+            {
+                case EquipmentType.DefensiveHorse:
+                    return "（+1马：他人计算与你距离+1）";
+                case EquipmentType.OffensiveHorse:
+                    return "（-1马：你计算与他人距离-1）";
+                case EquipmentType.Weapon:
+                    return "（武器）";
+                case EquipmentType.Armor:
+                    return "（防具）";
+                default:
+                    return "";
             }
         }
 

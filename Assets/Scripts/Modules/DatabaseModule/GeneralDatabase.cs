@@ -23,7 +23,14 @@ namespace ThreeKingdoms.DatabaseModule
         [Tooltip("Resources中的武将数据路径")]
         public string resourcePath = "Data/Generals";
 
+        [Header("扩展角色")]
+        [Tooltip("是否加载有技能的故事模式角色到对战池")]
+        public bool loadStoryCharacters = true;
+
         private Dictionary<string, GeneralData> generalDictionary = new Dictionary<string, GeneralData>();
+
+        // ⭐ 运行时创建的GeneralData需要保持引用，避免被GC
+        private List<GeneralData> runtimeGenerals = new List<GeneralData>();
 
         private void Awake()
         {
@@ -49,6 +56,12 @@ namespace ThreeKingdoms.DatabaseModule
                 LoadGeneralsFromResources();
             }
 
+            // ⭐ 加载有技能的故事模式角色
+            if (loadStoryCharacters)
+            {
+                LoadStoryCharactersWithSkills();
+            }
+
             BuildDictionary();
             ValidateData();
         }
@@ -59,7 +72,7 @@ namespace ThreeKingdoms.DatabaseModule
         private void LoadGeneralsFromResources()
         {
             GeneralData[] loadedGenerals = Resources.LoadAll<GeneralData>(resourcePath);
-            
+
             if (loadedGenerals.Length == 0)
             {
                 Debug.LogWarning($"未在 Resources/{resourcePath} 中找到武将数据!");
@@ -68,6 +81,162 @@ namespace ThreeKingdoms.DatabaseModule
 
             allGenerals.AddRange(loadedGenerals);
             Debug.Log($"从Resources加载了 {loadedGenerals.Length} 个武将");
+        }
+
+        /// <summary>
+        /// ⭐ 加载有独立技能的故事模式角色到对战池
+        /// 这些角色会在运行时动态创建，使用SkillFactory来初始化技能
+        /// </summary>
+        private void LoadStoryCharactersWithSkills()
+        {
+            Debug.Log("[GeneralDatabase] 开始加载有技能的故事角色...");
+
+            // ⭐ 定义有独立技能的角色列表
+            var storyCharactersData = new List<(string id, string name, Faction faction, int hp, string[] skills)>
+            {
+                // === 魏国 (Wei) ===
+                ("caocao", "曹操", Faction.Wei, 4, new[] { "jianxiong" }),
+                ("xiahoudun", "夏侯惇", Faction.Wei, 4, new[] { "ganglie" }),
+                ("xiahouyuan", "夏侯渊", Faction.Wei, 4, new[] { "shensu" }),
+                ("zhangliao", "张辽", Faction.Wei, 4, new[] { "tuxi" }),
+                ("xuhuang", "徐晃", Faction.Wei, 4, new[] { "duanliang" }),
+
+                // === 蜀国 (Shu) ===
+                ("liubei", "刘备", Faction.Shu, 4, new[] { "rende" }),
+                ("guanyu", "关羽", Faction.Shu, 4, new[] { "wusheng" }),
+                ("zhangfei", "张飞", Faction.Shu, 4, new[] { "paoxiao" }),
+                ("zhugeliang", "诸葛亮", Faction.Shu, 3, new[] { "guanxing", "kongcheng" }),
+                ("zhaoyun", "赵云", Faction.Shu, 4, new[] { "longdan" }),
+                ("huangzhong", "黄忠", Faction.Shu, 4, new[] { "liegong" }),
+
+                // === 吴国 (Wu) ===
+                ("sunquan", "孙权", Faction.Wu, 4, new[] { "zhiheng" }),
+                ("zhouyu", "周瑜", Faction.Wu, 3, new[] { "yingzi", "fanjian" }),
+                ("lvmeng", "吕蒙", Faction.Wu, 4, new[] { "keji" }),
+                ("huanggai", "黄盖", Faction.Wu, 4, new[] { "kurou" }),
+                ("sunjian", "孙坚", Faction.Wu, 4, new[] { "yinghun" }),
+
+                // === 群雄 (Qun) ===
+                ("lvbu", "吕布", Faction.Qun, 4, new[] { "wushuang" }),
+                ("diaochan", "貂蝉", Faction.Qun, 3, new[] { "lijian", "biyue" }),
+                ("huatuo", "华佗", Faction.Qun, 3, new[] { "qingnang", "jijiu" }),
+                ("dongzhuo", "董卓", Faction.Qun, 8, new[] { "jiuchi", "roulin", "benghuai" }),
+                ("yuanshao", "袁绍", Faction.Qun, 4, new[] { "qiji" }),
+                ("huaxiong", "华雄", Faction.Qun, 6, new[] { "yaowu_v2" }),
+                ("yanliang", "颜良", Faction.Qun, 4, new[] { "weiwu" }),
+                ("wenchou", "文丑", Faction.Qun, 4, new[] { "qiangjian" }),
+                ("zhanghe", "张郃", Faction.Qun, 4, new[] { "duobian" }),
+
+                // === 官渡/讨董扩展角色 ===
+                ("gaolan", "高览", Faction.Qun, 4, new[] { "mashu" }),
+                ("chunyuqiong", "淳于琼", Faction.Qun, 4, new[] { "yingming" }),
+                ("lijue", "李傕", Faction.Qun, 4, new[] { "jielve" }),
+                ("guosi", "郭汜", Faction.Qun, 4, new[] { "xiongbao" }),
+            };
+
+            int addedCount = 0;
+            foreach (var (id, name, faction, hp, skills) in storyCharactersData)
+            {
+                // ⭐ 跳过已存在的角色（避免重复）
+                if (generalDictionary.ContainsKey(id) || allGenerals.Any(g => g.generalId == id))
+                {
+                    continue;
+                }
+
+                // 创建运行时GeneralData
+                GeneralData generalData = ScriptableObject.CreateInstance<GeneralData>();
+                generalData.generalId = id;
+                generalData.generalName = name;
+                generalData.faction = faction;
+                generalData.maxHP = hp;
+                generalData.attackRange = 1;
+                generalData.avatarPath = $"{faction}/{CharacterPinyinHelper.GetPinyinFileName(id)}";
+
+                // ⭐ 创建技能数据
+                generalData.skills = new List<SkillData>();
+                foreach (var skillId in skills)
+                {
+                    SkillData skillData = CreateRuntimeSkillData(skillId);
+                    if (skillData != null)
+                    {
+                        generalData.skills.Add(skillData);
+                    }
+                }
+
+                // 添加到列表
+                allGenerals.Add(generalData);
+                runtimeGenerals.Add(generalData);  // 保持引用
+                addedCount++;
+
+                Debug.Log($"[GeneralDatabase] ✓ 添加角色: {name} [{faction}] 技能: [{string.Join(", ", skills)}]");
+            }
+
+            Debug.Log($"[GeneralDatabase] 完成！添加了 {addedCount} 个有技能的故事角色到对战池");
+        }
+
+        /// <summary>
+        /// ⭐ 创建运行时技能数据
+        /// </summary>
+        private SkillData CreateRuntimeSkillData(string skillId)
+        {
+            // 技能ID到类名的映射
+            var skillClassMap = new Dictionary<string, (string className, SkillType type, string displayName)>
+            {
+                // 基础技能
+                {"jianxiong", ("ThreeKingdoms.DatabaseModule.JianXiongSkill", SkillType.Trigger, "奸雄")},
+                {"ganglie", ("ThreeKingdoms.DatabaseModule.GangLieSkill", SkillType.Trigger, "刚烈")},
+                {"tuxi", ("ThreeKingdoms.DatabaseModule.TuXiSkill", SkillType.Trigger, "突袭")},
+                {"shensu", ("ThreeKingdoms.DatabaseModule.ShenSuSkill", SkillType.Active, "神速")},
+                {"rende", ("ThreeKingdoms.DatabaseModule.RenDeSkill", SkillType.Active, "仁德")},
+                {"wusheng", ("ThreeKingdoms.DatabaseModule.WuShengSkill", SkillType.Active, "武圣")},
+                {"paoxiao", ("ThreeKingdoms.DatabaseModule.PaoXiaoSkill", SkillType.Passive, "咆哮")},
+                {"guanxing", ("ThreeKingdoms.DatabaseModule.GuanXingSkill", SkillType.Trigger, "观星")},
+                {"kongcheng", ("ThreeKingdoms.DatabaseModule.KongChengSkill", SkillType.Passive, "空城")},
+                {"longdan", ("ThreeKingdoms.DatabaseModule.LongDanSkill", SkillType.Active, "龙胆")},
+                {"liegong", ("ThreeKingdoms.DatabaseModule.LieGongSkill", SkillType.Trigger, "烈弓")},
+                {"zhiheng", ("ThreeKingdoms.DatabaseModule.ZhiHengSkill", SkillType.Active, "制衡")},
+                {"yingzi", ("ThreeKingdoms.DatabaseModule.YingZiSkill", SkillType.Trigger, "英姿")},
+                {"fanjian", ("ThreeKingdoms.DatabaseModule.FanJianSkill", SkillType.Active, "反间")},
+                {"keji", ("ThreeKingdoms.DatabaseModule.KeJiSkill", SkillType.Trigger, "克己")},
+                {"kurou", ("ThreeKingdoms.DatabaseModule.KuRouSkill", SkillType.Active, "苦肉")},
+                {"lijian", ("ThreeKingdoms.DatabaseModule.LiJianSkill", SkillType.Active, "离间")},
+                {"biyue", ("ThreeKingdoms.DatabaseModule.BiYueSkill", SkillType.Trigger, "闭月")},
+                {"qingnang", ("ThreeKingdoms.DatabaseModule.QingNangSkill", SkillType.Active, "青囊")},
+                {"jijiu", ("ThreeKingdoms.DatabaseModule.JiJiuSkill", SkillType.Active, "急救")},
+                {"jiuchi", ("ThreeKingdoms.DatabaseModule.JiuChiSkill", SkillType.Active, "酒池")},
+                {"roulin", ("ThreeKingdoms.DatabaseModule.RouLinSkill", SkillType.Passive, "肉林")},
+                {"benghuai", ("ThreeKingdoms.DatabaseModule.BengHuaiSkill", SkillType.Trigger, "崩坏")},
+
+                // 官渡/讨董技能
+                {"weiwu", ("ThreeKingdoms.DatabaseModule.WeiWuSkill", SkillType.Active, "威武")},
+                {"qiangjian", ("ThreeKingdoms.DatabaseModule.QiangJianSkill", SkillType.Active, "强健")},
+                {"duobian", ("ThreeKingdoms.DatabaseModule.DuoBianSkill", SkillType.Passive, "多变")},
+                {"mashu", ("ThreeKingdoms.DatabaseModule.MaShuSkill", SkillType.Passive, "马术")},
+                {"duanliang", ("ThreeKingdoms.DatabaseModule.DuanLiangSkill", SkillType.Active, "断粮")},
+                {"yingming", ("ThreeKingdoms.DatabaseModule.YingMingSkill", SkillType.Trigger, "英明")},
+                {"qiji", ("ThreeKingdoms.DatabaseModule.QiJiSkill", SkillType.Active, "齐击")},
+                {"yaowu_v2", ("ThreeKingdoms.DatabaseModule.YaoWuV2Skill", SkillType.Trigger, "耀武")},
+                {"wushuang", ("ThreeKingdoms.DatabaseModule.WuShuangSkill", SkillType.Passive, "无双")},
+                {"yinghun", ("ThreeKingdoms.DatabaseModule.YingHunSkill", SkillType.Active, "英魂")},
+                {"xueyi", ("ThreeKingdoms.DatabaseModule.XueYiSkill", SkillType.Trigger, "血裔")},
+                {"jiuchiroulin", ("ThreeKingdoms.DatabaseModule.JiuChiRouLinSkill", SkillType.Active, "酒池肉林")},
+                {"jielve", ("ThreeKingdoms.DatabaseModule.JieLveSkill", SkillType.Trigger, "劫掠")},
+                {"xiongbao", ("ThreeKingdoms.DatabaseModule.XiongBaoSkill", SkillType.Trigger, "凶暴")},
+            };
+
+            if (!skillClassMap.TryGetValue(skillId, out var skillInfo))
+            {
+                Debug.LogWarning($"[GeneralDatabase] 未知技能ID: {skillId}");
+                return null;
+            }
+
+            SkillData skillData = ScriptableObject.CreateInstance<SkillData>();
+            skillData.skillId = skillId;
+            skillData.skillName = skillInfo.displayName;
+            skillData.skillType = skillInfo.type;
+            skillData.skillClassName = skillInfo.className;
+
+            return skillData;
         }
 
         /// <summary>

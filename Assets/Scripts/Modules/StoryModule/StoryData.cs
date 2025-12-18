@@ -59,6 +59,10 @@ namespace ThreeKingdoms.Story
         public List<Dialogue> openingDialogue;      // 开场对白
         public List<Dialogue> victoryDialogue;      // 胜利对白
         public List<Dialogue> defeatDialogue;       // 失败对白
+        public List<Dialogue> endingDialogue;       // 结局对白（战役最后一战专用）
+
+        [Header("增援配置")]
+        public List<ReinforcementData> reinforcements;  // 增援角色配置
 
         [Header("进度")]
         public bool isUnlocked = false;     // 是否解锁
@@ -74,8 +78,26 @@ namespace ThreeKingdoms.Story
             openingDialogue = new List<Dialogue>();
             victoryDialogue = new List<Dialogue>();
             defeatDialogue = new List<Dialogue>();
+            endingDialogue = new List<Dialogue>();
+            reinforcements = new List<ReinforcementData>();
             victoryCondition = new VictoryCondition();
             defeatCondition = new DefeatCondition();
+        }
+    }
+
+    /// <summary>
+    /// 增援配置数据
+    /// </summary>
+    [System.Serializable]
+    public class ReinforcementData
+    {
+        public int roundNumber;             // 加入回合
+        public BattleCharacter character;   // 增援角色
+        public string joinDialogueKey;      // 加入时对白key
+
+        public ReinforcementData()
+        {
+            roundNumber = 1;
         }
     }
 
@@ -185,6 +207,7 @@ namespace ThreeKingdoms.Story
         public int triggerTurn;             // 触发回合（0表示战斗开始就生效）
         public int value;                   // 数值参数
         public string targetId;             // 目标ID
+        public string extraInfo;            // 额外信息（如增援角色ID:回合数）
 
         public SpecialRule() { }
 
@@ -231,6 +254,19 @@ namespace ThreeKingdoms.Story
         ExtraSlash,             // 额外出杀次数
         NoAttackTarget,         // 禁止攻击目标
         NoAllyPeach,            // 禁止对盟友用桃
+
+        // 讨董之战新增规则类型
+        HealOnKill,             // 击杀后回复体力
+        FirstSlashUndodgeable,  // 首次杀不可闪避
+        TemporaryHPBonus,       // 临时体力加成（会在指定回合后消失）
+        DoubleDamage,           // 伤害翻倍
+        ReinforcementOnRound,   // 指定回合增援
+        AttackRangeBonus,       // 攻击距离加成
+        EscapeOnDeath,          // 死亡时逃跑（不算真正死亡）
+        ReduceHandLimit,        // 减少手牌上限
+        RandomDamage,           // 随机伤害（概率失去体力）
+        DamageIncrease,         // 伤害增加（概率）
+        DamageBonus,            // 特定目标伤害加成
 
         Custom                  // 自定义规则
     }
@@ -283,6 +319,14 @@ namespace ThreeKingdoms.Story
         OnHPBelow,              // 血量低于（参数为角色ID，参数2为血量）
         OnMarkerGained,         // 获得标记（参数为标记类型）
         OnHandCardViewed,       // 手牌被查看（参数为被查看者ID）
+
+        // 官渡之战/讨董之战新增触发类型
+        OnHealthLow,            // 体力低于阈值（参数为角色ID，参数2为阈值）
+        OnDamageDone,           // 角色造成伤害（参数为造成伤害者ID）
+        OnKill,                 // 角色击杀敌人（参数为击杀者ID）
+        OnAllEnemiesDefeated,   // 所有敌人被击败
+        OnReinforcementJoin,    // 增援角色加入（参数为角色ID）
+
         Custom                  // 自定义触发
     }
 

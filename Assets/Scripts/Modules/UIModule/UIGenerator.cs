@@ -15,7 +15,7 @@ namespace ThreeKingdoms.UI
     public class UIGenerator : MonoBehaviour
     {
 #if UNITY_EDITOR
-        [MenuItem("三国杀/生成战斗UI")]
+        [MenuItem("三国演义/生成战斗UI")]
         public static void GenerateBattleUI()
         {
             // 查找或创建Canvas

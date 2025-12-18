@@ -203,6 +203,18 @@ namespace ThreeKingdoms.AI
                             actions.Add(new AIAction(AIActionType.UsePeachGarden, card, null));
                         }
                         break;
+
+                    // ⭐ 装备牌 - +1马（防御马）
+                    case "的卢":
+                    case "爪黄飞电":
+                    case "绝影":
+                    // ⭐ 装备牌 - -1马（进攻马）
+                    case "赤兔":
+                    case "大宛":
+                    case "紫骍":
+                        // AI总是装备马匹
+                        actions.Add(new AIAction(AIActionType.UseEquipment, card, null));
+                        break;
                 }
             }
 
@@ -471,6 +483,9 @@ namespace ThreeKingdoms.AI
                         BattleManager.Instance.UsePeachGarden(controlledPlayer, action.card);
                         return true;
 
+                    case AIActionType.UseEquipment:
+                        return ExecuteEquipmentAction(action);
+
                     case AIActionType.UseSkill:
                         return ExecuteSkillAction(action);
 
@@ -481,6 +496,49 @@ namespace ThreeKingdoms.AI
             catch (System.Exception e)
             {
                 Debug.LogError($"[AI] 执行行动失败: {e.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 执行装备行动
+        /// </summary>
+        private bool ExecuteEquipmentAction(AIAction action)
+        {
+            if (action.card == null || action.card.cardType != CardType.Equipment)
+            {
+                Debug.LogWarning("[AI] 装备行动的卡牌无效");
+                return false;
+            }
+
+            try
+            {
+                // 从手牌移除
+                controlledPlayer.PlayCard(action.card);
+
+                // 装备到身上
+                Card oldEquipment = controlledPlayer.Equip(action.card);
+
+                // 如果有旧装备被替换，放入弃牌堆
+                if (oldEquipment != null)
+                {
+                    DeckManager.Instance.DiscardCard(oldEquipment);
+                    Debug.Log($"[AI] {controlledPlayer.playerName} 替换装备: {oldEquipment.cardName} -> {action.card.cardName}");
+                }
+
+                Debug.Log($"[AI] {controlledPlayer.playerName} 装备了【{action.card.cardName}】");
+
+                // 更新UI
+                if (UI.BattleUI.Instance != null)
+                {
+                    UI.BattleUI.Instance.UpdateAllPlayerInfo();
+                }
+
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[AI] 执行装备失败: {action.card?.cardName}, 错误: {e.Message}");
                 return false;
             }
         }
@@ -840,6 +898,7 @@ namespace ThreeKingdoms.AI
         UseArrowBarrage,    // 使用万箭齐发
         UsePeachGarden,     // 使用桃园结义
         UseSkill,           // ⭐ 使用主动技能
+        UseEquipment,       // ⭐ 使用装备牌
         EndPhase            // 结束阶段
     }
 
@@ -888,6 +947,8 @@ namespace ThreeKingdoms.AI
                     return "使用【桃园结义】";
                 case AIActionType.UseSkill:
                     return $"发动【{skill?.SkillData?.skillName ?? "技能"}】";
+                case AIActionType.UseEquipment:
+                    return $"装备【{card?.cardName ?? "装备"}】";
                 case AIActionType.EndPhase:
                     return "结束出牌";
                 default:

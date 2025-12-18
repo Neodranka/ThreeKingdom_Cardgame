@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace ThreeKingdoms.Story.Campaigns
 {
     /// <summary>
-    /// 官渡之战战役数据
-    /// 《北方争霸·官渡风云》- 共4场战斗
+    /// 官渡之战战役数据 v2
+    /// 《北方争霸·以少胜多》- 共4场战斗
     /// </summary>
     public static class GuanduCampaignData
     {
@@ -12,10 +12,10 @@ namespace ThreeKingdoms.Story.Campaigns
         {
             var storyBattleList = new List<StoryBattle>
             {
-                CreateBattle1_YuanCampDecision(),
-                CreateBattle2_DefendGuandu(),
-                CreateBattle3_XuyouStrategy(),
-                CreateBattle4_BurnWuchao()
+                CreateBattle1_SlayYanliang(),    // 兵临官渡 - 关羽斩颜良
+                CreateBattle2_DefendGuandu(),    // 坚守官渡 - 关羽斩文丑
+                CreateBattle3_NightRaidWuchao(), // 夜袭乌巢 - 曹操夜袭
+                CreateBattle4_YuanArmyCollapse() // 袁军溃败 - 曹操击败袁绍
             };
 
             var campaign = new CampaignData
@@ -28,7 +28,6 @@ namespace ThreeKingdoms.Story.Campaigns
                 battles = ConvertToBattleDataList(storyBattleList)
             };
 
-            // 第一战默认解锁
             campaign.storyBattles[0].isUnlocked = true;
             if (campaign.battles.Count > 0)
                 campaign.battles[0].isUnlocked = true;
@@ -82,13 +81,13 @@ namespace ThreeKingdoms.Story.Campaigns
             return result;
         }
 
-        #region 第一战：袁营决策
+        #region 第一战：兵临官渡
 
         /// <summary>
-        /// 袁营决策 - 袁绍视角
-        /// 兵强马壮，暗藏隐患
+        /// 兵临官渡 - 关羽斩颜良
+        /// 「十胜十败」
         /// </summary>
-        private static StoryBattle CreateBattle1_YuanCampDecision()
+        private static StoryBattle CreateBattle1_SlayYanliang()
         {
             var battle = new StoryBattle
             {
@@ -99,28 +98,28 @@ namespace ThreeKingdoms.Story.Campaigns
                 briefingKey = "battle_guandu_1_briefing",
                 difficulty = 2,
 
-                // 我方角色 - 袁绍阵营
+                // 我方角色 - 关羽
                 allies = new List<BattleCharacter>
                 {
-                    new BattleCharacter("yuanshao_story", "char_yuanshao", 4, true, "xueyi"),
-                    new BattleCharacter("tianfeng", "char_tianfeng", 3, false, "sijian"),
-                    new BattleCharacter("jushou", "char_jushou", 3, false, "jianying")
+                    new BattleCharacter("guanyu_story", "char_guanyu", 4, true, "wusheng")
                 },
 
-                // 敌方角色 - 内部隐患（概念敌人）
+                // 敌方角色 - 颜良 + 袁军骑将x2
                 enemies = new List<BattleCharacter>
                 {
-                    new BattleCharacter("morale_problem", "char_morale_problem", 4, false, "dongyao"),
-                    new BattleCharacter("supply_problem", "char_supply_problem", 3, false, "xiaohao")
+                    new BattleCharacter("yanliang", "char_yanliang", 4, false, "weiwu"),
+                    new BattleCharacter("yuanjun_cavalry_1", "char_yuanjun_cavalry", 2, false),
+                    new BattleCharacter("yuanjun_cavalry_2", "char_yuanjun_cavalry", 2, false)
                 },
 
-                // 胜利条件：击败两个隐患
+                // 胜利条件：击杀颜良
                 victoryCondition = new VictoryCondition
                 {
-                    type = VictoryType.DefeatAllEnemies
+                    type = VictoryType.DefeatTarget,
+                    targetCharacterId = "yanliang"
                 },
 
-                // 失败条件：袁绍死亡
+                // 失败条件：关羽阵亡
                 defeatCondition = new DefeatCondition
                 {
                     type = DefeatType.PlayerDeath
@@ -129,45 +128,53 @@ namespace ThreeKingdoms.Story.Campaigns
                 // 特殊规则
                 specialRules = new List<SpecialRule>
                 {
-                    // 内部不和：每回合30%概率弃牌
-                    new SpecialRule("internal_strife", "rule_internal_strife", RuleType.RandomDiscard),
-                    // 强势主公：首次伤害防止
-                    new SpecialRule("strong_lord", "rule_strong_lord", RuleType.FirstDamagePrevention),
-                    // 四世三公：初始手牌+1
-                    new SpecialRule("noble_family", "rule_noble_family", RuleType.ModifyInitialCards, 0, 1)
-                    { targetId = "yuanshao_story" }
+                    // 士气大振：击败颜良后，后续战斗体力上限+1
+                    new SpecialRule("morale_boost", "rule_morale_boost", RuleType.Custom)
                 },
 
                 // 局内事件
                 events = new List<BattleEvent>
                 {
-                    // 田丰发动死谏
-                    new BattleEvent(EventTrigger.OnSkillActivate, "sijian",
-                        new Dialogue("char_tianfeng", "dialogue_guandu1_tianfeng_warn")),
+                    // 战斗开场
+                    new BattleEvent(EventTrigger.OnBattleStart, "",
+                        new Dialogue("char_yanliang", "dialogue_guandu1_yanliang_challenge")),
+                    new BattleEvent(EventTrigger.OnBattleStart, "",
+                        new Dialogue("char_guanyu", "dialogue_guandu1_guanyu_answer")),
 
-                    // 袁绍首次受伤被防止
-                    new BattleEvent(EventTrigger.OnDamageTaken, "袁绍",
-                        new Dialogue("char_yuanshao", "dialogue_guandu1_yuanshao_confident")),
+                    // 关羽使用杀
+                    new BattleEvent(EventTrigger.OnCardPlayed, "杀",
+                        new Dialogue("char_guanyu", "dialogue_guandu1_guanyu_slash")),
 
-                    // 触发内部不和弃牌
-                    new BattleEvent(EventTrigger.OnCardPlayed, "discard",
-                        new Dialogue("char_shenpei", "dialogue_guandu1_shenpei_argue")),
+                    // 颜良体力≤2
+                    new BattleEvent(EventTrigger.OnHealthLow, "yanliang",
+                        new Dialogue("char_yanliang", "dialogue_guandu1_yanliang_lowHP")),
 
-                    // 敌方角色被击败
-                    new BattleEvent(EventTrigger.OnDeath, "morale_problem",
-                        new Dialogue("char_jushou", "dialogue_guandu1_jushou_stable"))
+                    // 颜良被击败
+                    new BattleEvent(EventTrigger.OnDeath, "yanliang",
+                        new Dialogue("char_guanyu", "dialogue_guandu1_guanyu_victory"))
                 },
 
                 // 开场对白
                 openingDialogue = new List<Dialogue>
                 {
-                    new Dialogue("char_yuanshao", "dialogue_guandu1_opening_yuanshao")
+                    new Dialogue("char_chengyu", "dialogue_guandu1_opening_chengyu"),
+                    new Dialogue("char_caocao", "dialogue_guandu1_opening_caocao1"),
+                    new Dialogue("char_guojia", "dialogue_guandu1_opening_guojia1"),
+                    new Dialogue("char_caocao", "dialogue_guandu1_opening_caocao2"),
+                    new Dialogue("char_guojia", "dialogue_guandu1_opening_guojia2"),
+                    new Dialogue("char_guojia", "dialogue_guandu1_opening_guojia3"),
+                    new Dialogue("char_guojia", "dialogue_guandu1_opening_guojia4"),
+                    new Dialogue("char_caocao", "dialogue_guandu1_opening_caocao3"),
+                    new Dialogue("char_soldier", "dialogue_guandu1_opening_soldier"),
+                    new Dialogue("char_guanyu", "dialogue_guandu1_opening_guanyu"),
+                    new Dialogue("char_caocao", "dialogue_guandu1_opening_caocao4")
                 },
 
                 // 胜利对白
                 victoryDialogue = new List<Dialogue>
                 {
-                    new Dialogue("char_yuanshao", "dialogue_guandu1_victory_yuanshao"),
+                    new Dialogue("char_guanyu", "dialogue_guandu1_victory_guanyu"),
+                    new Dialogue("char_caocao", "dialogue_guandu1_victory_caocao"),
                     Dialogue.Narration("dialogue_guandu1_victory_narration")
                 }
             };
@@ -180,8 +187,8 @@ namespace ThreeKingdoms.Story.Campaigns
         #region 第二战：坚守官渡
 
         /// <summary>
-        /// 坚守官渡 - 曹操视角
-        /// 以少敌多
+        /// 坚守官渡 - 关羽斩文丑
+        /// 「死守不退」
         /// </summary>
         private static StoryBattle CreateBattle2_DefendGuandu()
         {
@@ -193,31 +200,31 @@ namespace ThreeKingdoms.Story.Campaigns
                 descriptionKey = "battle_guandu_2_desc",
                 briefingKey = "battle_guandu_2_briefing",
                 difficulty = 3,
-                turnLimit = 8, // 存活8回合
 
-                // 我方角色 - 曹操阵营
+                // 我方角色 - 关羽、夏侯惇、张辽
                 allies = new List<BattleCharacter>
                 {
-                    new BattleCharacter("caocao_story", "char_caocao", 4, true, "jianxiong"),
-                    new BattleCharacter("xunyu", "char_xunyu", 3, false, "quhu"),
-                    new BattleCharacter("guojia", "char_guojia", 3, false, "tiandu")
+                    new BattleCharacter("guanyu_story", "char_guanyu", 4, true, "wusheng"),
+                    new BattleCharacter("xiahoudun", "char_xiahoudun", 4, false, "ganglie"),
+                    new BattleCharacter("zhangliao", "char_zhangliao", 4, false, "tuxi")
                 },
 
-                // 敌方角色 - 袁绍阵营
+                // 敌方角色 - 文丑、张郃、高览
                 enemies = new List<BattleCharacter>
                 {
-                    new BattleCharacter("yuanshao_story", "char_yuanshao", 5, false, "xueyi"),
-                    new BattleCharacter("yanliang", "char_yanliang", 4, false, "shuangxiong")
+                    new BattleCharacter("wenchou", "char_wenchou", 4, false, "qiangjian"),
+                    new BattleCharacter("zhanghe", "char_zhanghe", 4, false, "duobian"),
+                    new BattleCharacter("gaolan", "char_gaolan", 4, false, "mashu")
                 },
 
-                // 胜利条件：击败袁绍或存活8回合
+                // 胜利条件：击杀文丑
                 victoryCondition = new VictoryCondition
                 {
-                    type = VictoryType.SurviveTurns,
-                    targetTurn = 8
+                    type = VictoryType.DefeatTarget,
+                    targetCharacterId = "wenchou"
                 },
 
-                // 失败条件：曹操死亡
+                // 失败条件：关羽阵亡
                 defeatCondition = new DefeatCondition
                 {
                     type = DefeatType.PlayerDeath
@@ -226,50 +233,59 @@ namespace ThreeKingdoms.Story.Campaigns
                 // 特殊规则
                 specialRules = new List<SpecialRule>
                 {
-                    // 官渡要塞：首次两次伤害各-1
-                    new SpecialRule("guandu_fort", "rule_guandu_fort", RuleType.DamageReduction),
-                    // 兵力差距：袁军初始手牌+1
-                    new SpecialRule("troop_advantage", "rule_troop_advantage", RuleType.ModifyInitialCards, 0, 1)
-                    { targetId = "enemies" },
-                    // 以逸待劳：曹操未造成伤害时摸1牌
-                    new SpecialRule("wait_enemy", "rule_wait_enemy", RuleType.DrawOnNoDamage)
+                    // 士气低迷：我方受到伤害30%概率+1
+                    new SpecialRule("low_morale", "rule_low_morale", RuleType.DamageIncrease),
+                    // 复仇之战：文丑对关羽使用杀或决斗时伤害+1
+                    new SpecialRule("revenge_battle", "rule_revenge_battle", RuleType.DamageBonus)
+                    { targetId = "wenchou", extraInfo = "guanyu_story" }
                 },
 
                 // 局内事件
                 events = new List<BattleEvent>
                 {
-                    // 荀彧出牌时
-                    new BattleEvent(EventTrigger.OnTurnStart, "荀彧",
-                        new Dialogue("char_xunyu", "dialogue_guandu2_xunyu_advice")),
+                    // 文丑首次对关羽造成伤害
+                    new BattleEvent(EventTrigger.OnDamageTaken, "guanyu_story",
+                        new Dialogue("char_wenchou", "dialogue_guandu2_wenchou_revenge")),
 
-                    // 郭嘉发动天妒
-                    new BattleEvent(EventTrigger.OnSkillActivate, "tiandu",
-                        new Dialogue("char_guojia", "dialogue_guandu2_guojia_predict")),
+                    // 张辽发动突袭
+                    new BattleEvent(EventTrigger.OnSkillActivate, "tuxi",
+                        new Dialogue("char_zhangliao", "dialogue_guandu2_zhangliao_tuxi")),
 
-                    // 第4回合开始
-                    new BattleEvent(EventTrigger.OnRoundStart, "4",
-                        Dialogue.Narration("dialogue_guandu2_round4_stalemate")),
+                    // 夏侯惇发动刚烈
+                    new BattleEvent(EventTrigger.OnSkillActivate, "ganglie",
+                        new Dialogue("char_xiahoudun", "dialogue_guandu2_xiahoudun_ganglie")),
 
-                    // 触发官渡要塞减伤
-                    new BattleEvent(EventTrigger.OnDamageTaken, "曹操",
-                        new Dialogue("char_caocao", "dialogue_guandu2_caocao_gamble")),
+                    // 文丑体力≤2
+                    new BattleEvent(EventTrigger.OnHealthLow, "wenchou",
+                        new Dialogue("char_wenchou", "dialogue_guandu2_wenchou_lowHP")),
 
-                    // 颜良被击败
-                    new BattleEvent(EventTrigger.OnDeath, "yanliang",
-                        new Dialogue("char_yuanshao", "dialogue_guandu2_yuanshao_angry"))
+                    // 文丑被击败
+                    new BattleEvent(EventTrigger.OnDeath, "wenchou",
+                        new Dialogue("char_guanyu", "dialogue_guandu2_guanyu_victory"))
                 },
 
                 // 开场对白
                 openingDialogue = new List<Dialogue>
                 {
-                    new Dialogue("char_caocao", "dialogue_guandu2_opening_caocao")
+                    Dialogue.Narration("dialogue_guandu2_opening_narration"),
+                    new Dialogue("char_caocao", "dialogue_guandu2_opening_caocao1"),
+                    new Dialogue("char_chengyu", "dialogue_guandu2_opening_chengyu"),
+                    new Dialogue("char_caocao", "dialogue_guandu2_opening_caocao2"),
+                    new Dialogue("char_xunyu", "dialogue_guandu2_opening_xunyu1"),
+                    new Dialogue("char_xunyu", "dialogue_guandu2_opening_xunyu2"),
+                    new Dialogue("char_xunyu", "dialogue_guandu2_opening_xunyu3"),
+                    new Dialogue("char_soldier", "dialogue_guandu2_opening_soldier"),
+                    new Dialogue("char_caocao", "dialogue_guandu2_opening_caocao3"),
+                    new Dialogue("char_guanyu", "dialogue_guandu2_opening_guanyu"),
+                    new Dialogue("char_wenchou", "dialogue_guandu2_opening_wenchou"),
+                    new Dialogue("char_guanyu", "dialogue_guandu2_opening_guanyu2")
                 },
 
                 // 胜利对白
                 victoryDialogue = new List<Dialogue>
                 {
-                    new Dialogue("char_caocao", "dialogue_guandu2_victory_caocao"),
-                    new Dialogue("char_xunyu", "dialogue_guandu2_victory_xunyu")
+                    new Dialogue("char_guanyu", "dialogue_guandu2_victory_guanyu"),
+                    new Dialogue("char_caocao", "dialogue_guandu2_victory_caocao")
                 }
             };
 
@@ -278,13 +294,13 @@ namespace ThreeKingdoms.Story.Campaigns
 
         #endregion
 
-        #region 第三战：许攸献策
+        #region 第三战：夜袭乌巢
 
         /// <summary>
-        /// 许攸献策 - 曹操视角
-        /// 乌巢，胜负手
+        /// 夜袭乌巢 - 曹操夜袭粮仓
+        /// 「孤注一掷」
         /// </summary>
-        private static StoryBattle CreateBattle3_XuyouStrategy()
+        private static StoryBattle CreateBattle3_NightRaidWuchao()
         {
             var battle = new StoryBattle
             {
@@ -293,30 +309,32 @@ namespace ThreeKingdoms.Story.Campaigns
                 subtitleKey = "battle_guandu_3_subtitle",
                 descriptionKey = "battle_guandu_3_desc",
                 briefingKey = "battle_guandu_3_briefing",
-                difficulty = 2,
+                difficulty = 3,
 
-                // 我方角色
+                // 我方角色 - 曹操、徐晃、张辽
                 allies = new List<BattleCharacter>
                 {
                     new BattleCharacter("caocao_story", "char_caocao", 4, true, "jianxiong"),
-                    new BattleCharacter("xuyou", "char_xuyou", 3, false, "xiance")
+                    new BattleCharacter("xuhuang", "char_xuhuang", 4, false, "duanliang"),
+                    new BattleCharacter("zhangliao", "char_zhangliao", 4, false, "tuxi")
                 },
 
-                // 敌方角色
+                // 敌方角色 - 淳于琼 + 袁军骑将x2
                 enemies = new List<BattleCharacter>
                 {
-                    new BattleCharacter("yuanshao_story", "char_yuanshao", 4, false, "xueyi"),
-                    new BattleCharacter("shenpei", "char_shenpei", 3, false, "caiji")
+                    new BattleCharacter("chunyuqiong", "char_chunyuqiong", 4, false, "yingming"),
+                    new BattleCharacter("yuanjun_cavalry_mashu_1", "char_yuanjun_cavalry", 4, false, "mashu"),
+                    new BattleCharacter("yuanjun_cavalry_mashu_2", "char_yuanjun_cavalry", 4, false, "mashu")
                 },
 
-                // 胜利条件：击败袁绍
+                // 胜利条件：击杀淳于琼
                 victoryCondition = new VictoryCondition
                 {
                     type = VictoryType.DefeatTarget,
-                    targetCharacterId = "yuanshao_story"
+                    targetCharacterId = "chunyuqiong"
                 },
 
-                // 失败条件：曹操死亡
+                // 失败条件：曹操阵亡
                 defeatCondition = new DefeatCondition
                 {
                     type = DefeatType.PlayerDeath
@@ -325,40 +343,63 @@ namespace ThreeKingdoms.Story.Campaigns
                 // 特殊规则
                 specialRules = new List<SpecialRule>
                 {
-                    // 献策乌巢：火攻/火杀额外结算
-                    new SpecialRule("wuchao_intel", "rule_wuchao_intel", RuleType.FireDamageBonus, 0, 1),
-                    // 袁营猜忌：袁绍每回合弃牌
-                    new SpecialRule("yuan_suspicion", "rule_yuan_suspicion", RuleType.ForcedDiscard),
-                    // 赤足相迎：许攸首次献策曹操额外摸牌
-                    new SpecialRule("barefoot_welcome", "rule_barefoot_welcome", RuleType.BonusDraw)
+                    // 夜袭：敌方所有角色起始手牌-1
+                    new SpecialRule("night_raid", "rule_night_raid", RuleType.ModifyInitialCards, 0, -1)
+                    { targetId = "enemies" },
+                    // 纵火焚粮：从第2回合开始，敌方每回合结束时全体失去1点体力
+                    new SpecialRule("burn_supplies", "rule_burn_supplies", RuleType.DamageOverTime, 2),
+                    // 背水一战：曹操手牌数≤2时，使用杀伤害+1
+                    new SpecialRule("desperate_fight", "rule_desperate_fight", RuleType.LowHandDamageBonus)
+                    { targetId = "caocao_story" }
                 },
 
                 // 局内事件
                 events = new List<BattleEvent>
                 {
-                    // 许攸发动献策
-                    new BattleEvent(EventTrigger.OnSkillActivate, "xiance",
-                        new Dialogue("char_xuyou", "dialogue_guandu3_xuyou_wuchao")),
+                    // 战斗开场
+                    new BattleEvent(EventTrigger.OnBattleStart, "",
+                        new Dialogue("char_caocao", "dialogue_guandu3_caocao_start")),
 
-                    // 审配发动猜忌
-                    new BattleEvent(EventTrigger.OnSkillActivate, "caiji",
-                        new Dialogue("char_shenpei", "dialogue_guandu3_shenpei_suspect")),
+                    // 第2回合纵火焚粮触发
+                    new BattleEvent(EventTrigger.OnRoundStart, "2",
+                        Dialogue.Narration("dialogue_guandu3_burn_supplies")),
 
-                    // 袁绍触发猜忌弃牌
-                    new BattleEvent(EventTrigger.OnTurnEnd, "袁绍",
-                        new Dialogue("char_yuanshao", "dialogue_guandu3_yuanshao_dismiss"))
+                    // 徐晃发动断粮
+                    new BattleEvent(EventTrigger.OnSkillActivate, "duanliang",
+                        new Dialogue("char_xuhuang", "dialogue_guandu3_xuhuang_duanliang")),
+
+                    // 淳于琼体力≤2
+                    new BattleEvent(EventTrigger.OnHealthLow, "chunyuqiong",
+                        new Dialogue("char_chunyuqiong", "dialogue_guandu3_chunyuqiong_lowHP")),
+
+                    // 淳于琼被击败
+                    new BattleEvent(EventTrigger.OnDeath, "chunyuqiong",
+                        new Dialogue("char_chunyuqiong", "dialogue_guandu3_chunyuqiong_defeat"))
                 },
 
                 // 开场对白
                 openingDialogue = new List<Dialogue>
                 {
-                    new Dialogue("char_xuyou", "dialogue_guandu3_opening_xuyou"),
-                    new Dialogue("char_caocao", "dialogue_guandu3_opening_caocao")
+                    Dialogue.Narration("dialogue_guandu3_opening_narration1"),
+                    new Dialogue("char_xuyou", "dialogue_guandu3_opening_xuyou1"),
+                    new Dialogue("char_caocao", "dialogue_guandu3_opening_caocao1"),
+                    new Dialogue("char_xuyou", "dialogue_guandu3_opening_xuyou2"),
+                    new Dialogue("char_caocao", "dialogue_guandu3_opening_caocao2"),
+                    new Dialogue("char_xuyou", "dialogue_guandu3_opening_xuyou3"),
+                    new Dialogue("char_xuyou", "dialogue_guandu3_opening_xuyou4"),
+                    new Dialogue("char_zhangliao", "dialogue_guandu3_opening_zhangliao"),
+                    new Dialogue("char_xuhuang", "dialogue_guandu3_opening_xuhuang"),
+                    new Dialogue("char_caocao", "dialogue_guandu3_opening_caocao3"),
+                    Dialogue.Narration("dialogue_guandu3_opening_narration2"),
+                    new Dialogue("char_caocao", "dialogue_guandu3_opening_caocao4"),
+                    new Dialogue("char_caocao", "dialogue_guandu3_opening_caocao5")
                 },
 
                 // 胜利对白
                 victoryDialogue = new List<Dialogue>
                 {
+                    Dialogue.Narration("dialogue_guandu3_victory_narration"),
+                    new Dialogue("char_soldier", "dialogue_guandu3_victory_soldier"),
                     new Dialogue("char_caocao", "dialogue_guandu3_victory_caocao"),
                     new Dialogue("char_xuyou", "dialogue_guandu3_victory_xuyou")
                 }
@@ -369,13 +410,13 @@ namespace ThreeKingdoms.Story.Campaigns
 
         #endregion
 
-        #region 第四战：火烧乌巢
+        #region 第四战：袁军溃败
 
         /// <summary>
-        /// 火烧乌巢 - 曹操视角
-        /// 天下归曹
+        /// 袁军溃败 - 曹操击败袁绍
+        /// 「定鼎北方」
         /// </summary>
-        private static StoryBattle CreateBattle4_BurnWuchao()
+        private static StoryBattle CreateBattle4_YuanArmyCollapse()
         {
             var battle = new StoryBattle
             {
@@ -384,32 +425,32 @@ namespace ThreeKingdoms.Story.Campaigns
                 subtitleKey = "battle_guandu_4_subtitle",
                 descriptionKey = "battle_guandu_4_desc",
                 briefingKey = "battle_guandu_4_briefing",
-                difficulty = 4,
+                difficulty = 2,
 
-                // 我方角色
+                // 我方角色 - 曹操、曹军步兵x2
                 allies = new List<BattleCharacter>
                 {
                     new BattleCharacter("caocao_story", "char_caocao", 4, true, "jianxiong"),
-                    new BattleCharacter("caohong", "char_caohong", 4, false, "yuanhu"),
-                    new BattleCharacter("zhanghe", "char_zhanghe", 4, false, "qiaobian")
+                    new BattleCharacter("caojun_infantry_1", "char_caojun_infantry", 3, false),
+                    new BattleCharacter("caojun_infantry_2", "char_caojun_infantry", 3, false)
                 },
 
-                // 敌方角色
+                // 敌方角色 - 袁绍 + 袁军骑将x2
                 enemies = new List<BattleCharacter>
                 {
-                    new BattleCharacter("chunyuqiong", "char_chunyuqiong", 4, false, "shijiu"),
-                    new BattleCharacter("yuanjun_guard1", "char_yuanjun_guard", 3, false, "shouliang"),
-                    new BattleCharacter("yuanjun_guard2", "char_yuanjun_guard", 3, false, "shouliang")
+                    new BattleCharacter("yuanshao", "char_yuanshao", 4, false, "qiji"),
+                    new BattleCharacter("yuanjun_cavalry_mashu_3", "char_yuanjun_cavalry", 4, false, "mashu"),
+                    new BattleCharacter("yuanjun_cavalry_mashu_4", "char_yuanjun_cavalry", 4, false, "mashu")
                 },
 
-                // 胜利条件：击败淳于琼
+                // 胜利条件：击败袁绍
                 victoryCondition = new VictoryCondition
                 {
                     type = VictoryType.DefeatTarget,
-                    targetCharacterId = "chunyuqiong"
+                    targetCharacterId = "yuanshao"
                 },
 
-                // 失败条件：曹操死亡
+                // 失败条件：曹操阵亡
                 defeatCondition = new DefeatCondition
                 {
                     type = DefeatType.PlayerDeath
@@ -418,45 +459,48 @@ namespace ThreeKingdoms.Story.Campaigns
                 // 特殊规则
                 specialRules = new List<SpecialRule>
                 {
-                    // 夜袭：敌方初始手牌-1
-                    new SpecialRule("night_raid", "rule_night_raid", RuleType.ModifyInitialCards, 0, -1)
+                    // 军心崩溃：敌方所有角色手牌上限-1
+                    new SpecialRule("army_collapse", "rule_army_collapse", RuleType.ReduceHandLimit)
                     { targetId = "enemies" },
-                    // 粮草焚毁：第2回合开始敌方每回合失去1体力
-                    new SpecialRule("burn_supplies", "rule_burn_supplies", RuleType.DamageOverTime, 2),
-                    // 背水一战：曹操手牌<=2时杀伤害+1
-                    new SpecialRule("desperate_fight", "rule_desperate_fight", RuleType.LowHandDamageBonus),
-                    // 降将助战：张郃首次伤害+1
-                    new SpecialRule("defector_help", "rule_defector_help", RuleType.FirstDamageBonus)
-                    { targetId = "zhanghe" }
+                    // 饥疲交迫：敌方每回合结束时有50%概率失去1点体力
+                    new SpecialRule("hungry_tired", "rule_hungry_tired", RuleType.RandomDamage),
+                    // 乘胜追击：曹操使用杀造成伤害后，可摸1张牌
+                    new SpecialRule("victory_pursuit", "rule_victory_pursuit", RuleType.DrawOnDamage)
+                    { targetId = "caocao_story" }
                 },
 
                 // 局内事件
                 events = new List<BattleEvent>
                 {
-                    // 曹洪发言
+                    // 战斗开场
                     new BattleEvent(EventTrigger.OnBattleStart, "",
-                        new Dialogue("char_caohong", "dialogue_guandu4_caohong_loyal")),
+                        new Dialogue("char_caocao", "dialogue_guandu4_caocao_start")),
 
-                    // 第2回合粮草焚毁
-                    new BattleEvent(EventTrigger.OnRoundStart, "2",
-                        Dialogue.Narration("dialogue_guandu4_round2_fire")),
+                    // 袁绍发动齐击
+                    new BattleEvent(EventTrigger.OnSkillActivate, "qiji",
+                        new Dialogue("char_yuanshao", "dialogue_guandu4_yuanshao_qiji")),
 
-                    // 淳于琼使用酒
-                    new BattleEvent(EventTrigger.OnCardPlayed, "酒",
-                        new Dialogue("char_chunyuqiong", "dialogue_guandu4_chunyuqiong_drunk")),
+                    // 触发饥疲交迫
+                    new BattleEvent(EventTrigger.OnTurnEnd, "enemies",
+                        Dialogue.Narration("dialogue_guandu4_hungry_tired")),
 
-                    // 张郃首次造成伤害
-                    new BattleEvent(EventTrigger.OnDamageTaken, "",
-                        new Dialogue("char_zhanghe", "dialogue_guandu4_zhanghe_defect")),
+                    // 袁绍体力≤2
+                    new BattleEvent(EventTrigger.OnHealthLow, "yuanshao",
+                        new Dialogue("char_yuanshao", "dialogue_guandu4_yuanshao_lowHP")),
 
-                    // 淳于琼被击败
-                    new BattleEvent(EventTrigger.OnDeath, "chunyuqiong",
-                        new Dialogue("char_chunyuqiong", "dialogue_guandu4_chunyuqiong_defeat"))
+                    // 袁绍被击败
+                    new BattleEvent(EventTrigger.OnDeath, "yuanshao",
+                        new Dialogue("char_yuanshao", "dialogue_guandu4_yuanshao_defeat"))
                 },
 
                 // 开场对白
                 openingDialogue = new List<Dialogue>
                 {
+                    Dialogue.Narration("dialogue_guandu4_opening_narration1"),
+                    Dialogue.Narration("dialogue_guandu4_opening_narration2"),
+                    new Dialogue("char_soldier", "dialogue_guandu4_opening_soldier1"),
+                    new Dialogue("char_soldier", "dialogue_guandu4_opening_soldier2"),
+                    Dialogue.Narration("dialogue_guandu4_opening_narration3"),
                     new Dialogue("char_caocao", "dialogue_guandu4_opening_caocao")
                 },
 
@@ -464,8 +508,13 @@ namespace ThreeKingdoms.Story.Campaigns
                 victoryDialogue = new List<Dialogue>
                 {
                     Dialogue.Narration("dialogue_guandu4_victory_narration"),
-                    new Dialogue("char_yuanshao", "dialogue_guandu4_yuanshao_despair"),
                     new Dialogue("char_caocao", "dialogue_guandu4_victory_caocao")
+                },
+
+                // 最终结局对白
+                endingDialogue = new List<Dialogue>
+                {
+                    Dialogue.Narration("dialogue_guandu_ending")
                 }
             };
 

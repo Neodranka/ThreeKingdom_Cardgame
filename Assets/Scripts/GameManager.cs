@@ -24,6 +24,6 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        Debug.Log("三国杀游戏启动！");
+        Debug.Log("三国演义游戏启动！");
     }
 }

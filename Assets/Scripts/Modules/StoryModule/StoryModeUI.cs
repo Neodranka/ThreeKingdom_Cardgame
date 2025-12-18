@@ -31,6 +31,11 @@ namespace ThreeKingdoms.Story
         [SerializeField] private Button startBattleButton;
         [SerializeField] private Button backButton;
 
+        [Header("标签文本")]
+        [SerializeField] private TextMeshProUGUI storyModeTitleLabel;   // ⭐ "故事模式"标签
+        [SerializeField] private TextMeshProUGUI campaignsLabel;        // ⭐ "战役"标签
+        [SerializeField] private TextMeshProUGUI battlesLabel;          // ⭐ "战斗"标签
+
         [Header("默认图片")]
         [SerializeField] private Sprite defaultCampaignImage;
         [SerializeField] private Sprite defaultBattleImage;
@@ -60,6 +65,7 @@ namespace ThreeKingdoms.Story
             EnsureUIReferences();
 
             SetupButtons();
+            RefreshStaticLabels();  // ⭐ 初始化静态标签
             RefreshCampaignList();
 
             // 监听语言切换
@@ -79,9 +85,59 @@ namespace ThreeKingdoms.Story
 
         private void OnLanguageChanged(Language newLanguage)
         {
+            RefreshStaticLabels();  // ⭐ 刷新静态标签
             RefreshCampaignList();
             RefreshBattleList();
             UpdateDetailPanel();
+        }
+
+        /// <summary>
+        /// ⭐ 刷新静态标签（故事模式、战役、战斗、返回按钮）
+        /// </summary>
+        private void RefreshStaticLabels()
+        {
+            // 故事模式标题
+            if (storyModeTitleLabel != null)
+            {
+                storyModeTitleLabel.text = GetLocalizedText("story_mode_title");
+                UI.TMPFontHelper.SetFontByLanguage(storyModeTitleLabel);
+            }
+
+            // 战役标签
+            if (campaignsLabel != null)
+            {
+                campaignsLabel.text = GetLocalizedText("ui_campaigns");
+                UI.TMPFontHelper.SetFontByLanguage(campaignsLabel);
+            }
+
+            // 战斗标签
+            if (battlesLabel != null)
+            {
+                battlesLabel.text = GetLocalizedText("ui_battles");
+                UI.TMPFontHelper.SetFontByLanguage(battlesLabel);
+            }
+
+            // 返回按钮
+            if (backButton != null)
+            {
+                var backText = backButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (backText != null)
+                {
+                    backText.text = GetLocalizedText("ui_back");
+                    UI.TMPFontHelper.SetFontByLanguage(backText);
+                }
+            }
+
+            // 开始战斗按钮
+            if (startBattleButton != null)
+            {
+                var startText = startBattleButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (startText != null)
+                {
+                    startText.text = GetLocalizedText("story_start_battle");
+                    UI.TMPFontHelper.SetFontByLanguage(startText);
+                }
+            }
         }
 
         /// <summary>
@@ -152,7 +208,79 @@ namespace ThreeKingdoms.Story
                 }
             }
 
+            // ⭐ 查找标签引用
+            FindLabelReferences();
+
             Debug.Log($"[StoryModeUI] UI引用检查完成 - 战役容器:{campaignListContainer != null}, 战斗容器:{battleListContainer != null}");
+        }
+
+        /// <summary>
+        /// ⭐ 查找标签引用
+        /// </summary>
+        private void FindLabelReferences()
+        {
+            // 遍历场景中所有TextMeshProUGUI查找特定名称的对象
+            var allTexts = FindObjectsOfType<TextMeshProUGUI>(true);
+
+            foreach (var text in allTexts)
+            {
+                string objName = text.gameObject.name;
+                string parentName = text.transform.parent?.name ?? "";
+                string grandParentName = text.transform.parent?.parent?.name ?? "";
+
+                // 故事模式标题 - 支持多种命名
+                if (storyModeTitleLabel == null)
+                {
+                    if (objName == "PanelTitle" ||
+                        objName == "StoryModeTitle" ||
+                        (objName == "Text" && parentName == "StoryModeTitle") ||
+                        (objName == "TitleText" && parentName == "StoryModeTitle") ||
+                        // StoryModePrefabCreator: Title/TitleText (排除CampaignList和BattleList下的)
+                        (objName == "TitleText" && parentName == "Title" &&
+                         grandParentName != "CampaignList" && grandParentName != "BattleList"))
+                    {
+                        storyModeTitleLabel = text;
+                        Debug.Log($"[StoryModeUI] 找到故事模式标题: {objName}, parent: {parentName}, grandParent: {grandParentName}");
+                    }
+                }
+
+                // 战役标签 - 支持多种命名
+                if (campaignsLabel == null)
+                {
+                    if (objName == "SectionTitle_ui_campaigns" ||
+                        (objName == "Text" && parentName == "Title" && grandParentName == "CampaignList"))
+                    {
+                        campaignsLabel = text;
+                        Debug.Log($"[StoryModeUI] 找到战役标签: {objName}");
+                    }
+                }
+
+                // 战斗标签 - 支持多种命名
+                if (battlesLabel == null)
+                {
+                    if (objName == "SectionTitle_ui_battles" ||
+                        (objName == "Text" && parentName == "Title" && grandParentName == "BattleList"))
+                    {
+                        battlesLabel = text;
+                        Debug.Log($"[StoryModeUI] 找到战斗标签: {objName}");
+                    }
+                }
+            }
+
+            // 查找返回按钮
+            if (backButton == null)
+            {
+                var allButtons = FindObjectsOfType<Button>(true);
+                foreach (var btn in allButtons)
+                {
+                    if (btn.gameObject.name == "BackButton")
+                    {
+                        backButton = btn;
+                        Debug.Log("[StoryModeUI] 找到返回按钮");
+                        break;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -416,11 +544,77 @@ namespace ThreeKingdoms.Story
             selectedCampaignIndex = index;
             StoryModeManager.Instance?.SelectCampaign(index);
 
+            // ⭐ 动态加载战役图片
+            LoadCampaignImage(index);
+
             // 更新战役按钮高亮
             UpdateCampaignButtonHighlights();
 
             // 刷新战斗列表
             RefreshBattleList();
+        }
+
+        /// <summary>
+        /// ⭐ 动态加载战役图片
+        /// </summary>
+        private void LoadCampaignImage(int index)
+        {
+            var campaign = StoryModeManager.Instance?.GetSelectedCampaign();
+            if (campaign == null || detailImage == null) return;
+
+            // 如果已有图片则直接显示
+            if (campaign.campaignImage != null)
+            {
+                detailImage.sprite = campaign.campaignImage;
+                detailImage.color = Color.white;  // ⭐ 确保原色显示
+                return;
+            }
+
+            // 根据campaignId加载图片
+            string imageName = GetCampaignImageName(campaign.campaignId);
+            if (!string.IsNullOrEmpty(imageName))
+            {
+                // 尝试多种路径
+                string[] paths = new string[]
+                {
+                    $"Sprites/Campaigns/{imageName}",
+                    $"Sprites/Campaign/{imageName}",
+                    $"Sprites/Story/{imageName}",
+                    $"Images/Campaigns/{imageName}",
+                };
+
+                foreach (string path in paths)
+                {
+                    Sprite sprite = Resources.Load<Sprite>(path);
+                    if (sprite != null)
+                    {
+                        campaign.campaignImage = sprite;
+                        detailImage.sprite = sprite;  // ⭐ 立即显示图片
+                        detailImage.color = Color.white;  // ⭐ 确保原色显示
+                        Debug.Log($"[StoryModeUI] 加载战役图片成功: {path}");
+                        break;
+                    }
+                }
+
+                if (campaign.campaignImage == null)
+                {
+                    Debug.LogWarning($"[StoryModeUI] 未找到战役图片: {imageName}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取战役图片名称
+        /// </summary>
+        private string GetCampaignImageName(string campaignId)
+        {
+            switch (campaignId?.ToLower())
+            {
+                case "chibi": return "ChiBi";
+                case "guandu": return "GuanDu";
+                case "taodong": return "TaoDong";
+                default: return campaignId;
+            }
         }
 
         /// <summary>

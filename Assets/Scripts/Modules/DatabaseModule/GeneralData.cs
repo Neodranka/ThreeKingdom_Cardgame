@@ -38,6 +38,19 @@ namespace ThreeKingdoms.DatabaseModule
             {"jianggan", "JiangGan"},
             {"caojun_cavalry", "CaoJunQiBing"},
             {"caojunqibing", "CaoJunQiBing"},
+            {"caimao", "CaiMao"},
+            {"caojun_sailor", "CaoJunShuiBing"},
+            {"caojun_sailor1", "CaoJunShuiBing"},
+            {"caojun_sailor2", "CaoJunShuiBing"},
+            {"caojun_sailor3", "CaoJunShuiBing"},
+            {"caojunshuibing", "CaoJunShuiBing"},
+            {"xuhuang", "XuHuang"},
+
+            // 吴国扩展
+            {"yufan", "YuFan"},
+            {"sunjian", "SunJian"},
+            {"ganning", "GanNing"},
+            {"luxun", "LuXun"},
 
             // 群雄 (Qun)
             {"lvbu", "LvBu"},
@@ -47,6 +60,12 @@ namespace ThreeKingdoms.DatabaseModule
             {"yanliang", "YanLiang"},
             {"wenchou", "WenChou"},
             {"diaochan", "DiaoChan"},
+            {"huatuo", "HuaTuo"},
+            {"zhanghe", "ZhangHe"},
+            {"gaolan", "GaoLan"},
+            {"chunyuqiong", "ChunYuQiong"},
+            {"lijue", "LiJue"},
+            {"guosi", "GuoSi"},
         };
 
         /// <summary>

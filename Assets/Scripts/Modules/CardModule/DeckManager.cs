@@ -39,7 +39,7 @@ namespace ThreeKingdoms
             drawPile.Clear();
             discardPile.Clear();
 
-            // 创建基本的三国杀卡牌
+            // 创建基本的三国演义卡牌
             CreateBasicCards();
             
             // 洗牌
@@ -134,6 +134,20 @@ namespace ThreeKingdoms
             // 【兵粮寸断】- 2张
             drawPile.Add(new Card("兵粮寸断", CardType.Trick, CardSuit.Spade, 10));
             drawPile.Add(new Card("兵粮寸断", CardType.Trick, CardSuit.Club, 4));
+
+            // ==================== 装备牌 ====================
+
+            // 【+1马】（防御马）- 3张
+            // 的卢、爪黄飞电、绝影
+            drawPile.Add(new Card("的卢", CardSuit.Club, 5, EquipmentType.DefensiveHorse, 1));
+            drawPile.Add(new Card("爪黄飞电", CardSuit.Heart, 13, EquipmentType.DefensiveHorse, 1));
+            drawPile.Add(new Card("绝影", CardSuit.Spade, 5, EquipmentType.DefensiveHorse, 1));
+
+            // 【-1马】（进攻马）- 3张
+            // 赤兔、大宛、紫骍
+            drawPile.Add(new Card("赤兔", CardSuit.Heart, 5, EquipmentType.OffensiveHorse, 1));
+            drawPile.Add(new Card("大宛", CardSuit.Spade, 13, EquipmentType.OffensiveHorse, 1));
+            drawPile.Add(new Card("紫骍", CardSuit.Diamond, 13, EquipmentType.OffensiveHorse, 1));
         }
 
         /// <summary>

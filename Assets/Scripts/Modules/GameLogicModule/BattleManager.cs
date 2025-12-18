@@ -600,6 +600,13 @@ namespace ThreeKingdoms
         /// </summary>
         private bool CheckGameOver()
         {
+            // ⭐ 身份场模式：使用身份场胜负判定
+            if (GameConfig.Instance != null && GameConfig.Instance.enableIdentityMode)
+            {
+                return CheckIdentityModeGameOver();
+            }
+
+            // 普通模式：只剩一人存活
             int aliveCount = 0;
             Player winner = null;
 
@@ -627,6 +634,231 @@ namespace ThreeKingdoms
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// ⭐ 身份场模式的胜负判定
+        /// </summary>
+        private bool CheckIdentityModeGameOver()
+        {
+            // 统计各身份存活情况
+            Player lord = null;
+            int aliveLoyalists = 0;
+            int aliveRebels = 0;
+            int aliveSpies = 0;
+            Player lastAlive = null;
+            int totalAlive = 0;
+
+            foreach (var player in players)
+            {
+                if (player.isAlive)
+                {
+                    totalAlive++;
+                    lastAlive = player;
+
+                    switch (player.identity)
+                    {
+                        case Identity.Lord:
+                            lord = player;
+                            break;
+                        case Identity.Loyalist:
+                            aliveLoyalists++;
+                            break;
+                        case Identity.Rebel:
+                            aliveRebels++;
+                            break;
+                        case Identity.Spy:
+                            aliveSpies++;
+                            break;
+                    }
+                }
+            }
+
+            // 判定1：主公死亡
+            if (lord == null || !lord.isAlive)
+            {
+                gameOver = true;
+
+                // 如果只剩内奸，内奸获胜
+                if (totalAlive == 1 && lastAlive != null && lastAlive.identity == Identity.Spy)
+                {
+                    Debug.Log($"========== 游戏结束! ==========");
+                    Debug.Log($"内奸获胜！{lastAlive.playerName} 成功成为最后的赢家！");
+                    identityWinner = Identity.Spy;
+                    StartCoroutine(HandleIdentityGameEnd(Identity.Spy, lastAlive));
+                }
+                else
+                {
+                    // 反贼获胜
+                    Debug.Log($"========== 游戏结束! ==========");
+                    Debug.Log($"反贼获胜！主公已被消灭！");
+                    identityWinner = Identity.Rebel;
+                    StartCoroutine(HandleIdentityGameEnd(Identity.Rebel, null));
+                }
+                return true;
+            }
+
+            // 判定2：所有反贼和内奸死亡 -> 主公/忠臣获胜
+            if (aliveRebels == 0 && aliveSpies == 0)
+            {
+                gameOver = true;
+                Debug.Log($"========== 游戏结束! ==========");
+                Debug.Log($"主公/忠臣获胜！所有反贼和内奸已被消灭！");
+                identityWinner = Identity.Lord;
+                StartCoroutine(HandleIdentityGameEnd(Identity.Lord, lord));
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 身份场胜利方
+        /// </summary>
+        private Identity identityWinner = Identity.None;
+
+        /// <summary>
+        /// ⭐ 处理身份场游戏结束
+        /// </summary>
+        private IEnumerator HandleIdentityGameEnd(Identity winningIdentity, Player mvp)
+        {
+            // 显示身份场结果UI
+            ShowIdentityGameOverUI(winningIdentity, mvp);
+
+            yield return new WaitForSeconds(4f);
+
+            NavigateAfterGameEnd();
+        }
+
+        /// <summary>
+        /// ⭐ 显示身份场游戏结束UI
+        /// </summary>
+        private void ShowIdentityGameOverUI(Identity winningIdentity, Player mvp)
+        {
+            Canvas canvas = FindObjectOfType<Canvas>();
+            if (canvas == null) return;
+
+            GameObject gameOverPanel = new GameObject("GameOverPanel");
+            gameOverPanel.transform.SetParent(canvas.transform, false);
+
+            var panelRect = gameOverPanel.AddComponent<RectTransform>();
+            panelRect.anchorMin = Vector2.zero;
+            panelRect.anchorMax = Vector2.one;
+            panelRect.sizeDelta = Vector2.zero;
+
+            var panelImage = gameOverPanel.AddComponent<UnityEngine.UI.Image>();
+            panelImage.color = new Color(0, 0, 0, 0.8f);
+
+            // 创建结果文本
+            GameObject textObj = new GameObject("ResultText");
+            textObj.transform.SetParent(gameOverPanel.transform, false);
+
+            var textRect = textObj.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0.5f, 0.5f);
+            textRect.anchorMax = new Vector2(0.5f, 0.5f);
+            textRect.sizeDelta = new Vector2(600, 200);
+
+            var text = textObj.AddComponent<TMPro.TextMeshProUGUI>();
+            text.fontSize = 48;
+            text.alignment = TMPro.TextAlignmentOptions.Center;
+            text.color = Color.white;
+
+            // 判断玩家是否获胜
+            Player humanPlayer = players.Find(p => !p.isAI);
+            bool playerWins = false;
+
+            if (humanPlayer != null)
+            {
+                // 玩家获胜条件
+                if (winningIdentity == Identity.Lord || winningIdentity == Identity.Loyalist)
+                {
+                    playerWins = (humanPlayer.identity == Identity.Lord || humanPlayer.identity == Identity.Loyalist);
+                }
+                else if (winningIdentity == Identity.Rebel)
+                {
+                    playerWins = (humanPlayer.identity == Identity.Rebel);
+                }
+                else if (winningIdentity == Identity.Spy)
+                {
+                    playerWins = (humanPlayer.identity == Identity.Spy && humanPlayer.isAlive);
+                }
+            }
+
+            string winnerName = GetIdentityWinnerName(winningIdentity);
+            string victoryText = LocalizationManager.Instance?.GetText("msg_victory") ?? "胜利!";
+            string defeatText = LocalizationManager.Instance?.GetText("msg_defeat") ?? "失败...";
+            string resultText = playerWins
+                ? $"<color=#FFD700>{victoryText}</color>\n\n{winnerName}"
+                : $"<color=#FF4444>{defeatText}</color>\n\n{winnerName}";
+
+            text.text = resultText;
+            UI.TMPFontHelper.SetFontByLanguage(text);
+
+            // 显示所有玩家身份
+            GameObject identityListObj = new GameObject("IdentityList");
+            identityListObj.transform.SetParent(gameOverPanel.transform, false);
+
+            var listRect = identityListObj.AddComponent<RectTransform>();
+            listRect.anchorMin = new Vector2(0.5f, 0.3f);
+            listRect.anchorMax = new Vector2(0.5f, 0.3f);
+            listRect.sizeDelta = new Vector2(600, 150);
+
+            var listText = identityListObj.AddComponent<TMPro.TextMeshProUGUI>();
+            listText.fontSize = 24;
+            listText.alignment = TMPro.TextAlignmentOptions.Center;
+            listText.color = Color.white;
+
+            string identityReveal = LocalizationManager.Instance?.GetText("identity_reveal") ?? "身份揭晓:";
+            string deadStatus = LocalizationManager.Instance?.GetText("identity_dead") ?? "(阵亡)";
+            string identityList = identityReveal + "\n";
+            foreach (var player in players)
+            {
+                string identityName = GetIdentityDisplayName(player.identity);
+                string status = player.isAlive ? "" : " " + deadStatus;
+                identityList += $"{player.generalName}: {identityName}{status}\n";
+            }
+            listText.text = identityList;
+            UI.TMPFontHelper.SetFontByLanguage(listText);
+        }
+
+        /// <summary>
+        /// ⭐ 获取身份胜利方名称
+        /// </summary>
+        private string GetIdentityWinnerName(Identity identity)
+        {
+            switch (identity)
+            {
+                case Identity.Lord:
+                case Identity.Loyalist:
+                    return LocalizationManager.Instance?.GetText("identity_win_lord_loyalist") ?? "主公/忠臣获胜";
+                case Identity.Rebel:
+                    return LocalizationManager.Instance?.GetText("identity_win_rebel") ?? "反贼获胜";
+                case Identity.Spy:
+                    return LocalizationManager.Instance?.GetText("identity_win_spy") ?? "内奸获胜";
+                default:
+                    return LocalizationManager.Instance?.GetText("identity_none") ?? "未知";
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取身份显示名称（带颜色）
+        /// </summary>
+        private string GetIdentityDisplayName(Identity identity)
+        {
+            string lord = LocalizationManager.Instance?.GetText("identity_lord") ?? "主公";
+            string loyalist = LocalizationManager.Instance?.GetText("identity_loyalist") ?? "忠臣";
+            string rebel = LocalizationManager.Instance?.GetText("identity_rebel") ?? "反贼";
+            string spy = LocalizationManager.Instance?.GetText("identity_spy") ?? "内奸";
+            string none = LocalizationManager.Instance?.GetText("identity_none") ?? "无";
+
+            switch (identity)
+            {
+                case Identity.Lord: return $"<color=#FFD700>{lord}</color>";
+                case Identity.Loyalist: return $"<color=#00FF00>{loyalist}</color>";
+                case Identity.Rebel: return $"<color=#FF4444>{rebel}</color>";
+                case Identity.Spy: return $"<color=#9966FF>{spy}</color>";
+                default: return none;
+            }
         }
 
         /// <summary>

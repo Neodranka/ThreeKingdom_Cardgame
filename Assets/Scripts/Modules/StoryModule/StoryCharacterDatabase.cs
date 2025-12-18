@@ -233,6 +233,208 @@ namespace ThreeKingdoms.Story
                 description = "突袭 - 摸牌阶段可改为获取他人手牌"
             });
 
+            // ==================== 官渡之战角色 ====================
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "yanliang",
+                nameKey = "char_yanliang",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "weiwu" },
+                description = "威武 - 摸牌阶段少摸1张牌，可将黑色牌当【决斗】使用",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "wenchou",
+                nameKey = "char_wenchou",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "qiangjian" },
+                description = "强健 - 摸牌阶段少摸1张牌，可将黑色牌当【决斗】使用",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "zhanghe",
+                nameKey = "char_zhanghe",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "duobian" },
+                description = "多变 - 出牌阶段可额外使用1张【杀】",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "gaolan",
+                nameKey = "char_gaolan",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "mashu" },
+                description = "马术 - 计算与其他角色的距离-1",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "chunyuqiong",
+                nameKey = "char_chunyuqiong",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "yingming" },
+                description = "英明 - 摸牌阶段多摸1张牌",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "yuanshao",
+                nameKey = "char_yuanshao",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "qiji" },
+                description = "齐击 - 可将两张不同花色的牌当【万箭齐发】使用",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "xuhuang",
+                nameKey = "char_xuhuang",
+                faction = Faction.Wei,
+                maxHP = 4,
+                skills = new List<string> { "duanliang" },
+                description = "断粮 - 可将黑色牌当【兵粮寸断】使用",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "yuanjun_cavalry",
+                nameKey = "char_yuanjun_cavalry",
+                faction = Faction.Qun,
+                maxHP = 2,
+                skills = new List<string>(),
+                description = "无特殊技能",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "yuanjun_cavalry_mashu",
+                nameKey = "char_yuanjun_cavalry",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "mashu" },
+                description = "马术 - 计算与其他角色的距离-1",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "caojun_infantry",
+                nameKey = "char_caojun_infantry",
+                faction = Faction.Wei,
+                maxHP = 3,
+                skills = new List<string>(),
+                description = "无特殊技能",
+                isStoryOnly = true
+            });
+
+            // ==================== 讨董之战角色 ====================
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "huaxiong",
+                nameKey = "char_huaxiong",
+                faction = Faction.Qun,
+                maxHP = 5,
+                skills = new List<string> { "yaowu_v2" },
+                description = "耀武 - 使用红色【杀】造成伤害后，可弃1张牌获得目标1张牌",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "lvbu",
+                nameKey = "char_lvbu",
+                faction = Faction.Qun,
+                maxHP = 7, // 一骑当千加成
+                skills = new List<string> { "wushuang" },
+                description = "无双 - 【杀】需两张【闪】响应；【决斗】对方需打出两张【杀】",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "dongzhuo",
+                nameKey = "char_dongzhuo",
+                faction = Faction.Qun,
+                maxHP = 6,
+                skills = new List<string> { "jiuchiroulin" },
+                description = "酒池肉林 - 可将【杀】当【酒】使用；可将【酒】当【杀】使用",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "lijue",
+                nameKey = "char_lijue",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "jielve" },
+                description = "劫掠 - 造成伤害后可弃1张牌获得目标1张牌",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "guosi",
+                nameKey = "char_guosi",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "xiongbao" },
+                description = "凶暴 - 每当你造成1点伤害后，可摸1张牌",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "sunjian",
+                nameKey = "char_sunjian",
+                faction = Faction.Wu,
+                maxHP = 4,
+                skills = new List<string> { "yinghun" },
+                description = "英魂 - 回合开始时若已受伤，可令一名角色摸X张牌然后弃X张牌",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "yuanshao_taodong",
+                nameKey = "char_yuanshao",
+                faction = Faction.Qun,
+                maxHP = 4,
+                skills = new List<string> { "xueyi" },
+                description = "血裔 - 摸牌阶段可额外摸X张牌（X为已受伤角色数）",
+                isStoryOnly = true
+            });
+
+            AddCharacter(new StoryCharacterData
+            {
+                characterId = "xiliang_soldier",
+                nameKey = "char_xiliang_soldier",
+                faction = Faction.Qun,
+                maxHP = 3,
+                skills = new List<string>(),
+                description = "无特殊技能",
+                isStoryOnly = true
+            });
+
             Debug.Log($"[StoryCharacterDatabase] 初始化完成，共 {characters.Count} 个角色");
         }
 

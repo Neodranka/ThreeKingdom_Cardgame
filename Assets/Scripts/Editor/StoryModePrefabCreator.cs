@@ -13,7 +13,7 @@ namespace ThreeKingdoms.Editor
     /// </summary>
     public class StoryModePrefabCreator : EditorWindow
     {
-        [MenuItem("三国杀/创建故事模式Prefabs")]
+        [MenuItem("三国演义/创建故事模式Prefabs")]
         public static void ShowWindow()
         {
             GetWindow<StoryModePrefabCreator>("故事模式Prefab创建器");
@@ -148,7 +148,7 @@ namespace ThreeKingdoms.Editor
             return btnObj;
         }
 
-        [MenuItem("三国杀/在当前场景创建故事模式UI")]
+        [MenuItem("三国演义/在当前场景创建故事模式UI")]
         public static void CreateStoryModeSceneUI()
         {
             // ⭐ 确保EventSystem存在（否则UI无法响应点击）
