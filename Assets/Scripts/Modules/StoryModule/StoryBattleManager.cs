@@ -3017,7 +3017,7 @@ namespace ThreeKingdoms.Story
             GameObject hintObj = new GameObject("ClickHint");
             hintObj.transform.SetParent(textBox.transform, false);
             TextMeshProUGUI hintText = hintObj.AddComponent<TextMeshProUGUI>();
-            hintText.text = "▼ 点击继续";
+            hintText.text = LocalizationManager.Instance?.GetText("ui_click_continue") ?? "▼ 点击继续";
             hintText.fontSize = 16;
             hintText.color = new Color(0.7f, 0.7f, 0.7f, 0.8f);
             hintText.alignment = TextAlignmentOptions.Right;
@@ -3106,7 +3106,9 @@ namespace ThreeKingdoms.Story
             labelTextRect.offsetMax = Vector2.zero;
 
             TextMeshProUGUI labelText = labelTextObj.AddComponent<TextMeshProUGUI>();
-            labelText.text = isLeft ? "我方" : "敌方";
+            string allyText = LocalizationManager.Instance?.GetText("ui_ally") ?? "我方";
+            string enemyText = LocalizationManager.Instance?.GetText("ui_enemy") ?? "敌方";
+            labelText.text = isLeft ? allyText : enemyText;
             labelText.fontSize = 14;
             labelText.color = Color.white;
             labelText.alignment = TextAlignmentOptions.Center;

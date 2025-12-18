@@ -416,11 +416,77 @@ namespace ThreeKingdoms.Story
             selectedCampaignIndex = index;
             StoryModeManager.Instance?.SelectCampaign(index);
 
+            // ⭐ 动态加载战役图片
+            LoadCampaignImage(index);
+
             // 更新战役按钮高亮
             UpdateCampaignButtonHighlights();
 
             // 刷新战斗列表
             RefreshBattleList();
+        }
+
+        /// <summary>
+        /// ⭐ 动态加载战役图片
+        /// </summary>
+        private void LoadCampaignImage(int index)
+        {
+            var campaign = StoryModeManager.Instance?.GetSelectedCampaign();
+            if (campaign == null || detailImage == null) return;
+
+            // 如果已有图片则直接显示
+            if (campaign.campaignImage != null)
+            {
+                detailImage.sprite = campaign.campaignImage;
+                detailImage.color = Color.white;  // ⭐ 确保原色显示
+                return;
+            }
+
+            // 根据campaignId加载图片
+            string imageName = GetCampaignImageName(campaign.campaignId);
+            if (!string.IsNullOrEmpty(imageName))
+            {
+                // 尝试多种路径
+                string[] paths = new string[]
+                {
+                    $"Sprites/Campaigns/{imageName}",
+                    $"Sprites/Campaign/{imageName}",
+                    $"Sprites/Story/{imageName}",
+                    $"Images/Campaigns/{imageName}",
+                };
+
+                foreach (string path in paths)
+                {
+                    Sprite sprite = Resources.Load<Sprite>(path);
+                    if (sprite != null)
+                    {
+                        campaign.campaignImage = sprite;
+                        detailImage.sprite = sprite;  // ⭐ 立即显示图片
+                        detailImage.color = Color.white;  // ⭐ 确保原色显示
+                        Debug.Log($"[StoryModeUI] 加载战役图片成功: {path}");
+                        break;
+                    }
+                }
+
+                if (campaign.campaignImage == null)
+                {
+                    Debug.LogWarning($"[StoryModeUI] 未找到战役图片: {imageName}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取战役图片名称
+        /// </summary>
+        private string GetCampaignImageName(string campaignId)
+        {
+            switch (campaignId?.ToLower())
+            {
+                case "chibi": return "ChiBi";
+                case "guandu": return "GuanDu";
+                case "taodong": return "TaoDong";
+                default: return campaignId;
+            }
         }
 
         /// <summary>

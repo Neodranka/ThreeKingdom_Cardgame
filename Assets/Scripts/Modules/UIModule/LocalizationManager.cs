@@ -54,7 +54,7 @@ namespace ThreeKingdoms
             // ==================== MainMenu & GameSetup ====================
 
             // 主菜单
-            AddTranslation("menu_title", "三国杀", "Three Kingdoms Kill", "삼국살");
+            AddTranslation("menu_title", "三国演义", "Romance of Three Kingdoms", "삼국연의");
             AddTranslation("menu_battle_mode", "对战模式", "Battle Mode", "대전 모드");
             AddTranslation("menu_story_mode", "故事模式", "Story Mode", "스토리 모드");
             AddTranslation("menu_settings", "设置", "Settings", "설정");
@@ -121,6 +121,11 @@ namespace ThreeKingdoms
             AddTranslation("general_chunyuqiong", "淳于琼", "Chunyu Qiong", "순우경");
             AddTranslation("general_lijue", "李傕", "Li Jue", "이각");
             AddTranslation("general_guosi", "郭汜", "Guo Si", "곽사");
+
+            // ⭐ 赤壁战役角色
+            AddTranslation("general_caimao", "蔡瑁", "Cai Mao", "채모");
+            AddTranslation("general_yufan", "虞翻", "Yu Fan", "우번");
+            AddTranslation("general_caojun_sailor", "曹军水兵", "Cao Sailor", "조군 수병");
 
             // 阵营
             AddTranslation("faction_wei", "魏", "Wei", "위");
@@ -238,6 +243,13 @@ namespace ThreeKingdoms
             // ⭐ 玩家人数设置
             AddTranslation("ui_player_count", "玩家人数", "Player Count", "플레이어 수");
             AddTranslation("ui_players", "{0}人", "{0} Players", "{0}명");
+
+            // ⭐ 战斗角色标签
+            AddTranslation("ui_ally", "我方", "Ally", "아군");
+            AddTranslation("ui_enemy", "敌方", "Enemy", "적군");
+            AddTranslation("ui_ally_index", "友方{0}", "Ally {0}", "아군 {0}");
+            AddTranslation("ui_enemy_index", "敌方{0}", "Enemy {0}", "적군 {0}");
+            AddTranslation("ui_click_continue", "▼ 点击继续", "▼ Click to continue", "▼ 클릭하여 계속");
 
             // 游戏状态
             AddTranslation("ui_game_over", "游戏结束", "Game Over", "게임 종료");

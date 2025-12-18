@@ -12,7 +12,7 @@ namespace ThreeKingdoms.Editor
     /// </summary>
     public class StoryModeGeneralCreator : EditorWindow
     {
-        [MenuItem("三国杀/创建故事模式武将/赤壁之战武将")]
+        [MenuItem("三国演义/创建故事模式武将/赤壁之战武将")]
         public static void CreateChiBiGenerals()
         {
             // 确保文件夹存在
@@ -54,7 +54,7 @@ namespace ThreeKingdoms.Editor
             EditorUtility.DisplayDialog("完成", $"赤壁之战武将创建完成！\n新创建: {created} 个武将\n\n包含：诸葛亮、赵云、周瑜、吕蒙、黄盖、鲁肃、程普、夏侯惇、夏侯渊、张辽、蒋干、夏侯杰、张昭等", "确定");
         }
 
-        [MenuItem("三国杀/创建故事模式武将/董卓讨伐战武将")]
+        [MenuItem("三国演义/创建故事模式武将/董卓讨伐战武将")]
         public static void CreateDongZhuoGenerals()
         {
             EnsureFolderExists("Assets/Resources/Data/Generals/Qun");
@@ -72,7 +72,7 @@ namespace ThreeKingdoms.Editor
             EditorUtility.DisplayDialog("提示", "董卓讨伐战武将暂未添加，之后再加", "确定");
         }
 
-        [MenuItem("三国杀/创建故事模式武将/官渡之战武将")]
+        [MenuItem("三国演义/创建故事模式武将/官渡之战武将")]
         public static void CreateGuanDuGenerals()
         {
             EnsureFolderExists("Assets/Resources/Data/Generals/Qun");
@@ -149,7 +149,7 @@ namespace ThreeKingdoms.Editor
             }
         }
 
-        [MenuItem("三国杀/列出所有武将")]
+        [MenuItem("三国演义/列出所有武将")]
         public static void ListAllGenerals()
         {
             GeneralData[] allGenerals = Resources.LoadAll<GeneralData>("Data/Generals");

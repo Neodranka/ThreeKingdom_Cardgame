@@ -675,7 +675,8 @@ namespace ThreeKingdoms
                 int allyIndex = 0;
                 foreach (var allyConfig in storyBattle.allies)
                 {
-                    string playerName = allyConfig.isPlayer ? "你" : $"友方{allyIndex + 1}";
+                    string playerName = allyConfig.isPlayer ? "你" :
+                        (LocalizationManager.Instance?.GetTextFormatted("ui_ally_index", allyIndex + 1) ?? $"友方{allyIndex + 1}");
                     Player ally = CreateStoryPlayerFromBattleCharacter(
                         allyConfig,
                         playerName,
@@ -696,9 +697,10 @@ namespace ThreeKingdoms
                 int enemyIndex = 1;
                 foreach (var enemyConfig in storyBattle.enemies)
                 {
+                    string enemyName = LocalizationManager.Instance?.GetTextFormatted("ui_enemy_index", enemyIndex) ?? $"敌方{enemyIndex}";
                     Player enemy = CreateStoryPlayerFromBattleCharacter(
                         enemyConfig,
-                        $"敌方{enemyIndex}",
+                        enemyName,
                         true,  // 敌方都是AI
                         false  // 是敌方
                     );
@@ -877,9 +879,10 @@ namespace ThreeKingdoms
             int enemyIndex = 1;
             foreach (var enemyId in battleData.enemyGeneralIds)
             {
+                string enemyName = LocalizationManager.Instance?.GetTextFormatted("ui_enemy_index", enemyIndex) ?? $"敌方{enemyIndex}";
                 Player enemy = CreateStoryPlayer(
                     enemyId,
-                    $"敌方{enemyIndex}",
+                    enemyName,
                     true,  // 是AI
                     Faction.Wei  // 默认魏国
                 );

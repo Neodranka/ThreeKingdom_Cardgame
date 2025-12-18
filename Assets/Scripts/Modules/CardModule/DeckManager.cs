@@ -39,7 +39,7 @@ namespace ThreeKingdoms
             drawPile.Clear();
             discardPile.Clear();
 
-            // 创建基本的三国杀卡牌
+            // 创建基本的三国演义卡牌
             CreateBasicCards();
             
             // 洗牌
