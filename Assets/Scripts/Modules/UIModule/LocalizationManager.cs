@@ -128,6 +128,17 @@ namespace ThreeKingdoms
             AddTranslation("faction_wu", "吴", "Wu", "오");
             AddTranslation("faction_qun", "群", "Neutral", "군");
 
+            // ⭐ 身份场身份
+            AddTranslation("identity_lord", "主公", "Lord", "주공");
+            AddTranslation("identity_loyalist", "忠臣", "Loyalist", "충신");
+            AddTranslation("identity_rebel", "反贼", "Rebel", "반적");
+            AddTranslation("identity_spy", "内奸", "Spy", "내간");
+            AddTranslation("identity_mode", "身份场", "Identity Mode", "신분전");
+            AddTranslation("identity_reveal", "身份揭晓", "Identity Reveal", "신분 공개");
+            AddTranslation("identity_win_lord", "主公/忠臣获胜", "Lord/Loyalist Wins", "주공/충신 승리");
+            AddTranslation("identity_win_rebel", "反贼获胜", "Rebels Win", "반적 승리");
+            AddTranslation("identity_win_spy", "内奸获胜", "Spy Wins", "내간 승리");
+
             // ==================== 卡牌名称 (Card Names) ====================
 
             // 基础牌
@@ -224,12 +235,51 @@ namespace ThreeKingdoms
             AddTranslation("ui_confirm", "确认", "Confirm", "확인");
             AddTranslation("ui_skip", "跳过", "Skip", "건너뛰기");
 
+            // ⭐ 玩家人数设置
+            AddTranslation("ui_player_count", "玩家人数", "Player Count", "플레이어 수");
+            AddTranslation("ui_players", "{0}人", "{0} Players", "{0}명");
+
             // 游戏状态
             AddTranslation("ui_game_over", "游戏结束", "Game Over", "게임 종료");
             AddTranslation("ui_winner", "获胜者", "Winner", "승자");
             AddTranslation("ui_waiting", "等待中...", "Waiting...", "대기 중...");
             AddTranslation("ui_your_turn", "你的回合", "Your Turn", "당신의 턴");
             AddTranslation("ui_ai_thinking", "AI思考中...", "AI Thinking...", "AI 생각 중...");
+
+            // ⭐ 胜利/失败结果
+            AddTranslation("msg_victory", "胜利!", "Victory!", "승리!");
+            AddTranslation("msg_defeat", "失败...", "Defeat...", "패배...");
+            AddTranslation("msg_returning", "即将返回...", "Returning...", "돌아가는 중...");
+
+            // ⭐ 身份模式
+            AddTranslation("identity_lord", "主公", "Lord", "주공");
+            AddTranslation("identity_loyalist", "忠臣", "Loyalist", "충신");
+            AddTranslation("identity_rebel", "反贼", "Rebel", "반적");
+            AddTranslation("identity_spy", "内奸", "Spy", "내간");
+            AddTranslation("identity_none", "无", "None", "없음");
+            AddTranslation("identity_reveal", "身份揭晓:", "Identity Reveal:", "신분 공개:");
+            AddTranslation("identity_dead", "(阵亡)", "(Dead)", "(사망)");
+            AddTranslation("identity_win_lord_loyalist", "主公/忠臣获胜", "Lord/Loyalist Victory", "주공/충신 승리");
+            AddTranslation("identity_win_rebel", "反贼获胜", "Rebel Victory", "반적 승리");
+            AddTranslation("identity_win_spy", "内奸获胜", "Spy Victory", "내간 승리");
+
+            // ⭐ 胜利/失败条件标签
+            AddTranslation("ui_victory_label", "胜利:", "Victory:", "승리:");
+            AddTranslation("ui_defeat_label", "失败:", "Defeat:", "패배:");
+
+            // ⭐ 胜利条件类型
+            AddTranslation("victory_defeat_all", "击败所有敌人", "Defeat all enemies", "모든 적 처치");
+            AddTranslation("victory_defeat_target", "击败 {0}", "Defeat {0}", "{0} 처치");
+            AddTranslation("victory_survive_turns", "存活 {0} 回合", "Survive {0} turns", "{0}턴 생존");
+            AddTranslation("victory_accumulate_marks", "累积 {0} 个标记", "Accumulate {0} marks", "표식 {0}개 획득");
+            AddTranslation("victory_protect_ally", "保护 {0} 存活并击败所有敌人", "Protect {0} and defeat all enemies", "{0}을(를) 보호하고 모든 적 처치");
+
+            // ⭐ 失败条件类型
+            AddTranslation("defeat_player_death", "主角死亡", "Player dies", "주인공 사망");
+            AddTranslation("defeat_ally_death", "{0} 死亡", "{0} dies", "{0} 사망");
+            AddTranslation("defeat_all_allies_death", "我方全灭", "All allies die", "아군 전멸");
+            AddTranslation("defeat_exceed_count", "特定事件发生 {0} 次", "Event occurs {0} times", "특정 이벤트 {0}회 발생");
+            AddTranslation("defeat_turn_limit", "超过 {0} 回合", "Exceed {0} turns", "{0}턴 초과");
 
             // 玩家信息
             AddTranslation("ui_player", "玩家{0}", "Player {0}", "플레이어 {0}");

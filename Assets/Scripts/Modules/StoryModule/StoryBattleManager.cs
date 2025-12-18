@@ -3144,13 +3144,15 @@ namespace ThreeKingdoms.Story
             // 显示胜利条件
             if (victoryConditionText != null)
             {
-                victoryConditionText.text = "胜利: " + GetVictoryConditionDescription();
+                string victoryLabel = LocalizationManager.Instance?.GetText("ui_victory_label") ?? "胜利:";
+                victoryConditionText.text = victoryLabel + " " + GetVictoryConditionDescription();
             }
 
             // 显示失败条件
             if (defeatConditionText != null)
             {
-                defeatConditionText.text = "失败: " + GetDefeatConditionDescription();
+                string defeatLabel = LocalizationManager.Instance?.GetText("ui_defeat_label") ?? "失败:";
+                defeatConditionText.text = defeatLabel + " " + GetDefeatConditionDescription();
             }
         }
 
@@ -3159,35 +3161,37 @@ namespace ThreeKingdoms.Story
         /// </summary>
         private string GetVictoryConditionDescription()
         {
+            string defeatAll = LocalizationManager.Instance?.GetText("victory_defeat_all") ?? "击败所有敌人";
+
             if (currentBattle?.victoryCondition == null)
-                return "击败所有敌人";
+                return defeatAll;
 
             var condition = currentBattle.victoryCondition;
 
             switch (condition.type)
             {
                 case VictoryType.DefeatAllEnemies:
-                    return "击败所有敌人";
+                    return defeatAll;
 
                 case VictoryType.DefeatTarget:
                     string targetName = GetCharacterName(condition.targetCharacterId);
-                    return $"击败 {targetName}";
+                    return LocalizationManager.Instance?.GetTextFormatted("victory_defeat_target", targetName) ?? $"击败 {targetName}";
 
                 case VictoryType.SurviveTurns:
-                    return $"存活 {condition.targetTurn} 回合";
+                    return LocalizationManager.Instance?.GetTextFormatted("victory_survive_turns", condition.targetTurn) ?? $"存活 {condition.targetTurn} 回合";
 
                 case VictoryType.AccumulateMarks:
-                    return $"累积 {condition.targetCount} 个标记";
+                    return LocalizationManager.Instance?.GetTextFormatted("victory_accumulate_marks", condition.targetCount) ?? $"累积 {condition.targetCount} 个标记";
 
                 case VictoryType.ProtectAlly:
                     string allyName = GetCharacterName(condition.targetCharacterId);
-                    return $"保护 {allyName} 存活并击败所有敌人";
+                    return LocalizationManager.Instance?.GetTextFormatted("victory_protect_ally", allyName) ?? $"保护 {allyName} 存活并击败所有敌人";
 
                 case VictoryType.Custom:
                     return LocalizationManager.Instance?.GetText(condition.customConditionKey) ?? condition.customConditionKey;
 
                 default:
-                    return "击败所有敌人";
+                    return defeatAll;
             }
         }
 
@@ -3196,34 +3200,36 @@ namespace ThreeKingdoms.Story
         /// </summary>
         private string GetDefeatConditionDescription()
         {
+            string playerDeath = LocalizationManager.Instance?.GetText("defeat_player_death") ?? "主角死亡";
+
             if (currentBattle?.defeatCondition == null)
-                return "主角死亡";
+                return playerDeath;
 
             var condition = currentBattle.defeatCondition;
 
             switch (condition.type)
             {
                 case DefeatType.PlayerDeath:
-                    return "主角死亡";
+                    return playerDeath;
 
                 case DefeatType.AllyDeath:
                     string allyName = GetCharacterName(condition.targetCharacterId);
-                    return $"{allyName} 死亡";
+                    return LocalizationManager.Instance?.GetTextFormatted("defeat_ally_death", allyName) ?? $"{allyName} 死亡";
 
                 case DefeatType.AllAlliesDeath:
-                    return "我方全灭";
+                    return LocalizationManager.Instance?.GetText("defeat_all_allies_death") ?? "我方全灭";
 
                 case DefeatType.ExceedCount:
-                    return $"特定事件发生 {condition.maxCount} 次";
+                    return LocalizationManager.Instance?.GetTextFormatted("defeat_exceed_count", condition.maxCount) ?? $"特定事件发生 {condition.maxCount} 次";
 
                 case DefeatType.TurnLimitExceeded:
-                    return $"超过 {currentBattle.turnLimit} 回合";
+                    return LocalizationManager.Instance?.GetTextFormatted("defeat_turn_limit", currentBattle.turnLimit) ?? $"超过 {currentBattle.turnLimit} 回合";
 
                 case DefeatType.Custom:
                     return LocalizationManager.Instance?.GetText(condition.customConditionKey) ?? condition.customConditionKey;
 
                 default:
-                    return "主角死亡";
+                    return playerDeath;
             }
         }
 

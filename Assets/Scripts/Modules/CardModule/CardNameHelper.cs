@@ -298,8 +298,146 @@ namespace ThreeKingdoms
             if (IsIndulgence(cardName)) return "card_indulgence";
             if (IsLightning(cardName)) return "card_lightning";
             if (IsHarvest(cardName)) return "card_harvest";
+            if (IsSupplyShortage(cardName)) return "card_supply_shortage";
+
+            // ⭐ 装备牌 - 武器
+            if (IsQinggangSword(cardName)) return "card_qinggang_sword";
+            if (IsZhangbaSpear(cardName)) return "card_zhangba_spear";
+            if (IsQinglongBlade(cardName)) return "card_qinglong_blade";
+            if (IsFrostSword(cardName)) return "card_frost_sword";
+            if (IsCrossbow(cardName)) return "card_crossbow";
+
+            // ⭐ 装备牌 - 防具
+            if (IsEightDiagram(cardName)) return "card_eight_diagram";
+            if (IsRenwangShield(cardName)) return "card_renwang_shield";
+
+            // ⭐ 装备牌 - 防御马
+            if (IsDilu(cardName)) return "card_dilu";
+            if (IsZixin(cardName)) return "card_zixin";
+            if (IsJueying(cardName)) return "card_jueying";
+
+            // ⭐ 装备牌 - 进攻马
+            if (IsChitu(cardName)) return "card_chitu";
+            if (IsDawan(cardName)) return "card_dawan";
+            if (IsZhuahuang(cardName)) return "card_zhuahuang";
 
             return null;
+        }
+
+        // ==================== 延时锦囊判断方法 ====================
+
+        /// <summary>
+        /// 是否为【兵粮寸断】
+        /// </summary>
+        public static bool IsSupplyShortage(string cardName)
+        {
+            return cardName == "兵粮寸断" || cardName == "Supply Shortage" || cardName == "병량촌단";
+        }
+
+        // ==================== 装备牌判断方法 ====================
+
+        /// <summary>
+        /// 是否为【青釭剑】
+        /// </summary>
+        public static bool IsQinggangSword(string cardName)
+        {
+            return cardName == "青釭剑" || cardName == "Qinggang Sword" || cardName == "청강검";
+        }
+
+        /// <summary>
+        /// 是否为【丈八蛇矛】
+        /// </summary>
+        public static bool IsZhangbaSpear(string cardName)
+        {
+            return cardName == "丈八蛇矛" || cardName == "Zhangba Spear" || cardName == "장팔사모";
+        }
+
+        /// <summary>
+        /// 是否为【青龙偃月刀】
+        /// </summary>
+        public static bool IsQinglongBlade(string cardName)
+        {
+            return cardName == "青龙偃月刀" || cardName == "Qinglong Blade" || cardName == "청룡언월도";
+        }
+
+        /// <summary>
+        /// 是否为【寒冰剑】
+        /// </summary>
+        public static bool IsFrostSword(string cardName)
+        {
+            return cardName == "寒冰剑" || cardName == "Frost Sword" || cardName == "한빙검";
+        }
+
+        /// <summary>
+        /// 是否为【诸葛连弩】
+        /// </summary>
+        public static bool IsCrossbow(string cardName)
+        {
+            return cardName == "诸葛连弩" || cardName == "Crossbow" || cardName == "제갈연노";
+        }
+
+        /// <summary>
+        /// 是否为【八卦阵】
+        /// </summary>
+        public static bool IsEightDiagram(string cardName)
+        {
+            return cardName == "八卦阵" || cardName == "Eight Diagram" || cardName == "팔괘진";
+        }
+
+        /// <summary>
+        /// 是否为【仁王盾】
+        /// </summary>
+        public static bool IsRenwangShield(string cardName)
+        {
+            return cardName == "仁王盾" || cardName == "Renwang Shield" || cardName == "인왕방패";
+        }
+
+        /// <summary>
+        /// 是否为【的卢】
+        /// </summary>
+        public static bool IsDilu(string cardName)
+        {
+            return cardName == "的卢" || cardName == "Dilu" || cardName == "적로";
+        }
+
+        /// <summary>
+        /// 是否为【紫骍】
+        /// </summary>
+        public static bool IsZixin(string cardName)
+        {
+            return cardName == "紫骍" || cardName == "Zixin" || cardName == "자신";
+        }
+
+        /// <summary>
+        /// 是否为【绝影】
+        /// </summary>
+        public static bool IsJueying(string cardName)
+        {
+            return cardName == "绝影" || cardName == "Jueying" || cardName == "절영";
+        }
+
+        /// <summary>
+        /// 是否为【赤兔】
+        /// </summary>
+        public static bool IsChitu(string cardName)
+        {
+            return cardName == "赤兔" || cardName == "Chitu" || cardName == "적토";
+        }
+
+        /// <summary>
+        /// 是否为【大宛】
+        /// </summary>
+        public static bool IsDawan(string cardName)
+        {
+            return cardName == "大宛" || cardName == "Dawan" || cardName == "대완";
+        }
+
+        /// <summary>
+        /// 是否为【爪黄飞电】
+        /// </summary>
+        public static bool IsZhuahuang(string cardName)
+        {
+            return cardName == "爪黄飞电" || cardName == "Zhuahuang Feidian" || cardName == "조황비전";
         }
 
         /// <summary>

@@ -248,7 +248,173 @@ namespace ThreeKingdoms
             // 设置到BattleManager
             BattleManager.Instance.players = players;
 
+            // ⭐ 身份场模式：分配身份
+            if (GameConfig.Instance != null && GameConfig.Instance.enableIdentityMode)
+            {
+                AssignIdentities(players);
+            }
+
             Debug.Log($"========== 创建了 {players.Count} 个玩家 ==========");
+        }
+
+        /// <summary>
+        /// ⭐ 分配身份（身份场模式）
+        /// </summary>
+        private void AssignIdentities(List<Player> players)
+        {
+            if (players == null || players.Count < 4)
+            {
+                Debug.LogWarning("[身份场] 玩家数量不足4人，无法启用身份场");
+                return;
+            }
+
+            int count = players.Count;
+            List<Identity> identities = GetIdentityDistribution(count);
+
+            // 打乱身份顺序（除了主公固定给第一个玩家）
+            Identity lordIdentity = identities[0];  // 保存主公身份
+            identities.RemoveAt(0);
+
+            // 打乱其他身份
+            for (int i = identities.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                var temp = identities[i];
+                identities[i] = identities[j];
+                identities[j] = temp;
+            }
+
+            // 分配身份
+            // 玩家（第一个）固定为主公
+            players[0].identity = lordIdentity;
+            players[0].maxHP += 1;  // 主公体力+1
+            players[0].currentHP = players[0].maxHP;
+
+            Debug.Log($"[身份场] {players[0].playerName}({players[0].generalName}) -> 主公 (HP+1 = {players[0].maxHP})");
+
+            // AI玩家随机分配其他身份
+            for (int i = 1; i < players.Count && i - 1 < identities.Count; i++)
+            {
+                players[i].identity = identities[i - 1];
+
+                // ⭐ 根据身份调整AI行为权重
+                AdjustAIByIdentity(players[i]);
+
+                string identityName = GetIdentityName(players[i].identity);
+                Debug.Log($"[身份场] {players[i].playerName}({players[i].generalName}) -> {identityName}");
+            }
+
+            Debug.Log("[身份场] 身份分配完成！");
+            Debug.Log("[身份场] 胜利条件：");
+            Debug.Log("  - 主公/忠臣：消灭所有反贼和内奸");
+            Debug.Log("  - 反贼：消灭主公");
+            Debug.Log("  - 内奸：最后存活（先帮主公消灭反贼，再消灭主公）");
+        }
+
+        /// <summary>
+        /// ⭐ 根据玩家数量获取身份分配
+        /// </summary>
+        private List<Identity> GetIdentityDistribution(int playerCount)
+        {
+            // 标准身份分配规则
+            var identities = new List<Identity>();
+
+            switch (playerCount)
+            {
+                case 4:
+                    // 1主公 + 1忠臣 + 1反贼 + 1内奸
+                    identities.Add(Identity.Lord);
+                    identities.Add(Identity.Loyalist);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Spy);
+                    break;
+                case 5:
+                    // 1主公 + 1忠臣 + 2反贼 + 1内奸
+                    identities.Add(Identity.Lord);
+                    identities.Add(Identity.Loyalist);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Spy);
+                    break;
+                case 6:
+                    // 1主公 + 1忠臣 + 3反贼 + 1内奸
+                    identities.Add(Identity.Lord);
+                    identities.Add(Identity.Loyalist);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Spy);
+                    break;
+                case 7:
+                    // 1主公 + 2忠臣 + 3反贼 + 1内奸
+                    identities.Add(Identity.Lord);
+                    identities.Add(Identity.Loyalist);
+                    identities.Add(Identity.Loyalist);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Spy);
+                    break;
+                case 8:
+                default:
+                    // 1主公 + 2忠臣 + 4反贼 + 1内奸
+                    identities.Add(Identity.Lord);
+                    identities.Add(Identity.Loyalist);
+                    identities.Add(Identity.Loyalist);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Rebel);
+                    identities.Add(Identity.Spy);
+                    break;
+            }
+
+            return identities;
+        }
+
+        /// <summary>
+        /// ⭐ 根据身份调整AI行为
+        /// </summary>
+        private void AdjustAIByIdentity(Player player)
+        {
+            if (player.aiController == null) return;
+
+            switch (player.identity)
+            {
+                case Identity.Loyalist:
+                    // 忠臣：优先保护主公，攻击反贼
+                    player.aiController.attackWeight = 0.8f;
+                    player.aiController.healWeight = 2.0f;   // 更愿意救人
+                    player.aiController.saveWeight = 1.5f;
+                    break;
+                case Identity.Rebel:
+                    // 反贼：攻击性强，目标是主公
+                    player.aiController.attackWeight = 1.5f;
+                    player.aiController.healWeight = 1.0f;
+                    player.aiController.saveWeight = 0.5f;   // 不太愿意救人
+                    break;
+                case Identity.Spy:
+                    // 内奸：平衡策略，根据局势变化
+                    player.aiController.attackWeight = 1.0f;
+                    player.aiController.healWeight = 1.2f;
+                    player.aiController.saveWeight = 0.8f;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 获取身份名称
+        /// </summary>
+        private string GetIdentityName(Identity identity)
+        {
+            switch (identity)
+            {
+                case Identity.Lord: return "主公";
+                case Identity.Loyalist: return "忠臣";
+                case Identity.Rebel: return "反贼";
+                case Identity.Spy: return "内奸";
+                default: return "未知";
+            }
         }
 
         /// <summary>

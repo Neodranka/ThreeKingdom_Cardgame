@@ -17,6 +17,18 @@ namespace ThreeKingdoms
     }
 
     /// <summary>
+    /// ⭐ 身份场角色身份
+    /// </summary>
+    public enum Identity
+    {
+        None,       // 无身份（非身份场模式）
+        Lord,       // 主公
+        Loyalist,   // 忠臣
+        Rebel,      // 反贼
+        Spy         // 内奸
+    }
+
+    /// <summary>
     /// 玩家类
     /// </summary>
     public class Player : MonoBehaviour
@@ -32,6 +44,7 @@ namespace ThreeKingdoms
         public string playerName = "玩家";
         public string generalName = "武将";    // 武将名称
         public Faction faction;                 // 阵营
+        public Identity identity = Identity.None;  // ⭐ 身份场身份
 
         [Header("属性")]
         public int maxHP = 4;                   // 最大体力

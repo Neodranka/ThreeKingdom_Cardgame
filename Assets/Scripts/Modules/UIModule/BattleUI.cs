@@ -103,7 +103,49 @@ namespace ThreeKingdoms.UI
         private void Start()
         {
             SetupButtons();
+            LocalizeButtonTexts();
             UpdateButtonStates();
+        }
+
+        /// <summary>
+        /// ⭐ 本地化按钮文本
+        /// </summary>
+        private void LocalizeButtonTexts()
+        {
+            if (LocalizationManager.Instance == null) return;
+
+            // 结束出牌按钮
+            if (endPhaseButton != null)
+            {
+                var text = endPhaseButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (text != null)
+                {
+                    text.text = LocalizationManager.Instance.GetText("ui_end_phase");
+                    TMPFontHelper.SetFontByLanguage(text);
+                }
+            }
+
+            // 使用卡牌按钮
+            if (useCardButton != null)
+            {
+                var text = useCardButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (text != null)
+                {
+                    text.text = LocalizationManager.Instance.GetText("ui_use_card");
+                    TMPFontHelper.SetFontByLanguage(text);
+                }
+            }
+
+            // 取消按钮
+            if (cancelButton != null)
+            {
+                var text = cancelButton.GetComponentInChildren<TextMeshProUGUI>();
+                if (text != null)
+                {
+                    text.text = LocalizationManager.Instance.GetText("ui_cancel");
+                    TMPFontHelper.SetFontByLanguage(text);
+                }
+            }
         }
 
         private void Update()

@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using ThreeKingdoms.DatabaseModule;
 
 namespace ThreeKingdoms.UI
@@ -27,6 +28,11 @@ namespace ThreeKingdoms.UI
         [SerializeField] private TextMeshProUGUI titleText;        // ⭐ 场景标题
         [SerializeField] private TextMeshProUGUI identityModeLabel; // ⭐ 身份场标签
         [SerializeField] private TextMeshProUGUI selectGeneralLabel; // ⭐ 选择武将标签
+
+        [Header("Player Count")]
+        [SerializeField] private Slider playerCountSlider;         // ⭐ 玩家人数滑块
+        [SerializeField] private TextMeshProUGUI playerCountText;  // ⭐ 玩家人数显示文本
+        [SerializeField] private TextMeshProUGUI playerCountLabel; // ⭐ 玩家人数标签
 
         [Header("Font Settings")]
         [Tooltip("默认字体资源（可选，不设置则使用TMP默认字体）")]
@@ -98,6 +104,15 @@ namespace ThreeKingdoms.UI
                 aiDifficultySlider.value = 1;
             }
 
+            // ⭐ 设置玩家人数滑块
+            if (playerCountSlider != null)
+            {
+                playerCountSlider.minValue = 2;
+                playerCountSlider.maxValue = 8;
+                playerCountSlider.wholeNumbers = true;
+                playerCountSlider.value = 4; // 默认4人
+            }
+
             // 默认禁用开始按钮（需要先选择武将）
             if (startGameButton != null)
                 startGameButton.interactable = false;
@@ -158,7 +173,10 @@ namespace ThreeKingdoms.UI
             // 3. ⭐ 更新已选武将文本
             UpdateSelectedCharacterText();
 
-            // 4. ⭐ 重新加载武将按钮（更新武将名称）
+            // 4. ⭐ 更新玩家人数文本
+            UpdatePlayerCountText();
+
+            // 5. ⭐ 重新加载武将按钮（更新武将名称）
             RefreshCharacterButtons();
 
             Debug.Log("[GameSetup] UI文本刷新完成");
@@ -225,10 +243,20 @@ namespace ThreeKingdoms.UI
                 return;
             }
 
-            // 从DatabaseModule加载所有武将
-            availableGenerals = new List<GeneralData>(
-                Resources.LoadAll<GeneralData>("Data/Generals")
-            );
+            // ⭐ 优先从GeneralDatabase加载（包含运行时创建的角色）
+            if (GeneralDatabase.Instance != null && GeneralDatabase.Instance.allGenerals.Count > 0)
+            {
+                availableGenerals = new List<GeneralData>(GeneralDatabase.Instance.allGenerals);
+                Debug.Log($"[GameSetup] 从GeneralDatabase加载了 {availableGenerals.Count} 个武将");
+            }
+            else
+            {
+                // 回退：直接从Resources加载
+                availableGenerals = new List<GeneralData>(
+                    Resources.LoadAll<GeneralData>("Data/Generals")
+                );
+                Debug.Log($"[GameSetup] 从Resources加载了 {availableGenerals.Count} 个武将");
+            }
 
             // 如果没有找到武将数据，创建一些示例武将
             if (availableGenerals.Count == 0)
@@ -238,6 +266,12 @@ namespace ThreeKingdoms.UI
             }
 
             Debug.Log($"成功加载 {availableGenerals.Count} 个武将");
+
+            // ⭐ 按阵营排序显示
+            availableGenerals = availableGenerals
+                .OrderBy(g => g.faction)
+                .ThenBy(g => g.generalName)
+                .ToList();
 
             // 为每个武将创建选择按钮
             foreach (var general in availableGenerals)
@@ -655,6 +689,35 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
+        /// ⭐ 更新玩家人数显示（支持本地化）
+        /// </summary>
+        private void UpdatePlayerCountText()
+        {
+            if (playerCountText != null && playerCountSlider != null && LocalizationManager.Instance != null)
+            {
+                int count = (int)playerCountSlider.value;
+                string playerCountLabel_str = LocalizationManager.Instance.GetText("ui_player_count");
+                string playersText = LocalizationManager.Instance.GetTextFormatted("ui_players", count);
+
+                playerCountText.text = $"{playerCountLabel_str}: {playersText}";
+                TMPFontHelper.SetFontByLanguage(playerCountText);
+            }
+            else if (playerCountText != null && playerCountSlider != null)
+            {
+                // 没有本地化系统时的fallback
+                int count = (int)playerCountSlider.value;
+                playerCountText.text = $"玩家人数: {count}人";
+            }
+
+            // 更新标签
+            if (playerCountLabel != null && LocalizationManager.Instance != null)
+            {
+                playerCountLabel.text = LocalizationManager.Instance.GetText("ui_player_count");
+                TMPFontHelper.SetFontByLanguage(playerCountLabel);
+            }
+        }
+
+        /// <summary>
         /// 绑定UI事件
         /// </summary>
         private void BindEvents()
@@ -662,6 +725,12 @@ namespace ThreeKingdoms.UI
             if (aiDifficultySlider != null)
             {
                 aiDifficultySlider.onValueChanged.AddListener(OnAIDifficultyChanged);
+            }
+
+            // ⭐ 玩家人数滑块事件
+            if (playerCountSlider != null)
+            {
+                playerCountSlider.onValueChanged.AddListener(OnPlayerCountChanged);
             }
 
             if (startGameButton != null)
@@ -684,6 +753,14 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
+        /// ⭐ 玩家人数改变事件
+        /// </summary>
+        private void OnPlayerCountChanged(float value)
+        {
+            UpdatePlayerCountText();
+        }
+
+        /// <summary>
         /// 开始游戏按钮点击事件
         /// </summary>
         private void OnStartGameClicked()
@@ -701,9 +778,11 @@ namespace ThreeKingdoms.UI
                 config.selectedGeneral = selectedGeneral;
                 config.enableIdentityMode = identityModeToggle != null && identityModeToggle.isOn;
                 config.aiDifficulty = aiDifficultySlider != null ? (int)aiDifficultySlider.value : 1;
+                config.playerCount = playerCountSlider != null ? (int)playerCountSlider.value : 4;
 
                 Debug.Log($"游戏配置: 武将={config.selectedGeneral.generalName}, " +
-                         $"身份场={config.enableIdentityMode}, AI难度={config.GetAIDifficultyName()}");
+                         $"身份场={config.enableIdentityMode}, AI难度={config.GetAIDifficultyName()}, " +
+                         $"玩家人数={config.playerCount}");
             }
 
             // 加载游戏场景
@@ -724,6 +803,10 @@ namespace ThreeKingdoms.UI
             // 清理事件监听
             if (aiDifficultySlider != null)
                 aiDifficultySlider.onValueChanged.RemoveListener(OnAIDifficultyChanged);
+
+            // ⭐ 清理玩家人数滑块事件
+            if (playerCountSlider != null)
+                playerCountSlider.onValueChanged.RemoveListener(OnPlayerCountChanged);
 
             if (startGameButton != null)
                 startGameButton.onClick.RemoveListener(OnStartGameClicked);
