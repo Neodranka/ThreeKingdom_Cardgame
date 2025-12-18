@@ -88,6 +88,9 @@ namespace ThreeKingdoms
             AddTranslation("general_xuhuang", "徐晃", "Xu Huang", "서황");
             AddTranslation("general_xuzhu", "许褚", "Xu Zhu", "허저");
             AddTranslation("general_simayi", "司马懿", "Sima Yi", "사마의");
+            AddTranslation("general_jianggan", "蒋干", "Jiang Gan", "장간");
+            AddTranslation("general_xiahoujie", "夏侯杰", "Xiahou Jie", "하후걸");
+            AddTranslation("general_caojun_cavalry", "曹军骑兵", "Cao Cavalry", "조군 기병");
 
             // --- 蜀国 (Shu) ---
             AddTranslation("general_liubei", "刘备", "Liu Bei", "유비");
@@ -106,6 +109,9 @@ namespace ThreeKingdoms
             AddTranslation("general_sunjian", "孙坚", "Sun Jian", "손견");
             AddTranslation("general_luxun", "陆逊", "Lu Xun", "육손");
             AddTranslation("general_ganning", "甘宁", "Gan Ning", "감녕");
+            AddTranslation("general_lusu", "鲁肃", "Lu Su", "노숙");
+            AddTranslation("general_chengpu", "程普", "Cheng Pu", "정보");
+            AddTranslation("general_zhangzhao", "张昭", "Zhang Zhao", "장소");
 
             // --- 群雄 (Qun) ---
             AddTranslation("general_lvbu", "吕布", "Lv Bu", "여포");
