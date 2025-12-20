@@ -66,6 +66,13 @@ namespace ThreeKingdoms.DatabaseModule
             ValidateData();
         }
 
+        // ⭐ 对战模式排除列表（仅在故事模式使用的角色）
+        private static readonly HashSet<string> excludedFromBattle = new HashSet<string>
+        {
+            "caojun_cavalry",   // 曹军骑兵 - 故事模式敌人
+            "dongzhuo",         // 董卓(8血) - 仅故事模式BOSS
+        };
+
         /// <summary>
         /// 从Resources文件夹加载武将数据
         /// </summary>
@@ -79,8 +86,20 @@ namespace ThreeKingdoms.DatabaseModule
                 return;
             }
 
-            allGenerals.AddRange(loadedGenerals);
-            Debug.Log($"从Resources加载了 {loadedGenerals.Length} 个武将");
+            // ⭐ 过滤掉仅故事模式使用的角色
+            int excludedCount = 0;
+            foreach (var general in loadedGenerals)
+            {
+                if (excludedFromBattle.Contains(general.generalId))
+                {
+                    excludedCount++;
+                    Debug.Log($"[GeneralDatabase] 排除故事模式角色: {general.generalName}");
+                    continue;
+                }
+                allGenerals.Add(general);
+            }
+
+            Debug.Log($"从Resources加载了 {loadedGenerals.Length - excludedCount} 个武将（排除 {excludedCount} 个故事模式角色）");
         }
 
         /// <summary>
@@ -120,7 +139,7 @@ namespace ThreeKingdoms.DatabaseModule
                 ("lvbu", "吕布", Faction.Qun, 4, new[] { "wushuang" }),
                 ("diaochan", "貂蝉", Faction.Qun, 3, new[] { "lijian", "biyue" }),
                 ("huatuo", "华佗", Faction.Qun, 3, new[] { "qingnang", "jijiu" }),
-                ("dongzhuo", "董卓", Faction.Qun, 8, new[] { "jiuchi", "roulin", "benghuai" }),
+                // 董卓(8血)仅在故事模式中出现，不加入对战池
                 ("yuanshao", "袁绍", Faction.Qun, 4, new[] { "qiji" }),
                 ("huaxiong", "华雄", Faction.Qun, 6, new[] { "yaowu_v2" }),
                 ("yanliang", "颜良", Faction.Qun, 4, new[] { "weiwu" }),

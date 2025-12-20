@@ -113,6 +113,16 @@ namespace ThreeKingdoms.UI
                 playerCountSlider.value = 4; // 默认4人
             }
 
+            // ⭐ 初始化时为玩家人数文本设置字体
+            if (playerCountText != null)
+            {
+                TMPFontHelper.SetFontByLanguage(playerCountText);
+            }
+            if (playerCountLabel != null)
+            {
+                TMPFontHelper.SetFontByLanguage(playerCountLabel);
+            }
+
             // 默认禁用开始按钮（需要先选择武将）
             if (startGameButton != null)
                 startGameButton.interactable = false;
