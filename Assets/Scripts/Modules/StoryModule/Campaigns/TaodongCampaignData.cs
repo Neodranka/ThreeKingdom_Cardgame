@@ -303,10 +303,10 @@ namespace ThreeKingdoms.Story.Campaigns
                     new BattleCharacter("zhangfei_story", "char_zhangfei", 4, true, "paoxiao")
                 },
 
-                // 敌方角色 - 吕布（7HP，无双）
+                // 敌方角色 - 吕布（4HP基础+3临时=7HP，无双）
                 enemies = new List<BattleCharacter>
                 {
-                    new BattleCharacter("lvbu", "char_lvbu", 7, false, "wushuang")
+                    new BattleCharacter("lvbu", "char_lvbu", 4, false, "wushuang")
                 },
 
                 // 胜利条件：击败吕布
@@ -325,15 +325,16 @@ namespace ThreeKingdoms.Story.Campaigns
                 // 特殊规则
                 specialRules = new List<SpecialRule>
                 {
-                    // 一骑当千：吕布战斗开始时额外+3体力上限，第3回合结束后移除（恢复为7HP）
-                    new SpecialRule("one_man_army", "rule_one_man_army", RuleType.TemporaryHPBonus, 3)
+                    // 一骑当千：吕布战斗开始时额外+3体力上限，刘备上场时移除
+                    // 参数：triggerTurn=0（战斗开始），value=3（+3体力）
+                    new SpecialRule("one_man_army", "rule_one_man_army", RuleType.TemporaryHPBonus, 0, 3)
                     { targetId = "lvbu", extraInfo = "3" },
                     // 绝世武力：第1回合吕布使用杀的伤害x2
                     new SpecialRule("peerless_might", "rule_peerless_might", RuleType.DoubleDamage, 1)
                     { targetId = "lvbu" },
                     // 逐步增援：第2回合关羽加入，第3回合刘备加入
                     new SpecialRule("gradual_reinforcement", "rule_gradual_reinforcement", RuleType.ReinforcementOnRound)
-                    { extraInfo = "guanyu_story:2,liubei:3" }
+                    { extraInfo = "guanyu_story:2,liubei_story:3" }
                 },
 
                 // 增援角色配置
@@ -347,7 +348,7 @@ namespace ThreeKingdoms.Story.Campaigns
                     new ReinforcementData
                     {
                         roundNumber = 3,
-                        character = new BattleCharacter("liubei", "char_liubei", 4, false, "rende")
+                        character = new BattleCharacter("liubei_story", "char_liubei", 4, false, "rende")
                     }
                 },
 
@@ -379,7 +380,7 @@ namespace ThreeKingdoms.Story.Campaigns
                         new Dialogue("char_guanyu", "dialogue_taodong3_guanyu_hit")),
 
                     // 刘备造成伤害
-                    new BattleEvent(EventTrigger.OnDamageDone, "liubei",
+                    new BattleEvent(EventTrigger.OnDamageDone, "liubei_story",
                         new Dialogue("char_liubei", "dialogue_taodong3_liubei_hit")),
 
                     // 吕布体力≤3

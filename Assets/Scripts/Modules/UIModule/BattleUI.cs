@@ -259,6 +259,51 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
+        /// ⭐ 动态添加玩家UI（用于增援系统）
+        /// </summary>
+        public void AddPlayerUI(Player player, bool isAlly = true)
+        {
+            if (player == null || playerInfoUIs.ContainsKey(player))
+            {
+                Debug.LogWarning($"[BattleUI] 无法添加玩家UI: player={player?.generalName ?? "null"}, 已存在={playerInfoUIs.ContainsKey(player)}");
+                return;
+            }
+
+            if (playerInfoPrefab == null || otherPlayersContainer == null)
+            {
+                Debug.LogWarning("[BattleUI] playerInfoPrefab或otherPlayersContainer为null，无法创建增援UI");
+                return;
+            }
+
+            // 创建玩家UI
+            GameObject playerObj = Instantiate(playerInfoPrefab, otherPlayersContainer);
+            PlayerInfoUI playerUI = playerObj.GetComponent<PlayerInfoUI>();
+
+            if (playerUI != null)
+            {
+                playerUI.SetPlayer(player, false);  // 增援角色不是本地玩家
+                playerInfoUIs[player] = playerUI;
+
+                // 添加点击事件用于选择目标
+                Button targetButton = playerObj.GetComponent<Button>();
+                if (targetButton == null)
+                {
+                    targetButton = playerObj.AddComponent<Button>();
+                }
+
+                Player targetPlayer = player;
+                targetButton.onClick.AddListener(() => OnPlayerSelected(targetPlayer));
+
+                Debug.Log($"[BattleUI] 成功为增援角色 {player.generalName} 创建UI");
+            }
+            else
+            {
+                Debug.LogError("[BattleUI] playerInfoPrefab没有PlayerInfoUI组件");
+                Destroy(playerObj);
+            }
+        }
+
+        /// <summary>
         /// 更新手牌显示
         /// </summary>
         public void UpdateHandCards(List<Card> cards)

@@ -1140,7 +1140,18 @@ namespace ThreeKingdoms
             }
 
             int finalDamage = Mathf.Max(0, baseDamage + damageModifier);
-            if (damageModifier != 0)
+
+            // ⭐ 故事模式：检查伤害翻倍规则（如吕布第一回合绝世武力）
+            if (Story.StoryBattleManager.Instance != null && Story.StoryBattleManager.Instance.isBattleActive)
+            {
+                if (Story.StoryBattleManager.Instance.CheckDoubleDamage(user))
+                {
+                    finalDamage *= 2;
+                    Debug.Log($"[绝世武力] {user.generalName} 的伤害翻倍: {finalDamage / 2} -> {finalDamage}");
+                }
+            }
+
+            if (damageModifier != 0 || finalDamage != baseDamage)
             {
                 Debug.Log($"[伤害计算] {user.generalName} 对 {target.generalName} 的杀伤害: 基础{baseDamage} + 修正{damageModifier} = {finalDamage}");
             }

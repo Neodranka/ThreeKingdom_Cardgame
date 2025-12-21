@@ -155,6 +155,19 @@ namespace ThreeKingdoms.AI
                         // ⭐ 检查是否还能使用杀
                         if (controlledPlayer.CanUseSlash())
                         {
+                            // ⭐ 检查故事模式优先攻击目标
+                            Player priorityTarget = StoryBattleManager.Instance?.GetPriorityTarget(controlledPlayer);
+                            if (priorityTarget != null && priorityTarget.isAlive)
+                            {
+                                // 检查优先目标是否在攻击范围内
+                                var slashTargets = GetSlashTargets();
+                                if (slashTargets.Contains(priorityTarget))
+                                {
+                                    actions.Add(new AIAction(AIActionType.UseSlash, card, priorityTarget));
+                                    break;  // 只攻击优先目标
+                                }
+                            }
+
                             // 寻找攻击范围内的目标（排除盟友）
                             var targets = GetSlashTargets();
                             foreach (var target in targets)
@@ -169,6 +182,14 @@ namespace ThreeKingdoms.AI
                         break;
 
                     case "决斗":
+                        // ⭐ 检查故事模式优先攻击目标
+                        Player duelPriorityTarget = StoryBattleManager.Instance?.GetPriorityTarget(controlledPlayer);
+                        if (duelPriorityTarget != null && duelPriorityTarget.isAlive)
+                        {
+                            actions.Add(new AIAction(AIActionType.UseDuel, card, duelPriorityTarget));
+                            break;  // 只决斗优先目标
+                        }
+
                         var duelTargets = GetAttackTargets();
                         foreach (var target in duelTargets)
                         {
