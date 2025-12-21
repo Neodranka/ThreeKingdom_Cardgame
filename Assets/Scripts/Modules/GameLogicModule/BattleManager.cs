@@ -600,7 +600,14 @@ namespace ThreeKingdoms
         /// </summary>
         private bool CheckGameOver()
         {
-            // ⭐ 身份场模式：使用身份场胜负判定
+            // ⭐ 故事模式：由 StoryBattleManager 处理胜负判定，跳过身份场检测
+            if (Story.StoryBattleManager.Instance != null && Story.StoryBattleManager.Instance.isBattleActive)
+            {
+                // 故事模式不使用身份场逻辑，由 StoryBattleManager 自己判定
+                return false;
+            }
+
+            // ⭐ 身份场模式：使用身份场胜负判定（仅对战模式）
             if (GameConfig.Instance != null && GameConfig.Instance.enableIdentityMode)
             {
                 return CheckIdentityModeGameOver();

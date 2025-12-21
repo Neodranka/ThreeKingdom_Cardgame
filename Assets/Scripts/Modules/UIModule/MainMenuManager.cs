@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
+using ThreeKingdoms;  // ⭐ GameConfig
 
 namespace ThreeKingdomsKill.UI
 {
@@ -162,8 +163,29 @@ namespace ThreeKingdomsKill.UI
         private void OnStoryModeClicked()
         {
             Debug.Log("进入故事模式");
+
+            // ⭐ 重置对战模式设置，防止身份场逻辑干扰故事模式
+            ClearBattleModeSettings();
+
             // 加载故事模式场景
             SceneManager.LoadScene("StoryMode");
+        }
+
+        /// <summary>
+        /// ⭐ 清理对战模式设置（进入故事模式时调用）
+        /// </summary>
+        private void ClearBattleModeSettings()
+        {
+            // 重置 GameConfig 的身份场设置
+            if (GameConfig.Instance != null)
+            {
+                GameConfig.Instance.enableIdentityMode = false;
+                Debug.Log("[MainMenu] 已重置身份场模式为关闭");
+            }
+
+            // 清理对战模式相关的 PlayerPrefs
+            PlayerPrefs.DeleteKey("EnableIdentityMode");
+            PlayerPrefs.Save();
         }
 
         /// <summary>
