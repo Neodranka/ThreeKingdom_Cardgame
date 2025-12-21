@@ -668,6 +668,8 @@ namespace ThreeKingdoms
         private void CreateStoryPlayersFromStoryBattle(StoryBattle storyBattle)
         {
             List<Player> players = new List<Player>();
+            List<Player> allyPlayers = new List<Player>();    // ⭐ 分别保存盟友列表
+            List<Player> enemyPlayers = new List<Player>();   // ⭐ 分别保存敌人列表
 
             // 创建我方角色
             if (storyBattle.allies != null)
@@ -686,6 +688,7 @@ namespace ThreeKingdoms
                     if (ally != null)
                     {
                         players.Add(ally);
+                        allyPlayers.Add(ally);  // ⭐ 添加到盟友列表
                         allyIndex++;
                     }
                 }
@@ -707,6 +710,7 @@ namespace ThreeKingdoms
                     if (enemy != null)
                     {
                         players.Add(enemy);
+                        enemyPlayers.Add(enemy);  // ⭐ 添加到敌人列表
                         enemyIndex++;
                     }
                 }
@@ -715,7 +719,13 @@ namespace ThreeKingdoms
             // 设置到BattleManager
             BattleManager.Instance.players = players;
 
-            Debug.Log($"[GameInitializer] 故事模式创建了 {players.Count} 个角色（我方:{storyBattle.allies?.Count ?? 0}, 敌方:{storyBattle.enemies?.Count ?? 0}）");
+            // ⭐ 注册玩家引用到StoryBattleManager（用于可靠的盟友判定）
+            if (StoryBattleManager.Instance != null)
+            {
+                StoryBattleManager.Instance.RegisterPlayers(allyPlayers, enemyPlayers);
+            }
+
+            Debug.Log($"[GameInitializer] 故事模式创建了 {players.Count} 个角色（我方:{allyPlayers.Count}, 敌方:{enemyPlayers.Count}）");
         }
 
         /// <summary>

@@ -1826,6 +1826,7 @@ MonoBehaviour:
   allGenerals: []
   autoLoadFromResources: 1
   resourcePath: Data/Generals
+  loadStoryCharacters: 1
 --- !u!4 &951634551
 Transform:
   m_ObjectHideFlags: 0
@@ -4096,6 +4097,11 @@ MonoBehaviour:
   responsePlayButton: {fileID: 0}
   responseSkipButton: {fileID: 0}
   responseCardContainer: {fileID: 0}
+  storyRulePanel: {fileID: 0}
+  battleNameText: {fileID: 0}
+  victoryConditionText: {fileID: 0}
+  defeatConditionText: {fileID: 0}
+  specialRulesText: {fileID: 0}
 --- !u!1 &2094449184
 GameObject:
   m_ObjectHideFlags: 0

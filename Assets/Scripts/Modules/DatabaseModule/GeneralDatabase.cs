@@ -66,6 +66,39 @@ namespace ThreeKingdoms.DatabaseModule
             ValidateData();
         }
 
+        // ⭐ 对战模式排除列表（仅在故事模式使用的角色）- 全部小写
+        private static readonly HashSet<string> excludedFromBattle = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            // === 故事模式专属敌人 ===
+            "caojun_cavalry",       // 曹军骑兵 - 故事模式敌人
+            "caojuncavalry",        // 曹军骑兵（无下划线版本）
+            "caojun_navy",          // 曹军水兵 - 故事模式敌人
+            "caojunnavy",           // 曹军水兵（无下划线版本）
+            "dongzhuo",             // 董卓(7/8血版) - 仅故事模式BOSS
+
+            // === 赤壁之战专属角色 ===
+            "xiahoujie",            // 夏侯杰 - 胆裂技能，专为赤壁之战设计
+            "jianggan",             // 蒋干 - 盗书技能，专为蒋干盗书关卡设计
+
+            // === 通用敌人单位 ===
+            "xiliang_soldier",      // 西凉兵
+            "xiliang_soldier_1",    // 西凉兵1
+            "xiliang_soldier_2",    // 西凉兵2
+            "xiliang_soldier_3",    // 西凉兵3
+            "xiliangsoldier",       // 西凉兵（无下划线版本）
+        };
+
+        /// <summary>
+        /// ⭐ 检查角色是否应该被排除（不区分大小写，支持多种ID格式）
+        /// </summary>
+        private static bool ShouldExcludeFromBattle(string generalId)
+        {
+            if (string.IsNullOrEmpty(generalId)) return false;
+
+            string cleanId = generalId.ToLower().Replace("_story", "").Replace(" ", "_");
+            return excludedFromBattle.Contains(cleanId) || excludedFromBattle.Contains(generalId);
+        }
+
         /// <summary>
         /// 从Resources文件夹加载武将数据
         /// </summary>
@@ -79,8 +112,20 @@ namespace ThreeKingdoms.DatabaseModule
                 return;
             }
 
-            allGenerals.AddRange(loadedGenerals);
-            Debug.Log($"从Resources加载了 {loadedGenerals.Length} 个武将");
+            // ⭐ 过滤掉仅故事模式使用的角色
+            int excludedCount = 0;
+            foreach (var general in loadedGenerals)
+            {
+                if (ShouldExcludeFromBattle(general.generalId))
+                {
+                    excludedCount++;
+                    Debug.Log($"[GeneralDatabase] 排除故事模式角色: {general.generalName} (ID: {general.generalId})");
+                    continue;
+                }
+                allGenerals.Add(general);
+            }
+
+            Debug.Log($"从Resources加载了 {loadedGenerals.Length - excludedCount} 个武将（排除 {excludedCount} 个故事模式角色）");
         }
 
         /// <summary>
@@ -120,7 +165,7 @@ namespace ThreeKingdoms.DatabaseModule
                 ("lvbu", "吕布", Faction.Qun, 4, new[] { "wushuang" }),
                 ("diaochan", "貂蝉", Faction.Qun, 3, new[] { "lijian", "biyue" }),
                 ("huatuo", "华佗", Faction.Qun, 3, new[] { "qingnang", "jijiu" }),
-                ("dongzhuo", "董卓", Faction.Qun, 8, new[] { "jiuchi", "roulin", "benghuai" }),
+                // 董卓(8血)仅在故事模式中出现，不加入对战池
                 ("yuanshao", "袁绍", Faction.Qun, 4, new[] { "qiji" }),
                 ("huaxiong", "华雄", Faction.Qun, 6, new[] { "yaowu_v2" }),
                 ("yanliang", "颜良", Faction.Qun, 4, new[] { "weiwu" }),
@@ -137,6 +182,13 @@ namespace ThreeKingdoms.DatabaseModule
             int addedCount = 0;
             foreach (var (id, name, faction, hp, skills) in storyCharactersData)
             {
+                // ⭐ 检查是否在排除列表中
+                if (ShouldExcludeFromBattle(id))
+                {
+                    Debug.Log($"[GeneralDatabase] 跳过排除角色: {name} ({id})");
+                    continue;
+                }
+
                 // ⭐ 跳过已存在的角色（避免重复）
                 if (generalDictionary.ContainsKey(id) || allGenerals.Any(g => g.generalId == id))
                 {

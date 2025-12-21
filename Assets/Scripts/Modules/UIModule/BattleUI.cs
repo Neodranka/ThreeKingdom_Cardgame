@@ -66,6 +66,13 @@ namespace ThreeKingdoms.UI
         public Button responseSkipButton;
         public Transform responseCardContainer;
 
+        [Header("故事模式规则显示")]
+        [SerializeField] private GameObject storyRulePanel;
+        [SerializeField] private TextMeshProUGUI battleNameText;
+        [SerializeField] private TextMeshProUGUI victoryConditionText;
+        [SerializeField] private TextMeshProUGUI defeatConditionText;
+        [SerializeField] private TextMeshProUGUI specialRulesText;
+
         private List<CardUI> handCardUIs = new List<CardUI>();
         private Dictionary<Player, PlayerInfoUI> playerInfoUIs = new Dictionary<Player, PlayerInfoUI>();
         private CardUI selectedCard = null;
@@ -105,6 +112,9 @@ namespace ThreeKingdoms.UI
             SetupButtons();
             LocalizeButtonTexts();
             UpdateButtonStates();
+
+            // ⭐ 初始化故事模式规则显示
+            InitializeStoryRulePanel();
         }
 
         /// <summary>
@@ -1877,6 +1887,25 @@ namespace ThreeKingdoms.UI
         public bool IsWaitingForDiscard()
         {
             return isWaitingForDiscard;
+        }
+
+        #endregion
+
+        #region 故事模式规则显示
+
+        /// <summary>
+        /// ⭐ 初始化故事模式规则面板
+        /// 注意：故事模式的规则显示由 StoryBattleManager 统一处理
+        /// 此方法仅用于处理通过 Inspector 绑定的 UI 元素
+        /// </summary>
+        private void InitializeStoryRulePanel()
+        {
+            // 故事模式的规则面板由 StoryBattleManager.ShowVictoryConditionUI() 创建和管理
+            // 如果在 Inspector 中绑定了 storyRulePanel，则隐藏它（避免重复显示）
+            if (storyRulePanel != null)
+            {
+                storyRulePanel.SetActive(false);
+            }
         }
 
         #endregion

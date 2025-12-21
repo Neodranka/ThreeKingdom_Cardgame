@@ -32,6 +32,7 @@ namespace ThreeKingdoms.Story
         [SerializeField] private TextMeshProUGUI victoryConditionText;
         [SerializeField] private TextMeshProUGUI defeatConditionText;
         [SerializeField] private TextMeshProUGUI battleNameText;
+        [SerializeField] private TextMeshProUGUI specialRulesText;  // ⭐ 特殊规则文本
 
         [Header("状态")]
         public bool isBattleActive = false;
@@ -47,6 +48,10 @@ namespace ThreeKingdoms.Story
         private Dictionary<string, int> eventCounts = new Dictionary<string, int>(); // 事件计数
         private Player playerCharacter;
         private List<BattleEvent> pendingEvents = new List<BattleEvent>();
+
+        // ⭐ 玩家引用列表（用于可靠的盟友判定）
+        private List<Player> allyPlayerRefs = new List<Player>();
+        private List<Player> enemyPlayerRefs = new List<Player>();
 
         // ⭐ 规则运行时状态
         private Dictionary<string, int> damageReductionCharges = new Dictionary<string, int>(); // 伤害减免次数
@@ -273,6 +278,10 @@ namespace ThreeKingdoms.Story
             isBattleActive = true;
             markers.Clear();
             eventCounts.Clear();
+
+            // ⭐ 清理玩家引用列表
+            allyPlayerRefs.Clear();
+            enemyPlayerRefs.Clear();
 
             // ⭐ 重置规则运行时状态
             damageReductionCharges.Clear();
@@ -1084,17 +1093,48 @@ namespace ThreeKingdoms.Story
         }
 
         /// <summary>
-        /// ⭐ 检查两个角色是否是盟友
+        /// ⭐ 注册玩家引用到盟友/敌人列表（供 GameInitializer 调用）
+        /// </summary>
+        public void RegisterPlayers(List<Player> allies, List<Player> enemies)
+        {
+            allyPlayerRefs.Clear();
+            enemyPlayerRefs.Clear();
+
+            if (allies != null)
+            {
+                allyPlayerRefs.AddRange(allies);
+            }
+
+            if (enemies != null)
+            {
+                enemyPlayerRefs.AddRange(enemies);
+            }
+
+            Debug.Log($"[StoryBattleManager] 注册玩家引用 - 盟友: {allyPlayerRefs.Count}, 敌人: {enemyPlayerRefs.Count}");
+        }
+
+        /// <summary>
+        /// ⭐ 检查两个角色是否是盟友（优先使用引用检查）
         /// </summary>
         public bool IsAlly(Player p1, Player p2)
         {
             if (p1 == null || p2 == null) return false;
+
+            // ⭐ 优先使用引用列表检查（更可靠）
+            if (allyPlayerRefs.Count > 0)
+            {
+                bool p1IsAlly = allyPlayerRefs.Contains(p1);
+                bool p2IsAlly = allyPlayerRefs.Contains(p2);
+                return p1IsAlly && p2IsAlly;
+            }
+
+            // 回退逻辑：使用阵营检查
             if (currentBattle == null) return p1.faction == p2.faction;
 
-            bool p1IsAlly = false;
-            bool p2IsAlly = false;
+            // 回退逻辑：使用字符串匹配
+            bool p1IsAllyByName = false;
+            bool p2IsAllyByName = false;
 
-            // 检查是否都在我方列表中
             if (currentBattle.allies != null)
             {
                 foreach (var ally in currentBattle.allies)
@@ -1103,12 +1143,12 @@ namespace ThreeKingdoms.Story
                     string p1Id = p1.generalName?.ToLower().Replace("_story", "") ?? "";
                     string p2Id = p2.generalName?.ToLower().Replace("_story", "") ?? "";
 
-                    if (allyId.Contains(p1Id) || p1Id.Contains(allyId)) p1IsAlly = true;
-                    if (allyId.Contains(p2Id) || p2Id.Contains(allyId)) p2IsAlly = true;
+                    if (allyId.Contains(p1Id) || p1Id.Contains(allyId)) p1IsAllyByName = true;
+                    if (allyId.Contains(p2Id) || p2Id.Contains(allyId)) p2IsAllyByName = true;
                 }
             }
 
-            return p1IsAlly && p2IsAlly;
+            return p1IsAllyByName && p2IsAllyByName;
         }
 
         /// <summary>
@@ -3156,6 +3196,21 @@ namespace ThreeKingdoms.Story
                 string defeatLabel = LocalizationManager.Instance?.GetText("ui_defeat_label") ?? "失败:";
                 defeatConditionText.text = defeatLabel + " " + GetDefeatConditionDescription();
             }
+
+            // ⭐ 显示特殊规则
+            if (specialRulesText != null)
+            {
+                string rulesDescription = GetSpecialRulesDescription();
+                if (!string.IsNullOrEmpty(rulesDescription))
+                {
+                    specialRulesText.text = rulesDescription;
+                    specialRulesText.gameObject.SetActive(true);
+                }
+                else
+                {
+                    specialRulesText.gameObject.SetActive(false);
+                }
+            }
         }
 
         /// <summary>
@@ -3236,6 +3291,119 @@ namespace ThreeKingdoms.Story
         }
 
         /// <summary>
+        /// ⭐ 获取特殊规则描述
+        /// </summary>
+        private string GetSpecialRulesDescription()
+        {
+            if (currentBattle == null) return "";
+
+            string result = "";
+
+            // 优先使用 specialRuleKey（单一规则描述）
+            if (!string.IsNullOrEmpty(currentBattle.specialRuleKey))
+            {
+                string ruleLabel = LocalizationManager.Instance?.GetText("ui_special_rules") ?? "特殊规则";
+                string ruleDesc = LocalizationManager.Instance?.GetText(currentBattle.specialRuleKey) ?? currentBattle.specialRuleKey;
+                return $"{ruleLabel}: {ruleDesc}";
+            }
+
+            // 使用 specialRules 列表
+            if (currentBattle.specialRules != null && currentBattle.specialRules.Count > 0)
+            {
+                string ruleLabel = LocalizationManager.Instance?.GetText("ui_special_rules") ?? "特殊规则";
+                result = ruleLabel + ":";
+
+                foreach (var rule in currentBattle.specialRules)
+                {
+                    string ruleName = LocalizationManager.Instance?.GetText(rule.nameKey) ?? rule.nameKey;
+                    string ruleDescription = "";
+
+                    // 获取规则描述
+                    if (!string.IsNullOrEmpty(rule.descriptionKey))
+                    {
+                        ruleDescription = LocalizationManager.Instance?.GetText(rule.descriptionKey) ?? "";
+                    }
+
+                    // 尝试使用 nameKey + "_desc" 作为描述key
+                    if (string.IsNullOrEmpty(ruleDescription) && !string.IsNullOrEmpty(rule.nameKey))
+                    {
+                        string descKey = rule.nameKey + "_desc";
+                        ruleDescription = LocalizationManager.Instance?.GetText(descKey) ?? "";
+                        // 如果返回的是key本身，说明没找到翻译
+                        if (ruleDescription == descKey)
+                        {
+                            ruleDescription = "";
+                        }
+                    }
+
+                    // 如果没有描述key，根据规则类型生成描述
+                    if (string.IsNullOrEmpty(ruleDescription))
+                    {
+                        ruleDescription = GetRuleTypeDescription(rule);
+                    }
+
+                    if (!string.IsNullOrEmpty(ruleDescription))
+                    {
+                        result += $"\n• {ruleName}: {ruleDescription}";
+                    }
+                    else
+                    {
+                        result += $"\n• {ruleName}";
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// ⭐ 根据规则类型生成描述文本
+        /// </summary>
+        private string GetRuleTypeDescription(SpecialRule rule)
+        {
+            if (rule == null) return "";
+
+            switch (rule.type)
+            {
+                case RuleType.ModifyInitialCards:
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_initial_cards", rule.value) ?? $"初始手牌变为{rule.value}张";
+                case RuleType.ModifyMaxHP:
+                    string hpMod = rule.value > 0 ? $"+{rule.value}" : rule.value.ToString();
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_max_hp", hpMod) ?? $"体力上限{hpMod}";
+                case RuleType.ModifyAttackRange:
+                    string rangeMod = rule.value > 0 ? $"+{rule.value}" : rule.value.ToString();
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_attack_range", rangeMod) ?? $"攻击距离{rangeMod}";
+                case RuleType.FireDamageBonus:
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_fire_damage", rule.value) ?? $"火焰伤害+{rule.value}";
+                case RuleType.DisableSkill:
+                    return LocalizationManager.Instance?.GetText("rule_skill_disabled") ?? "该技能被禁用";
+                case RuleType.EnemyNoAttack:
+                    return LocalizationManager.Instance?.GetText("rule_no_attack") ?? "敌人不会主动攻击";
+                case RuleType.ModifyDrawCards:
+                    string drawMod = rule.value > 0 ? $"+{rule.value}" : rule.value.ToString();
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_draw_cards", drawMod) ?? $"摸牌阶段摸牌数{drawMod}";
+                case RuleType.DamageReduction:
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_damage_reduce", rule.value) ?? $"受到伤害-{rule.value}";
+                case RuleType.FirstDamagePrevention:
+                    return LocalizationManager.Instance?.GetText("rule_first_damage_prevent") ?? "首次受到伤害无效";
+                case RuleType.DrawOnDamage:
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_draw_on_damage", rule.value) ?? $"受到伤害后摸{rule.value}张牌";
+                case RuleType.ExtraSlash:
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_extra_slash", rule.value) ?? $"每回合可额外使用{rule.value}张杀";
+                case RuleType.NoAllyPeach:
+                    return LocalizationManager.Instance?.GetText("rule_no_ally_peach") ?? "不能对盟友使用桃";
+                case RuleType.HealOnKill:
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_heal_on_kill", rule.value) ?? $"击杀敌人后回复{rule.value}点体力";
+                case RuleType.DoubleDamage:
+                    return LocalizationManager.Instance?.GetText("rule_double_damage") ?? "造成伤害翻倍";
+                case RuleType.ReinforcementOnRound:
+                    return LocalizationManager.Instance?.GetTextFormatted("rule_reinforcement", rule.triggerTurn) ?? $"第{rule.triggerTurn}回合将有增援";
+                default:
+                    return "";
+            }
+        }
+
+        /// <summary>
         /// ⭐ 获取角色名称
         /// </summary>
         private string GetCharacterName(string characterId)
@@ -3286,7 +3454,7 @@ namespace ThreeKingdoms.Story
             panelRect.anchorMax = new Vector2(0, 1);
             panelRect.pivot = new Vector2(0, 1);
             panelRect.anchoredPosition = new Vector2(20, -20);
-            panelRect.sizeDelta = new Vector2(350, 120);
+            panelRect.sizeDelta = new Vector2(400, 180);  // ⭐ 增大面板以容纳特殊规则
 
             Image panelBg = victoryConditionPanel.AddComponent<Image>();
             panelBg.color = new Color(0, 0, 0, 0.7f);
@@ -3331,10 +3499,23 @@ namespace ThreeKingdoms.Story
             var defeatLayout = defeatObj.AddComponent<LayoutElement>();
             defeatLayout.preferredHeight = 25;
 
+            // ⭐ 特殊规则
+            GameObject rulesObj = new GameObject("SpecialRules");
+            rulesObj.transform.SetParent(victoryConditionPanel.transform, false);
+            specialRulesText = rulesObj.AddComponent<TextMeshProUGUI>();
+            specialRulesText.fontSize = 16;
+            specialRulesText.color = new Color(1f, 0.85f, 0.3f); // 黄色
+            specialRulesText.alignment = TextAlignmentOptions.Left;
+            specialRulesText.enableWordWrapping = true;
+            var rulesLayout = rulesObj.AddComponent<LayoutElement>();
+            rulesLayout.preferredHeight = 60;  // 给更多空间显示多条规则
+            rulesLayout.flexibleHeight = 1;    // 允许自动扩展
+
             // 设置字体
             SetChineseFont(battleNameText);
             SetChineseFont(victoryConditionText);
             SetChineseFont(defeatConditionText);
+            SetChineseFont(specialRulesText);
         }
 
         /// <summary>
