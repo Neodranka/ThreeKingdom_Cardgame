@@ -48,6 +48,10 @@ namespace ThreeKingdoms.Story
         private Player playerCharacter;
         private List<BattleEvent> pendingEvents = new List<BattleEvent>();
 
+        // ⭐ 玩家引用列表（用于可靠的盟友判定）
+        private List<Player> allyPlayerRefs = new List<Player>();
+        private List<Player> enemyPlayerRefs = new List<Player>();
+
         // ⭐ 规则运行时状态
         private Dictionary<string, int> damageReductionCharges = new Dictionary<string, int>(); // 伤害减免次数
         private Dictionary<string, bool> firstDamagePrevented = new Dictionary<string, bool>(); // 首次伤害是否已防止
@@ -273,6 +277,10 @@ namespace ThreeKingdoms.Story
             isBattleActive = true;
             markers.Clear();
             eventCounts.Clear();
+
+            // ⭐ 清理玩家引用列表
+            allyPlayerRefs.Clear();
+            enemyPlayerRefs.Clear();
 
             // ⭐ 重置规则运行时状态
             damageReductionCharges.Clear();
@@ -1084,17 +1092,48 @@ namespace ThreeKingdoms.Story
         }
 
         /// <summary>
-        /// ⭐ 检查两个角色是否是盟友
+        /// ⭐ 注册玩家引用到盟友/敌人列表（供 GameInitializer 调用）
+        /// </summary>
+        public void RegisterPlayers(List<Player> allies, List<Player> enemies)
+        {
+            allyPlayerRefs.Clear();
+            enemyPlayerRefs.Clear();
+
+            if (allies != null)
+            {
+                allyPlayerRefs.AddRange(allies);
+            }
+
+            if (enemies != null)
+            {
+                enemyPlayerRefs.AddRange(enemies);
+            }
+
+            Debug.Log($"[StoryBattleManager] 注册玩家引用 - 盟友: {allyPlayerRefs.Count}, 敌人: {enemyPlayerRefs.Count}");
+        }
+
+        /// <summary>
+        /// ⭐ 检查两个角色是否是盟友（优先使用引用检查）
         /// </summary>
         public bool IsAlly(Player p1, Player p2)
         {
             if (p1 == null || p2 == null) return false;
+
+            // ⭐ 优先使用引用列表检查（更可靠）
+            if (allyPlayerRefs.Count > 0)
+            {
+                bool p1IsAlly = allyPlayerRefs.Contains(p1);
+                bool p2IsAlly = allyPlayerRefs.Contains(p2);
+                return p1IsAlly && p2IsAlly;
+            }
+
+            // 回退逻辑：使用阵营检查
             if (currentBattle == null) return p1.faction == p2.faction;
 
-            bool p1IsAlly = false;
-            bool p2IsAlly = false;
+            // 回退逻辑：使用字符串匹配
+            bool p1IsAllyByName = false;
+            bool p2IsAllyByName = false;
 
-            // 检查是否都在我方列表中
             if (currentBattle.allies != null)
             {
                 foreach (var ally in currentBattle.allies)
@@ -1103,12 +1142,12 @@ namespace ThreeKingdoms.Story
                     string p1Id = p1.generalName?.ToLower().Replace("_story", "") ?? "";
                     string p2Id = p2.generalName?.ToLower().Replace("_story", "") ?? "";
 
-                    if (allyId.Contains(p1Id) || p1Id.Contains(allyId)) p1IsAlly = true;
-                    if (allyId.Contains(p2Id) || p2Id.Contains(allyId)) p2IsAlly = true;
+                    if (allyId.Contains(p1Id) || p1Id.Contains(allyId)) p1IsAllyByName = true;
+                    if (allyId.Contains(p2Id) || p2Id.Contains(allyId)) p2IsAllyByName = true;
                 }
             }
 
-            return p1IsAlly && p2IsAlly;
+            return p1IsAllyByName && p2IsAllyByName;
         }
 
         /// <summary>

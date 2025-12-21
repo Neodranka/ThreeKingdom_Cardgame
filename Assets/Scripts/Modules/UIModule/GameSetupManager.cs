@@ -243,6 +243,34 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
+        /// ⭐ 确保GeneralDatabase单例存在
+        /// 如果不存在，则创建一个（包含讨董/官渡等扩展角色）
+        /// </summary>
+        private void EnsureGeneralDatabaseExists()
+        {
+            if (GeneralDatabase.Instance != null)
+            {
+                Debug.Log($"[GameSetup] GeneralDatabase已存在，包含 {GeneralDatabase.Instance.allGenerals.Count} 个武将");
+                return;
+            }
+
+            Debug.Log("[GameSetup] GeneralDatabase不存在，正在创建...");
+
+            // 创建GeneralDatabase GameObject
+            GameObject dbObj = new GameObject("GeneralDatabase");
+            GeneralDatabase db = dbObj.AddComponent<GeneralDatabase>();
+
+            // 设置参数（autoLoadFromResources 和 loadStoryCharacters 默认都为 true）
+            db.autoLoadFromResources = true;
+            db.loadStoryCharacters = true;
+
+            // 注意：GeneralDatabase.Awake() 会自动调用 Initialize()
+            // 由于我们是在运行时添加组件，Awake会立即执行
+
+            Debug.Log($"[GameSetup] GeneralDatabase创建完成，包含 {GeneralDatabase.Instance?.allGenerals.Count ?? 0} 个武将");
+        }
+
+        /// <summary>
         /// 加载可用武将
         /// </summary>
         private void LoadCharacters()
@@ -252,6 +280,9 @@ namespace ThreeKingdoms.UI
                 Debug.LogWarning("CharacterGrid 未设置！");
                 return;
             }
+
+            // ⭐ 确保GeneralDatabase存在（包含讨董/官渡等扩展角色）
+            EnsureGeneralDatabaseExists();
 
             // ⭐ 优先从GeneralDatabase加载（包含运行时创建的角色）
             if (GeneralDatabase.Instance != null && GeneralDatabase.Instance.allGenerals.Count > 0)
@@ -266,6 +297,15 @@ namespace ThreeKingdoms.UI
                     Resources.LoadAll<GeneralData>("Data/Generals")
                 );
                 Debug.Log($"[GameSetup] 从Resources加载了 {availableGenerals.Count} 个武将");
+            }
+
+            // ⭐ 过滤掉故事模式专属角色
+            int beforeCount = availableGenerals.Count;
+            availableGenerals = availableGenerals.Where(g => !IsExcludedFromBattle(g.generalId)).ToList();
+            int excludedCount = beforeCount - availableGenerals.Count;
+            if (excludedCount > 0)
+            {
+                Debug.Log($"[GameSetup] 过滤了 {excludedCount} 个故事模式专属角色");
             }
 
             // 如果没有找到武将数据，创建一些示例武将
@@ -806,6 +846,30 @@ namespace ThreeKingdoms.UI
         {
             Debug.Log("[GameSetup] 返回主菜单");
             SceneManager.LoadScene("MainMenu");
+        }
+
+        // ⭐ 故事模式专属角色排除列表
+        private static readonly HashSet<string> excludedFromBattle = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            // 故事模式专属敌人
+            "caojun_cavalry", "caojuncavalry",   // 曹军骑兵
+            "caojun_navy", "caojunnavy",         // 曹军水兵
+            "dongzhuo",                           // 董卓(7/8血)
+            // 赤壁之战专属角色
+            "xiahoujie",                          // 夏侯杰
+            "jianggan",                           // 蒋干
+            // 通用敌人单位
+            "xiliang_soldier", "xiliang_soldier_1", "xiliang_soldier_2", "xiliang_soldier_3", "xiliangsoldier",
+        };
+
+        /// <summary>
+        /// ⭐ 检查角色是否应该被排除
+        /// </summary>
+        private bool IsExcludedFromBattle(string generalId)
+        {
+            if (string.IsNullOrEmpty(generalId)) return false;
+            string cleanId = generalId.ToLower().Replace("_story", "");
+            return excludedFromBattle.Contains(cleanId) || excludedFromBattle.Contains(generalId);
         }
 
         private void OnDestroy()

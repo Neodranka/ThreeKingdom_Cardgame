@@ -15,11 +15,13 @@ namespace ThreeKingdomsKill.UI
         [Header("UI References")]
         [SerializeField] private Button battleModeButton;
         [SerializeField] private Button storyModeButton;
+        [SerializeField] private Button exitButton;  // ⭐ 退出游戏按钮
         [SerializeField] private TextMeshProUGUI titleText; // ⭐ 游戏标题文本
 
         // ⭐ 按钮文本引用
         private TextMeshProUGUI battleModeText;
         private TextMeshProUGUI storyModeText;
+        private TextMeshProUGUI exitModeText;
 
         private void Start()
         {
@@ -32,6 +34,9 @@ namespace ThreeKingdomsKill.UI
 
             if (storyModeButton != null)
                 storyModeButton.onClick.AddListener(OnStoryModeClicked);
+
+            if (exitButton != null)
+                exitButton.onClick.AddListener(OnExitClicked);
 
             // ⭐ 初始化UI文本
             RefreshUIText();
@@ -60,6 +65,9 @@ namespace ThreeKingdomsKill.UI
 
             if (storyModeButton != null)
                 storyModeText = storyModeButton.GetComponentInChildren<TextMeshProUGUI>();
+
+            if (exitButton != null)
+                exitModeText = exitButton.GetComponentInChildren<TextMeshProUGUI>();
         }
 
         /// <summary>
@@ -95,6 +103,7 @@ namespace ThreeKingdomsKill.UI
             // 更新按钮文本
             UpdateButtonText(battleModeButton, battleModeText, "ui_battle_mode");
             UpdateButtonText(storyModeButton, storyModeText, "ui_story_mode");
+            UpdateButtonText(exitButton, exitModeText, "ui_exit_game");
 
             Debug.Log("[MainMenu] UI文本刷新完成");
         }
@@ -127,8 +136,24 @@ namespace ThreeKingdomsKill.UI
         private void OnBattleModeClicked()
         {
             Debug.Log("进入对战模式");
+
+            // ⭐ 清理故事模式的PlayerPrefs数据，防止误判
+            ClearStoryModePlayerPrefs();
+
             // 加载游戏准备场景
             SceneManager.LoadScene("GameSetup");
+        }
+
+        /// <summary>
+        /// ⭐ 清理故事模式相关的PlayerPrefs
+        /// </summary>
+        private void ClearStoryModePlayerPrefs()
+        {
+            PlayerPrefs.DeleteKey("StoryBattleId");
+            PlayerPrefs.DeleteKey("StoryPlayerGeneral");
+            PlayerPrefs.DeleteKey("StoryDifficulty");
+            PlayerPrefs.Save();
+            Debug.Log("[MainMenu] 已清理故事模式PlayerPrefs数据");
         }
 
         /// <summary>
@@ -141,6 +166,19 @@ namespace ThreeKingdomsKill.UI
             SceneManager.LoadScene("StoryMode");
         }
 
+        /// <summary>
+        /// ⭐ 退出游戏
+        /// </summary>
+        private void OnExitClicked()
+        {
+            Debug.Log("退出游戏");
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
         private void OnDestroy()
         {
             // 清理事件监听，防止内存泄漏
@@ -149,6 +187,9 @@ namespace ThreeKingdomsKill.UI
 
             if (storyModeButton != null)
                 storyModeButton.onClick.RemoveListener(OnStoryModeClicked);
+
+            if (exitButton != null)
+                exitButton.onClick.RemoveListener(OnExitClicked);
 
             // ⭐ 取消监听语言切换
             if (ThreeKingdoms.LocalizationManager.Instance != null)

@@ -381,6 +381,7 @@ namespace ThreeKingdoms
             // ==================== 手动修复缺失补充 ====================
             AddTranslation("ui_battle_mode", "对战模式", "Battle Mode", "대결모드");
             AddTranslation("ui_story_mode", "故事模式", "Story Mode", "스토리 모드");
+            AddTranslation("ui_exit_game", "退出游戏", "Exit Game", "게임 종료");
             AddTranslation("ui_settings", "设置", "Setting", "설정");
 
             AddTranslation("ui_start_game", "开始游戏", "Start", "게임시작");
@@ -391,6 +392,23 @@ namespace ThreeKingdoms
             AddTranslation("ui_hard", "高", "hard", "어려움");
             AddTranslation("ui_selected", "已选择", "Selected", "선택됨");
             AddTranslation("ui_please_select_general", "请选择武将", "Please select general", "캐릭터를 선택하세요");
+
+            // ==================== 故事模式胜败条件 ====================
+            AddTranslation("ui_victory_condition", "胜利条件", "Victory", "승리 조건");
+            AddTranslation("ui_defeat_condition", "失败条件", "Defeat", "패배 조건");
+            AddTranslation("ui_special_rules", "特殊规则", "Special Rules", "특수 규칙");
+            // 胜利条件描述
+            AddTranslation("victory_defeat_all", "击败所有敌人", "Defeat all enemies", "모든 적 처치");
+            AddTranslation("victory_defeat_target", "击败 {0}", "Defeat {0}", "{0} 처치");
+            AddTranslation("victory_survive", "存活 {0} 回合", "Survive {0} turns", "{0} 턴 생존");
+            AddTranslation("victory_marks", "累积 {0} 个标记", "Accumulate {0} marks", "{0}개 마크 획득");
+            AddTranslation("victory_complete", "完成目标", "Complete objective", "목표 완료");
+            // 失败条件描述
+            AddTranslation("defeat_player_death", "玩家死亡", "Player dies", "플레이어 사망");
+            AddTranslation("defeat_ally_death", "{0} 死亡", "{0} dies", "{0} 사망");
+            AddTranslation("defeat_all_allies", "我方全灭", "All allies die", "아군 전멸");
+            AddTranslation("defeat_turn_limit", "超过 {0} 回合", "Exceed {0} turns", "{0}턴 초과");
+            AddTranslation("defeat_fail", "任务失败", "Mission failed", "임무 실패");
 
             // ==================== 杀的限制消息 ====================
             AddTranslation("msg_slash_limit_reached", "本回合已无法再使用杀", "Cannot use Slash anymore this turn", "이번 턴에 더 이상 [살]을 사용할 수 없습니다");
