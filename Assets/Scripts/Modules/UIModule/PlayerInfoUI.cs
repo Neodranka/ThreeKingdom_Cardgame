@@ -1122,15 +1122,29 @@ namespace ThreeKingdoms.UI
 
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
+            // 获取本地化文本
+            string healthLabel = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_health_label")
+                : "体力:";
+            string factionLabel = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_faction_label")
+                : "阵营:";
+            string noSkillsText = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_no_skills")
+                : "该武将没有技能";
+            string noDescText = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_no_description")
+                : "暂无描述";
+
             // 显示武将基本信息
-            sb.AppendLine($"<color=#AAAAAA>体力: {playerData.currentHP}/{playerData.maxHP}</color>");
-            sb.AppendLine($"<color=#AAAAAA>阵营: {GetFactionName(playerData.faction)}</color>");
+            sb.AppendLine($"<color=#AAAAAA>{healthLabel} {playerData.currentHP}/{playerData.maxHP}</color>");
+            sb.AppendLine($"<color=#AAAAAA>{factionLabel} {GetFactionName(playerData.faction)}</color>");
             sb.AppendLine();
 
             // 显示技能信息
             if (playerData.skills == null || playerData.skills.Count == 0)
             {
-                sb.AppendLine("<color=#888888>该武将没有技能</color>");
+                sb.AppendLine($"<color=#888888>{noSkillsText}</color>");
             }
             else
             {
@@ -1138,21 +1152,32 @@ namespace ThreeKingdoms.UI
                 {
                     if (skill == null || skill.SkillData == null) continue;
 
-                    // 技能名称（根据类型着色）
+                    // 技能名称（本地化）
+                    string skillName = SkillFactory.GetSkillName(skill.SkillData.skillId);
+                    if (string.IsNullOrEmpty(skillName))
+                    {
+                        skillName = skill.SkillData.skillName;
+                    }
+
+                    // 技能类型（根据类型着色）
                     string typeColor = GetSkillTypeColor(skill.SkillData.skillType);
                     string typeName = GetSkillTypeName(skill.SkillData.skillType);
 
-                    sb.AppendLine($"<color={typeColor}>【{skill.SkillData.skillName}】</color> <size=12><color=#888888>[{typeName}]</color></size>");
+                    sb.AppendLine($"<color={typeColor}>【{skillName}】</color> <size=12><color=#888888>[{typeName}]</color></size>");
 
-                    // 技能描述 - 优先使用 GetDescription()，备选 SkillData.description
-                    string desc = skill.GetDescription();
+                    // 技能描述（本地化）- 优先使用本地化描述
+                    string desc = SkillFactory.GetSkillDescription(skill.SkillData.skillId);
+                    if (string.IsNullOrEmpty(desc))
+                    {
+                        desc = skill.GetDescription();
+                    }
                     if (string.IsNullOrEmpty(desc))
                     {
                         desc = skill.SkillData.description;
                     }
                     if (string.IsNullOrEmpty(desc))
                     {
-                        desc = "暂无描述";
+                        desc = noDescText;
                     }
                     sb.AppendLine($"<color=#CCCCCC>{desc}</color>");
                     sb.AppendLine();
@@ -1178,17 +1203,30 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
-        /// ⭐ 获取技能类型名称
+        /// ⭐ 获取技能类型名称（本地化）
         /// </summary>
         private string GetSkillTypeName(DatabaseModule.SkillType skillType)
         {
+            if (LocalizationManager.Instance == null)
+            {
+                // fallback
+                switch (skillType)
+                {
+                    case DatabaseModule.SkillType.Active: return "主动技";
+                    case DatabaseModule.SkillType.Passive: return "被动技";
+                    case DatabaseModule.SkillType.Trigger: return "触发技";
+                    case DatabaseModule.SkillType.Limit: return "限定技";
+                    default: return "未知";
+                }
+            }
+
             switch (skillType)
             {
-                case DatabaseModule.SkillType.Active: return "主动技";
-                case DatabaseModule.SkillType.Passive: return "被动技";
-                case DatabaseModule.SkillType.Trigger: return "触发技";
-                case DatabaseModule.SkillType.Limit: return "限定技";
-                default: return "未知";
+                case DatabaseModule.SkillType.Active: return LocalizationManager.Instance.GetText("skill_type_active");
+                case DatabaseModule.SkillType.Passive: return LocalizationManager.Instance.GetText("skill_type_passive");
+                case DatabaseModule.SkillType.Trigger: return LocalizationManager.Instance.GetText("skill_type_trigger");
+                case DatabaseModule.SkillType.Limit: return LocalizationManager.Instance.GetText("skill_type_limit");
+                default: return LocalizationManager.Instance.GetText("skill_type_unknown");
             }
         }
 

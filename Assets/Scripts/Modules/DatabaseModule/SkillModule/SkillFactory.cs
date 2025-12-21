@@ -127,10 +127,12 @@ namespace ThreeKingdoms.DatabaseModule
             {"tuxi", SkillType.Active},         // 突袭
             {"shenshu", SkillType.Active},      // 神速
 
+            // 转化技能 - 需要玩家主动使用
+            {"wusheng", SkillType.Active},      // 武圣（红色牌当杀）
+
             // 被动/锁定技能 - 条件触发，无需玩家操作
             {"paoxiao", SkillType.Passive},     // 咆哮
             {"paoxiao_story", SkillType.Passive},
-            {"wusheng", SkillType.Passive},     // 武圣
             {"yingzi", SkillType.Passive},      // 英姿
             {"kongcheng", SkillType.Passive},   // 空城
             {"keji", SkillType.Passive},        // 克己
@@ -252,18 +254,54 @@ namespace ThreeKingdoms.DatabaseModule
         }
 
         /// <summary>
-        /// 获取技能名称
+        /// 获取技能名称（本地化）
         /// </summary>
         public static string GetSkillName(string skillId)
         {
             if (string.IsNullOrEmpty(skillId)) return "未知技能";
 
             string normalizedId = skillId.ToLower().Trim();
+
+            // 优先使用本地化
+            if (ThreeKingdoms.LocalizationManager.Instance != null)
+            {
+                string localizedName = ThreeKingdoms.LocalizationManager.Instance.GetText($"skill_{normalizedId}");
+                // 如果本地化成功（不是返回key本身），使用本地化名称
+                if (!string.IsNullOrEmpty(localizedName) && localizedName != $"skill_{normalizedId}")
+                {
+                    return localizedName;
+                }
+            }
+
+            // 备用：使用硬编码映射
             if (skillNameMap.TryGetValue(normalizedId, out string name))
             {
                 return name;
             }
             return skillId;
+        }
+
+        /// <summary>
+        /// 获取技能描述（本地化）
+        /// </summary>
+        public static string GetSkillDescription(string skillId)
+        {
+            if (string.IsNullOrEmpty(skillId)) return "";
+
+            string normalizedId = skillId.ToLower().Trim();
+
+            // 使用本地化
+            if (ThreeKingdoms.LocalizationManager.Instance != null)
+            {
+                string localizedDesc = ThreeKingdoms.LocalizationManager.Instance.GetText($"skill_{normalizedId}_desc");
+                // 如果本地化成功（不是返回key本身），使用本地化描述
+                if (!string.IsNullOrEmpty(localizedDesc) && localizedDesc != $"skill_{normalizedId}_desc")
+                {
+                    return localizedDesc;
+                }
+            }
+
+            return "";
         }
 
         /// <summary>
