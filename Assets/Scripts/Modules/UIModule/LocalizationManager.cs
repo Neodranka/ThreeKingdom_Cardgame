@@ -132,6 +132,10 @@ namespace ThreeKingdoms
             AddTranslation("general_caimao", "蔡瑁", "Cai Mao", "채모");
             AddTranslation("general_yufan", "虞翻", "Yu Fan", "우번");
             AddTranslation("general_caojun_sailor", "曹军水兵", "Cao Sailor", "조군 수병");
+            AddTranslation("general_caojun_navy", "曹军水兵", "Cao Navy", "조군 수병");
+
+            // ⭐ 讨董战役角色
+            AddTranslation("general_xiliang_soldier", "西凉兵", "Xiliang Soldier", "서량병");
 
             // 阵营
             AddTranslation("faction_wei", "魏", "Wei", "위");
@@ -309,6 +313,7 @@ namespace ThreeKingdoms
             // ⭐ 技能面板信息
             AddTranslation("ui_health_label", "体力:", "HP:", "체력:");
             AddTranslation("ui_faction_label", "阵营:", "Faction:", "진영:");
+            AddTranslation("ui_skills_label", "技能", "Skills", "기술");
             AddTranslation("ui_no_skills", "该武将没有技能", "This general has no skills", "이 무장에게는 기술이 없습니다");
             AddTranslation("ui_no_description", "暂无描述", "No description", "설명 없음");
             AddTranslation("faction_unknown", "未知", "Unknown", "미상");

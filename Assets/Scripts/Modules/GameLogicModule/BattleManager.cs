@@ -59,6 +59,15 @@ namespace ThreeKingdoms
             }
         }
 
+        private void OnDestroy()
+        {
+            // ⭐ 清理事件订阅
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnPlayerDeath -= OnPlayerDeathHandler;
+            }
+        }
+
         /// <summary>
         /// 开始游戏
         /// </summary>
@@ -76,6 +85,12 @@ namespace ThreeKingdoms
             currentPlayerIndex = 0;
             roundStartPlayerIndex = 0;  // ⭐ 记录第一轮开始的玩家
 
+            // ⭐ 订阅玩家死亡事件（用于检测游戏结束）
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnPlayerDeath += OnPlayerDeathHandler;
+            }
+
             // 给所有玩家发起始手牌
             foreach (var player in players)
             {
@@ -86,6 +101,30 @@ namespace ThreeKingdoms
 
             Debug.Log("游戏开始!");
             StartTurn();
+        }
+
+        /// <summary>
+        /// ⭐ 玩家死亡事件处理（用于检测游戏结束）
+        /// </summary>
+        private void OnPlayerDeathHandler(Player victim, Player killer)
+        {
+            Debug.Log($"[BattleManager] 玩家死亡事件: {victim?.playerName} 被 {killer?.playerName ?? "未知"} 击杀");
+
+            // 延迟检测游戏结束，确保死亡处理完成
+            StartCoroutine(DelayedCheckGameOver());
+        }
+
+        /// <summary>
+        /// ⭐ 延迟检测游戏结束
+        /// </summary>
+        private System.Collections.IEnumerator DelayedCheckGameOver()
+        {
+            yield return new WaitForSeconds(0.5f);
+
+            if (!gameOver)
+            {
+                CheckGameOver();
+            }
         }
 
         /// <summary>
@@ -217,6 +256,28 @@ namespace ThreeKingdoms
 
                 // 将判定牌放入弃牌堆
                 DeckManager.Instance.DiscardCard(judgmentResult);
+
+                // ⭐ 检查玩家是否进入濒死状态（如闪电伤害）
+                if (player.isNearDeath)
+                {
+                    Debug.Log($"[判定阶段] {player.playerName} 因判定效果进入濒死状态，等待濒死处理完成");
+                    // 等待濒死处理完成
+                    while (player.isNearDeath)
+                    {
+                        yield return new WaitForSeconds(0.1f);
+                    }
+                }
+
+                // ⭐ 检查玩家是否死亡
+                if (!player.isAlive || player.isDead)
+                {
+                    Debug.Log($"[判定阶段] {player.playerName} 已死亡，结束当前回合");
+                    // 更新UI
+                    UpdateUI();
+                    // 玩家死亡，结束当前回合
+                    EndTurn();
+                    yield break;
+                }
 
                 yield return new WaitForSeconds(0.5f);
             }
@@ -613,9 +674,10 @@ namespace ThreeKingdoms
                 return CheckIdentityModeGameOver();
             }
 
-            // 普通模式：只剩一人存活
+            // 普通模式：检查游戏结束条件
             int aliveCount = 0;
             Player winner = null;
+            Player humanPlayer = players.Find(p => !p.isAI);
 
             foreach (var player in players)
             {
@@ -626,6 +688,7 @@ namespace ThreeKingdoms
                 }
             }
 
+            // ⭐ 条件1：只剩一人存活 - 该玩家获胜
             if (aliveCount == 1)
             {
                 gameOver = true;
@@ -637,6 +700,18 @@ namespace ThreeKingdoms
 
                 // ⭐ 启动游戏结束流程
                 StartCoroutine(HandleGameEnd(winner));
+                return true;
+            }
+
+            // ⭐ 条件2：人类玩家死亡 - 人类玩家失败
+            if (humanPlayer != null && !humanPlayer.isAlive)
+            {
+                gameOver = true;
+                Debug.Log($"========== 游戏结束! ==========");
+                Debug.Log($"玩家 {humanPlayer.playerName} 阵亡，游戏失败！");
+
+                // ⭐ 启动游戏结束流程（winner为null表示玩家失败）
+                StartCoroutine(HandleGameEnd(null));
                 return true;
             }
 
@@ -873,6 +948,12 @@ namespace ThreeKingdoms
         /// </summary>
         private IEnumerator HandleGameEnd(Player winner)
         {
+            // ⭐ 取消订阅玩家死亡事件
+            if (EventManager.Instance != null)
+            {
+                EventManager.Instance.OnPlayerDeath -= OnPlayerDeathHandler;
+            }
+
             // ⭐ 如果是故事模式，完全跳过BattleManager的游戏结束处理
             // StoryBattleManager会处理对话和场景跳转
             string storyBattleId = PlayerPrefs.GetString("StoryBattleId", "");
