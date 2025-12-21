@@ -77,10 +77,10 @@ namespace ThreeKingdoms.UI
                 playerNameText.text = playerData.playerName;
             }
 
-            // 更新武将名称
+            // 更新武将名称（本地化）
             if (generalNameText != null)
             {
-                generalNameText.text = playerData.generalName;
+                generalNameText.text = GetLocalizedGeneralName();
             }
 
             // ⭐ 更新阵营显示
@@ -159,6 +159,83 @@ namespace ThreeKingdoms.UI
                 case Faction.Qun: return LocalizationManager.Instance.GetText("faction_qun");
                 default: return LocalizationManager.Instance.GetText("faction_unknown");
             }
+        }
+
+        /// <summary>
+        /// ⭐ 获取武将名称（本地化）
+        /// </summary>
+        private string GetLocalizedGeneralName()
+        {
+            if (playerData == null) return "";
+
+            // 尝试获取generalId
+            string generalId = null;
+            if (playerData.generalData != null && !string.IsNullOrEmpty(playerData.generalData.generalId))
+            {
+                generalId = playerData.generalData.generalId.ToLower().Replace("_story", "");
+            }
+            else if (!string.IsNullOrEmpty(playerData.generalName))
+            {
+                // 尝试从generalName推断generalId
+                generalId = ConvertNameToId(playerData.generalName);
+            }
+
+            // 使用本地化
+            if (!string.IsNullOrEmpty(generalId) && LocalizationManager.Instance != null)
+            {
+                string locKey = $"general_{generalId}";
+                string localizedName = LocalizationManager.Instance.GetText(locKey);
+                // 如果找到了本地化文本（不是返回key本身）
+                if (!string.IsNullOrEmpty(localizedName) && localizedName != locKey)
+                {
+                    return localizedName;
+                }
+            }
+
+            // fallback: 使用原始名称
+            return playerData.generalName;
+        }
+
+        /// <summary>
+        /// ⭐ 将中文武将名转换为ID
+        /// </summary>
+        private string ConvertNameToId(string chineseName)
+        {
+            if (string.IsNullOrEmpty(chineseName)) return null;
+
+            // 常见武将名称映射
+            var nameToId = new System.Collections.Generic.Dictionary<string, string>
+            {
+                // 蜀国
+                {"刘备", "liubei"}, {"关羽", "guanyu"}, {"张飞", "zhangfei"},
+                {"诸葛亮", "zhugeliang"}, {"赵云", "zhaoyun"}, {"黄忠", "huangzhong"},
+                {"马超", "machao"},
+                // 魏国
+                {"曹操", "caocao"}, {"夏侯惇", "xiahoudun"}, {"夏侯渊", "xiahouyuan"},
+                {"张辽", "zhangliao"}, {"徐晃", "xuhuang"}, {"许褚", "xuzhu"},
+                {"司马懿", "simayi"}, {"夏侯杰", "xiahoujie"}, {"蒋干", "jianggan"},
+                // 吴国
+                {"孙权", "sunquan"}, {"周瑜", "zhouyu"}, {"吕蒙", "lvmeng"},
+                {"黄盖", "huanggai"}, {"孙坚", "sunjian"}, {"陆逊", "luxun"},
+                {"甘宁", "ganning"}, {"鲁肃", "lusu"}, {"程普", "chengpu"},
+                {"张昭", "zhangzhao"},
+                // 群雄
+                {"吕布", "lvbu"}, {"貂蝉", "diaochan"}, {"华佗", "huatuo"},
+                {"董卓", "dongzhuo"}, {"袁绍", "yuanshao"}, {"华雄", "huaxiong"},
+                {"颜良", "yanliang"}, {"文丑", "wenchou"}, {"张郃", "zhanghe"},
+                {"高览", "gaolan"}, {"淳于琼", "chunyuqiong"},
+                {"李傕", "lijue"}, {"郭汜", "guosi"}, {"蔡瑁", "caimao"},
+                // 士兵单位
+                {"曹军骑兵", "caojun_cavalry"}, {"曹军水兵", "caojun_navy"},
+                {"西凉兵", "xiliang_soldier"},
+            };
+
+            if (nameToId.TryGetValue(chineseName, out string id))
+            {
+                return id;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -944,11 +1021,14 @@ namespace ThreeKingdoms.UI
             panelRt.pivot = new Vector2(0, 0.5f);
             panelRt.anchoredPosition = new Vector2(20, 0);
 
-            // 添加标题
+            // 添加标题（本地化）
             GameObject titleObj = new GameObject("Title");
             titleObj.transform.SetParent(skillInfoPanel.transform, false);
             TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
-            titleText.text = $"【{playerData.generalName}】技能";
+            string skillsLabel = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_skills_label")
+                : "技能";
+            titleText.text = $"【{GetLocalizedGeneralName()}】{skillsLabel}";
             titleText.fontSize = 20;
             titleText.fontStyle = FontStyles.Bold;
             titleText.alignment = TextAlignmentOptions.Center;
@@ -1122,15 +1202,29 @@ namespace ThreeKingdoms.UI
 
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
+            // 获取本地化文本
+            string healthLabel = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_health_label")
+                : "体力:";
+            string factionLabel = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_faction_label")
+                : "阵营:";
+            string noSkillsText = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_no_skills")
+                : "该武将没有技能";
+            string noDescText = LocalizationManager.Instance != null
+                ? LocalizationManager.Instance.GetText("ui_no_description")
+                : "暂无描述";
+
             // 显示武将基本信息
-            sb.AppendLine($"<color=#AAAAAA>体力: {playerData.currentHP}/{playerData.maxHP}</color>");
-            sb.AppendLine($"<color=#AAAAAA>阵营: {GetFactionName(playerData.faction)}</color>");
+            sb.AppendLine($"<color=#AAAAAA>{healthLabel} {playerData.currentHP}/{playerData.maxHP}</color>");
+            sb.AppendLine($"<color=#AAAAAA>{factionLabel} {GetFactionName(playerData.faction)}</color>");
             sb.AppendLine();
 
             // 显示技能信息
             if (playerData.skills == null || playerData.skills.Count == 0)
             {
-                sb.AppendLine("<color=#888888>该武将没有技能</color>");
+                sb.AppendLine($"<color=#888888>{noSkillsText}</color>");
             }
             else
             {
@@ -1138,21 +1232,32 @@ namespace ThreeKingdoms.UI
                 {
                     if (skill == null || skill.SkillData == null) continue;
 
-                    // 技能名称（根据类型着色）
+                    // 技能名称（本地化）
+                    string skillName = SkillFactory.GetSkillName(skill.SkillData.skillId);
+                    if (string.IsNullOrEmpty(skillName))
+                    {
+                        skillName = skill.SkillData.skillName;
+                    }
+
+                    // 技能类型（根据类型着色）
                     string typeColor = GetSkillTypeColor(skill.SkillData.skillType);
                     string typeName = GetSkillTypeName(skill.SkillData.skillType);
 
-                    sb.AppendLine($"<color={typeColor}>【{skill.SkillData.skillName}】</color> <size=12><color=#888888>[{typeName}]</color></size>");
+                    sb.AppendLine($"<color={typeColor}>【{skillName}】</color> <size=12><color=#888888>[{typeName}]</color></size>");
 
-                    // 技能描述 - 优先使用 GetDescription()，备选 SkillData.description
-                    string desc = skill.GetDescription();
+                    // 技能描述（本地化）- 优先使用本地化描述
+                    string desc = SkillFactory.GetSkillDescription(skill.SkillData.skillId);
+                    if (string.IsNullOrEmpty(desc))
+                    {
+                        desc = skill.GetDescription();
+                    }
                     if (string.IsNullOrEmpty(desc))
                     {
                         desc = skill.SkillData.description;
                     }
                     if (string.IsNullOrEmpty(desc))
                     {
-                        desc = "暂无描述";
+                        desc = noDescText;
                     }
                     sb.AppendLine($"<color=#CCCCCC>{desc}</color>");
                     sb.AppendLine();
@@ -1178,17 +1283,30 @@ namespace ThreeKingdoms.UI
         }
 
         /// <summary>
-        /// ⭐ 获取技能类型名称
+        /// ⭐ 获取技能类型名称（本地化）
         /// </summary>
         private string GetSkillTypeName(DatabaseModule.SkillType skillType)
         {
+            if (LocalizationManager.Instance == null)
+            {
+                // fallback
+                switch (skillType)
+                {
+                    case DatabaseModule.SkillType.Active: return "主动技";
+                    case DatabaseModule.SkillType.Passive: return "被动技";
+                    case DatabaseModule.SkillType.Trigger: return "触发技";
+                    case DatabaseModule.SkillType.Limit: return "限定技";
+                    default: return "未知";
+                }
+            }
+
             switch (skillType)
             {
-                case DatabaseModule.SkillType.Active: return "主动技";
-                case DatabaseModule.SkillType.Passive: return "被动技";
-                case DatabaseModule.SkillType.Trigger: return "触发技";
-                case DatabaseModule.SkillType.Limit: return "限定技";
-                default: return "未知";
+                case DatabaseModule.SkillType.Active: return LocalizationManager.Instance.GetText("skill_type_active");
+                case DatabaseModule.SkillType.Passive: return LocalizationManager.Instance.GetText("skill_type_passive");
+                case DatabaseModule.SkillType.Trigger: return LocalizationManager.Instance.GetText("skill_type_trigger");
+                case DatabaseModule.SkillType.Limit: return LocalizationManager.Instance.GetText("skill_type_limit");
+                default: return LocalizationManager.Instance.GetText("skill_type_unknown");
             }
         }
 

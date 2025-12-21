@@ -132,6 +132,10 @@ namespace ThreeKingdoms
             AddTranslation("general_caimao", "蔡瑁", "Cai Mao", "채모");
             AddTranslation("general_yufan", "虞翻", "Yu Fan", "우번");
             AddTranslation("general_caojun_sailor", "曹军水兵", "Cao Sailor", "조군 수병");
+            AddTranslation("general_caojun_navy", "曹军水兵", "Cao Navy", "조군 수병");
+
+            // ⭐ 讨董战役角色
+            AddTranslation("general_xiliang_soldier", "西凉兵", "Xiliang Soldier", "서량병");
 
             // 阵营
             AddTranslation("faction_wei", "魏", "Wei", "위");
@@ -305,6 +309,21 @@ namespace ThreeKingdoms
             AddTranslation("ui_you", "你", "You", "당신");
             AddTranslation("ui_alive", "存活", "Alive", "생존");
             AddTranslation("ui_dead", "阵亡", "Dead", "사망");
+
+            // ⭐ 技能面板信息
+            AddTranslation("ui_health_label", "体力:", "HP:", "체력:");
+            AddTranslation("ui_faction_label", "阵营:", "Faction:", "진영:");
+            AddTranslation("ui_skills_label", "技能", "Skills", "기술");
+            AddTranslation("ui_no_skills", "该武将没有技能", "This general has no skills", "이 무장에게는 기술이 없습니다");
+            AddTranslation("ui_no_description", "暂无描述", "No description", "설명 없음");
+            AddTranslation("faction_unknown", "未知", "Unknown", "미상");
+
+            // ⭐ 技能类型
+            AddTranslation("skill_type_active", "主动技", "Active", "주동기");
+            AddTranslation("skill_type_passive", "被动技", "Passive", "피동기");
+            AddTranslation("skill_type_trigger", "触发技", "Trigger", "발동기");
+            AddTranslation("skill_type_limit", "限定技", "Limit", "한정기");
+            AddTranslation("skill_type_unknown", "未知", "Unknown", "미상");
 
             // ==================== 游戏消息 (Game Messages) ====================
 
@@ -563,6 +582,108 @@ namespace ThreeKingdoms
 
             AddTranslation("skill_xiongbao", "凶暴", "Ferocious", "흉포");
             AddTranslation("skill_xiongbao_desc", "每当你造成1点伤害后，可以摸1张牌。", "After dealing 1 damage, you may draw 1 card.", "1점 피해를 줄 때마다 1장 뽑을 수 있습니다.");
+
+            // ==================== 故事模式技能 ====================
+
+            // 赤壁之战
+            AddTranslation("skill_zhuhe", "主和", "Advocate Peace", "주화");
+            AddTranslation("skill_zhuhe_desc", "回合开始时，可令孙权弃一张牌。", "At start of turn, you may have Sun Quan discard a card.", "턴 시작 시 손권이 카드 1장을 버리게 할 수 있습니다.");
+
+            AddTranslation("skill_dimeng", "缔盟", "Alliance", "체맹");
+            AddTranslation("skill_dimeng_desc", "出牌阶段限一次，你可以令一名角色摸一张牌。", "Once per play phase, you may have a character draw a card.", "출패 단계 1회, 한 캐릭터가 카드를 뽑게 할 수 있습니다.");
+
+            AddTranslation("skill_laodang", "老当", "Veteran", "노당");
+            AddTranslation("skill_laodang_desc", "当你受到伤害后，你可以摸一张牌。", "After taking damage, you may draw a card.", "피해를 입은 후 카드를 뽑을 수 있습니다.");
+
+            AddTranslation("skill_guanxing", "观星", "Stargazing", "관성");
+            AddTranslation("skill_guanxing_desc", "回合开始时，你可以观看牌堆顶的X张牌并调整顺序。", "At start of turn, you may look at the top X cards of the deck and rearrange them.", "턴 시작 시 덱 위의 X장을 보고 순서를 바꿀 수 있습니다.");
+
+            AddTranslation("skill_kongcheng", "空城", "Empty Fortress", "공성");
+            AddTranslation("skill_kongcheng_desc", "锁定技，当你没有手牌时，你不能成为【杀】和【决斗】的目标。", "Compulsory. When you have no hand cards, you cannot be the target of [Slash] or [Duel].", "강제 효과. 패가 없으면 [살]과 [결투]의 대상이 될 수 없습니다.");
+
+            AddTranslation("skill_yingzi", "英姿", "Heroic Bearing", "영자");
+            AddTranslation("skill_yingzi_desc", "锁定技，摸牌阶段你多摸一张牌。", "Compulsory. Draw 1 extra card during draw phase.", "강제 효과. 드로우 단계에 1장 추가로 뽑습니다.");
+
+            AddTranslation("skill_fanjian", "反间", "Sow Dissension", "반간");
+            AddTranslation("skill_fanjian_desc", "出牌阶段限一次，你可以展示一张手牌，令一名角色猜测花色。", "Once per play phase, show a hand card and have a character guess its suit.", "출패 단계 1회, 패 1장을 보여주고 상대가 무늬를 맞추게 합니다.");
+
+            AddTranslation("skill_keji", "克己", "Self-Restraint", "극기");
+            AddTranslation("skill_keji_desc", "若你未于出牌阶段使用或打出【杀】，可跳过弃牌阶段。", "If you didn't use or play [Slash] in play phase, you may skip discard phase.", "출패 단계에 [살]을 사용하지 않았다면 버리기 단계를 건너뜁니다.");
+
+            AddTranslation("skill_longdan", "龙胆", "Dragon Heart", "용담");
+            AddTranslation("skill_longdan_desc", "你可以将【杀】当【闪】使用或打出，将【闪】当【杀】使用或打出。", "You may use [Slash] as [Dodge] and [Dodge] as [Slash].", "[살]을 [섬]으로, [섬]을 [살]로 사용할 수 있습니다.");
+
+            AddTranslation("skill_danlie", "胆裂", "Cowardice", "담렬");
+            AddTranslation("skill_danlie_desc", "锁定技，当场上有敌方阵亡时，你流失1点体力。", "Compulsory. When an enemy dies, you lose 1 HP.", "강제 효과. 적이 사망하면 체력 1점을 잃습니다.");
+
+            AddTranslation("skill_kurou_zhaxiang", "苦肉诈降", "Feigned Surrender", "고육사항");
+            AddTranslation("skill_kurou_zhaxiang_desc", "出牌阶段，你可以失去1点体力，然后摸2张牌。", "During play phase, you may lose 1 HP to draw 2 cards.", "출패 단계에 체력 1점을 잃고 카드 2장을 뽑을 수 있습니다.");
+
+            AddTranslation("skill_kurou", "苦肉", "Self-Injury", "고육");
+            AddTranslation("skill_kurou_desc", "出牌阶段，你可以失去1点体力，然后摸2张牌。", "During play phase, you may lose 1 HP to draw 2 cards.", "출패 단계에 체력 1점을 잃고 카드 2장을 뽑을 수 있습니다.");
+
+            AddTranslation("skill_daoshu", "盗书", "Steal Letter", "도서");
+            AddTranslation("skill_daoshu_desc", "出牌阶段限一次，你可以获得一名角色的一张手牌并展示之。", "Once per play phase, you may take and reveal a hand card from a character.", "출패 단계 1회, 한 캐릭터의 패 1장을 가져와 공개합니다.");
+
+            AddTranslation("skill_ganglie", "刚烈", "Unyielding", "강렬");
+            AddTranslation("skill_ganglie_desc", "当你受到伤害后，可判定。若结果不为红桃，伤害来源选择弃2张牌或受到1点伤害。", "After taking damage, you may judge. If not hearts, source discards 2 cards or takes 1 damage.", "피해를 입은 후 판정. 하트가 아니면 피해원이 2장 버리거나 1점 피해를 받습니다.");
+
+            AddTranslation("skill_shenshu", "神速", "Godspeed", "신속");
+            AddTranslation("skill_shenshu_desc", "你可以跳过判定阶段和摸牌阶段，视为对一名角色使用【杀】。", "You may skip judgment and draw phases to use [Slash] on a character.", "판정과 드로우 단계를 건너뛰고 [살]을 사용할 수 있습니다.");
+
+            AddTranslation("skill_tuxi", "突袭", "Raid", "돌습");
+            AddTranslation("skill_tuxi_desc", "摸牌阶段，你可以少摸任意张牌，获得等量角色各一张手牌。", "In draw phase, draw fewer cards to take 1 hand card each from that many characters.", "드로우 단계에 적게 뽑고 그 수만큼의 캐릭터에게서 각 1장씩 가져옵니다.");
+
+            AddTranslation("skill_dongyao", "动摇", "Waver", "동요");
+            AddTranslation("skill_dongyao_desc", "锁定技，回合开始时，你须弃置一张牌或失去1点体力。", "Compulsory. At start of turn, you must discard a card or lose 1 HP.", "강제 효과. 턴 시작 시 카드 1장을 버리거나 체력 1점을 잃습니다.");
+
+            AddTranslation("skill_xiaohao", "消耗", "Attrition", "소모");
+            AddTranslation("skill_xiaohao_desc", "锁定技，回合结束时，你须弃置一张牌。", "Compulsory. At end of turn, you must discard a card.", "강제 효과. 턴 종료 시 카드 1장을 버립니다.");
+
+            AddTranslation("skill_xiancelue", "献策", "Offer Counsel", "헌책");
+            AddTranslation("skill_xiancelue_desc", "出牌阶段限一次，你可以令一名角色摸一张牌。", "Once per play phase, you may have a character draw a card.", "출패 단계 1회, 한 캐릭터가 카드를 뽑게 할 수 있습니다.");
+
+            AddTranslation("skill_yuanhu", "援护", "Support", "원호");
+            AddTranslation("skill_yuanhu_desc", "回合结束时，你可以令一名友方角色摸一张牌。", "At end of turn, you may have an ally draw a card.", "턴 종료 시 아군 1명이 카드를 뽑게 할 수 있습니다.");
+
+            AddTranslation("skill_shijiu", "嗜酒", "Drunkard", "기주");
+            AddTranslation("skill_shijiu_desc", "锁定技，你使用【酒】无效果。", "Compulsory. [Wine] has no effect when you use it.", "강제 효과. [술]을 사용해도 효과가 없습니다.");
+
+            AddTranslation("skill_shouliang", "守粮", "Guard Supplies", "수량");
+            AddTranslation("skill_shouliang_desc", "锁定技，你不能成为【顺手牵羊】的目标。", "Compulsory. You cannot be the target of [Snatch].", "강제 효과. [순수견양]의 대상이 될 수 없습니다.");
+
+            AddTranslation("skill_xiaoji_passive", "消极", "Passive", "소극");
+            AddTranslation("skill_xiaoji_passive_desc", "锁定技，你的攻击距离-1。", "Compulsory. Your attack range is reduced by 1.", "강제 효과. 공격 범위가 1 감소합니다.");
+
+            AddTranslation("skill_fuji", "伏击", "Ambush", "복격");
+            AddTranslation("skill_fuji_desc", "当你使用【杀】时，目标需额外打出一张【闪】。", "When you use [Slash], target must play an extra [Dodge].", "[살]을 사용할 때 대상은 [섬]을 1장 더 내야 합니다.");
+
+            AddTranslation("skill_chongzhen", "冲阵", "Charge", "충진");
+            AddTranslation("skill_chongzhen_desc", "每当你使用【杀】被【闪】抵消后，可以摸一张牌。", "After your [Slash] is dodged, you may draw a card.", "[살]이 [섬]에 막힌 후 카드를 뽑을 수 있습니다.");
+
+            AddTranslation("skill_yaowu", "耀武", "Show Might", "요무");
+            AddTranslation("skill_yaowu_desc", "当你使用红色【杀】造成伤害后，可以摸一张牌。", "After dealing damage with red [Slash], you may draw a card.", "빨간 [살]로 피해를 준 후 카드를 뽑을 수 있습니다.");
+
+            AddTranslation("skill_qiezhan", "怯战", "Cowardly", "겁전");
+            AddTranslation("skill_qiezhan_desc", "锁定技，你不能使用【杀】。", "Compulsory. You cannot use [Slash].", "강제 효과. [살]을 사용할 수 없습니다.");
+
+            AddTranslation("skill_fenlie", "分裂", "Division", "분렬");
+            AddTranslation("skill_fenlie_desc", "当你阵亡时，可令两名角色各摸两张牌。", "When you die, two characters may each draw 2 cards.", "사망 시 두 캐릭터가 각각 2장을 뽑을 수 있습니다.");
+
+            AddTranslation("skill_jienan", "诘难", "Rebuke", "힐난");
+            AddTranslation("skill_jienan_desc", "出牌阶段限一次，你可以弃置一张牌令一名角色弃置一张牌。", "Once per play phase, discard a card to have a character discard a card.", "출패 단계 1회, 1장 버려 상대가 1장 버리게 합니다.");
+
+            AddTranslation("skill_shuizhan", "水战", "Naval Battle", "수전");
+            AddTranslation("skill_shuizhan_desc", "锁定技，你使用【杀】无距离限制。", "Compulsory. Your [Slash] has no range limit.", "강제 효과. [살] 사용에 거리 제한이 없습니다.");
+
+            AddTranslation("skill_beiren", "北人", "Northerner", "북인");
+            AddTranslation("skill_beiren_desc", "锁定技，你使用【杀】需额外弃置一张牌。", "Compulsory. Using [Slash] requires discarding an extra card.", "강제 효과. [살] 사용 시 카드 1장을 추가로 버려야 합니다.");
+
+            AddTranslation("skill_paoxiao_story", "咆哮", "Roar", "포효");
+            AddTranslation("skill_paoxiao_story_desc", "锁定技，你使用【杀】无次数限制。", "Compulsory. You have no limit on [Slash] usage.", "강제 효과. [살] 사용 횟수 제한 없음.");
+
+            AddTranslation("skill_yijue", "义绝", "Righteous Severance", "의절");
+            AddTranslation("skill_yijue_desc", "出牌阶段限一次，你可以弃置一张牌并选择一名角色。若如此做，其不能使用或打出手牌直到回合结束。", "Once per play phase, discard a card to choose a character. They cannot use or play hand cards until end of turn.", "출패 단계 1회, 1장 버리고 캐릭터 선택. 대상은 턴 종료까지 패를 사용할 수 없습니다.");
 
             // ==================== 新增本地化文本 ====================
 

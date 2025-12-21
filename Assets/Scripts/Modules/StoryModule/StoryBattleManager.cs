@@ -274,7 +274,7 @@ namespace ThreeKingdoms.Story
         public void StartBattle(StoryBattle battle)
         {
             currentBattle = battle;
-            currentRound = 0;
+            currentRound = 1;  // ⭐ 从第1回合开始，不是第0回合
             isBattleActive = true;
             markers.Clear();
             eventCounts.Clear();
@@ -511,22 +511,38 @@ namespace ThreeKingdoms.Story
                     // 临时体力加成（一骑当千）- 会在指定回合后消失
                     {
                         string thbTarget = rule.targetId ?? "enemies";
+                        string markerKey = $"temp_hp_bonus_{thbTarget}";
+
+                        Debug.Log($"[规则] TemporaryHPBonus: targetId={rule.targetId}, thbTarget={thbTarget}, markerKey={markerKey}");
+
+                        // ⭐ 防止重复应用
+                        if (markers.ContainsKey(markerKey))
+                        {
+                            Debug.Log($"[规则] {thbTarget}已有临时体力加成，跳过重复应用");
+                            break;
+                        }
+
                         int bonusHP = rule.value > 0 ? rule.value : 3;
                         int removeRound = 3;
                         if (!string.IsNullOrEmpty(rule.extraInfo) && int.TryParse(rule.extraInfo, out int parsedRound))
                         {
                             removeRound = parsedRound;
                         }
-                        markers[$"temp_hp_bonus_{thbTarget}"] = bonusHP;
+                        markers[markerKey] = bonusHP;
                         markers[$"temp_hp_remove_round_{thbTarget}"] = removeRound;
+
+                        Debug.Log($"[规则] 设置marker: {markerKey} = {bonusHP}");
+
                         // 立即应用HP加成
                         List<Player> thbTargets = GetTargetPlayers(thbTarget);
                         foreach (var player in thbTargets)
                         {
+                            int oldMaxHP = player.maxHP;
                             player.maxHP += bonusHP;
                             player.currentHP += bonusHP;
+                            Debug.Log($"[规则] {player.generalName} HP: {oldMaxHP} -> {player.maxHP} (临时+{bonusHP})");
                         }
-                        Debug.Log($"[规则] {thbTarget}临时+{bonusHP}体力，第{removeRound}回合后移除");
+                        Debug.Log($"[规则] {thbTarget}临时+{bonusHP}体力，刘备上场时移除");
                     }
                     break;
 
@@ -817,6 +833,73 @@ namespace ThreeKingdoms.Story
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// ⭐ 检查伤害翻倍规则（如吕布第一回合绝世武力）
+        /// </summary>
+        public bool CheckDoubleDamage(Player attacker)
+        {
+            if (!isBattleActive || attacker == null) return false;
+
+            // 检查是否有适用于该攻击者的伤害翻倍规则
+            string attackerId = attacker.generalName?.ToLower().Replace("_story", "") ?? "";
+
+            foreach (var kvp in markers)
+            {
+                if (kvp.Key.StartsWith("double_damage_"))
+                {
+                    string targetId = kvp.Key.Replace("double_damage_", "").ToLower();
+                    int triggerRound = kvp.Value;
+
+                    // 检查是否是目标角色且在指定回合
+                    if (attackerId.Contains(targetId) || targetId.Contains(attackerId))
+                    {
+                        if (currentRound == triggerRound)
+                        {
+                            Debug.Log($"[规则] {attacker.generalName} 在第{currentRound}回合伤害翻倍");
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// ⭐ 获取故事模式中的优先攻击目标（用于简化AI决策）
+        /// 例如：虎牢关血战中，关羽和刘备应优先攻击吕布
+        /// </summary>
+        public Player GetPriorityTarget(Player attacker)
+        {
+            if (!isBattleActive || currentBattle == null) return null;
+
+            // 检查是否是虎牢关血战（三英战吕布）
+            if (currentBattle.battleId == "taodong_3")
+            {
+                // 增援角色（关羽、刘备）应该只攻击吕布
+                string attackerId = attacker?.generalName?.ToLower().Replace("_story", "") ?? "";
+                if (attackerId.Contains("guanyu") || attackerId.Contains("liubei") ||
+                    attackerId.Contains("关羽") || attackerId.Contains("刘备"))
+                {
+                    // 找到吕布
+                    if (BattleManager.Instance != null)
+                    {
+                        foreach (var player in BattleManager.Instance.players)
+                        {
+                            if (player == null || !player.isAlive) continue;
+                            string playerId = player.generalName?.ToLower().Replace("_story", "") ?? "";
+                            if (playerId.Contains("lvbu") || playerId.Contains("吕布"))
+                            {
+                                return player;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -1422,6 +1505,16 @@ namespace ThreeKingdoms.Story
         {
             if (!isBattleActive) return;
 
+            // ⭐ 如果是第一个玩家的回合开始，这是新一轮的开始
+            // 在玩家行动前处理增援和回合开始事件
+            if (BattleManager.Instance != null && BattleManager.Instance.players.Count > 0)
+            {
+                if (player == BattleManager.Instance.players[0])
+                {
+                    OnRoundStart();
+                }
+            }
+
             // ⭐ 重置本回合伤害追踪
             string playerId = player.generalName?.ToLower().Replace("_story", "") ?? "";
             dealtDamageThisTurn[playerId] = false;
@@ -1515,13 +1608,13 @@ namespace ThreeKingdoms.Story
             // 触发回合结束事件
             TriggerEvents(EventTrigger.OnTurnEnd, player.generalName);
 
-            // 如果是第一个玩家回合结束，增加回合数
+            // ⭐ 如果是第一个玩家回合结束，增加回合数（下一轮开始时会在OnTurnStart处理）
             if (BattleManager.Instance != null && BattleManager.Instance.players.Count > 0)
             {
                 if (player == BattleManager.Instance.players[0])
                 {
                     currentRound++;
-                    OnRoundStart();
+                    Debug.Log($"[StoryBattle] 回合 {currentRound - 1} 结束，下一回合将是 {currentRound}");
                 }
             }
 
@@ -1609,57 +1702,185 @@ namespace ThreeKingdoms.Story
             {
                 if (reinforcement.roundNumber == currentRound && reinforcement.character != null)
                 {
-                    Debug.Log($"[增援] 第{currentRound}回合，{reinforcement.character.nameKey} 加入战斗！");
+                    Debug.Log($"[增援] 第{currentRound}回合，{reinforcement.character.characterId} 加入战斗！");
 
                     // 创建增援角色
                     if (BattleManager.Instance != null)
                     {
-                        // 获取角色数据
+                        // 获取角色数据（优先从数据库，备用从BattleCharacter）
                         var charData = StoryCharacterDatabase.Instance?.GetCharacter(reinforcement.character.characterId);
+
+                        // ⭐ 如果数据库没找到，使用 BattleCharacter 的数据
+                        string charName;
+                        Faction faction;
+                        int maxHP;
+                        List<string> skillIds;
+
                         if (charData != null)
                         {
-                            // 创建新玩家 GameObject 和 Player 组件
-                            GameObject playerObj = new GameObject($"Player_{charData.nameKey}_Reinforcement");
-                            Player newPlayer = playerObj.AddComponent<Player>();
+                            charName = LocalizationManager.Instance?.GetText(charData.nameKey) ?? charData.nameKey;
+                            faction = charData.faction;
+                            maxHP = charData.maxHP;
+                            skillIds = charData.skills ?? new List<string>();
+                        }
+                        else
+                        {
+                            // 备用：从 BattleCharacter 获取数据
+                            charName = LocalizationManager.Instance?.GetText(reinforcement.character.nameKey) ?? reinforcement.character.nameKey;
+                            faction = Faction.Shu;  // 默认蜀国
+                            maxHP = reinforcement.character.maxHP;
+                            skillIds = reinforcement.character.skillIds ?? new List<string>();
+                            Debug.LogWarning($"[增援] 角色 {reinforcement.character.characterId} 未在数据库中找到，使用BattleCharacter数据");
+                        }
 
-                            newPlayer.generalName = LocalizationManager.Instance?.GetText(charData.nameKey) ?? charData.nameKey;
-                            newPlayer.faction = charData.faction;
-                            newPlayer.maxHP = charData.maxHP;
-                            newPlayer.currentHP = charData.maxHP;
-                            newPlayer.isAlive = true;
-                            newPlayer.isAI = true;  // 增援默认为AI控制
+                        // 创建新玩家 GameObject 和 Player 组件
+                        GameObject playerObj = new GameObject($"Player_{reinforcement.character.characterId}_Reinforcement");
+                        Player newPlayer = playerObj.AddComponent<Player>();
 
-                            // 添加技能
-                            if (charData.skills != null && charData.skills.Count > 0)
+                        newPlayer.generalName = charName;
+                        newPlayer.faction = faction;
+                        newPlayer.maxHP = maxHP;
+                        newPlayer.currentHP = maxHP;
+                        newPlayer.isAlive = true;
+                        newPlayer.isAI = true;  // 增援默认为AI控制
+
+                        // ⭐ 添加AI控制器
+                        AI.AIPlayer aiController = playerObj.AddComponent<AI.AIPlayer>();
+                        aiController.controlledPlayer = newPlayer;
+                        newPlayer.aiController = aiController;
+                        Debug.Log($"[增援] 为 {charName} 添加了AI控制器");
+
+                        // ⭐ 设置generalData用于头像加载
+                        string cleanCharId = reinforcement.character.characterId.Replace("_story", "");
+                        DatabaseModule.GeneralData existingData = DatabaseModule.GeneralDatabase.Instance?.GetGeneralById(cleanCharId);
+                        if (existingData != null)
+                        {
+                            newPlayer.generalData = existingData;
+                        }
+                        else
+                        {
+                            // 创建临时GeneralData
+                            var tempData = ScriptableObject.CreateInstance<DatabaseModule.GeneralData>();
+                            tempData.generalId = cleanCharId;
+                            tempData.generalName = charName;
+                            tempData.faction = faction;
+                            tempData.maxHP = maxHP;
+                            string pinyinName = DatabaseModule.CharacterPinyinHelper.GetPinyinFileName(cleanCharId);
+                            tempData.avatarPath = $"{faction}/{pinyinName}";
+                            newPlayer.generalData = tempData;
+                        }
+
+                        // 添加技能
+                        newPlayer.skills = new List<DatabaseModule.ISkill>();
+                        foreach (var sid in skillIds)
+                        {
+                            if (!string.IsNullOrEmpty(sid))
                             {
-                                newPlayer.skills = new List<DatabaseModule.ISkill>();
-                                foreach (var skillId in charData.skills)
+                                var skill = SkillFactory.CreateSkill(sid, newPlayer);
+                                if (skill != null)
                                 {
-                                    var skill = SkillFactory.CreateSkill(skillId, newPlayer);
-                                    if (skill != null)
-                                    {
-                                        newPlayer.skills.Add(skill);
-                                    }
+                                    newPlayer.skills.Add(skill);
                                 }
                             }
+                        }
 
-                            // 发初始手牌
-                            for (int i = 0; i < 4; i++)
-                            {
-                                var card = DeckManager.Instance?.DrawCard();
-                                if (card != null) newPlayer.DrawCard(card);
-                            }
+                        // 发初始手牌
+                        for (int i = 0; i < 4; i++)
+                        {
+                            var card = DeckManager.Instance?.DrawCard();
+                            if (card != null) newPlayer.DrawCard(card);
+                        }
 
-                            // 添加到战斗
-                            BattleManager.Instance.players.Add(newPlayer);
+                        // ⭐ 添加到战斗
+                        BattleManager.Instance.players.Add(newPlayer);
 
-                            // 触发增援事件
-                            TriggerEvents(EventTrigger.OnReinforcementJoin, reinforcement.character.characterId);
+                        // ⭐ 添加到盟友列表（用于 IsAlly 判定）
+                        if (!allyPlayerRefs.Contains(newPlayer))
+                        {
+                            allyPlayerRefs.Add(newPlayer);
+                            Debug.Log($"[增援] {newPlayer.generalName} 已添加到盟友列表");
+                        }
 
-                            Debug.Log($"[增援] {newPlayer.generalName} 已加入战斗，HP:{newPlayer.currentHP}/{newPlayer.maxHP}");
+                        // ⭐ 创建UI
+                        if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                        {
+                            ThreeKingdoms.UI.BattleUI.Instance.AddPlayerUI(newPlayer, true);
+                        }
+
+                        // 触发增援事件
+                        TriggerEvents(EventTrigger.OnReinforcementJoin, reinforcement.character.characterId);
+
+                        Debug.Log($"[增援] {newPlayer.generalName} 已加入战斗，HP:{newPlayer.currentHP}/{newPlayer.maxHP}，手牌:{newPlayer.handCards.Count}");
+
+                        // ⭐ 虎牢关血战：刘备上场时立即移除吕布的临时体力加成
+                        string reinforceId = reinforcement.character.characterId.ToLower().Replace("_story", "");
+                        Debug.Log($"[增援] 检查是否触发吕布HP移除: reinforceId={reinforceId}, battleId={currentBattle?.battleId}");
+                        if (reinforceId.Contains("liubei") && currentBattle?.battleId == "taodong_3")
+                        {
+                            Debug.Log($"[增援] 刘备上场，触发RemoveLuBuTemporaryHP");
+                            RemoveLuBuTemporaryHP();
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// ⭐ 移除吕布的临时体力加成（刘备上场时调用）
+        /// </summary>
+        private void RemoveLuBuTemporaryHP()
+        {
+            Debug.Log($"[RemoveLuBuTemporaryHP] 被调用，当前markers数量: {markers.Count}");
+
+            // 列出所有markers以便调试
+            foreach (var kvp in markers)
+            {
+                Debug.Log($"[RemoveLuBuTemporaryHP] marker: {kvp.Key} = {kvp.Value}");
+            }
+
+            // 检查是否有吕布的临时HP加成标记
+            if (markers.TryGetValue("temp_hp_bonus_lvbu", out int bonusHP) && bonusHP > 0)
+            {
+                Debug.Log($"[RemoveLuBuTemporaryHP] 找到标记 temp_hp_bonus_lvbu = {bonusHP}");
+
+                // 找到吕布并移除临时HP
+                if (BattleManager.Instance != null)
+                {
+                    foreach (var player in BattleManager.Instance.players)
+                    {
+                        if (player == null || !player.isAlive) continue;
+                        string playerId = player.generalName?.ToLower().Replace("_story", "") ?? "";
+                        Debug.Log($"[RemoveLuBuTemporaryHP] 检查玩家: {playerId}");
+
+                        if (playerId.Contains("lvbu") || playerId.Contains("吕布"))
+                        {
+                            int oldMaxHP = player.maxHP;
+                            int oldHP = player.currentHP;
+
+                            player.maxHP -= bonusHP;
+                            if (player.currentHP > player.maxHP)
+                                player.currentHP = player.maxHP;
+
+                            Debug.Log($"[规则] 刘备上场！{player.generalName}的临时+{bonusHP}体力效果消失，HP:{oldHP}/{oldMaxHP} -> {player.currentHP}/{player.maxHP}");
+
+                            // 显示提示
+                            if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                            {
+                                ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【三英齐聚】{player.generalName} 体力上限恢复为 {player.maxHP}");
+                                ThreeKingdoms.UI.BattleUI.Instance.UpdateAllPlayerInfo();
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // 清除标记
+                markers.Remove("temp_hp_bonus_lvbu");
+                markers.Remove("temp_hp_remove_round_lvbu");
+            }
+            else
+            {
+                Debug.Log($"[RemoveLuBuTemporaryHP] 未找到 temp_hp_bonus_lvbu 标记");
             }
         }
 
@@ -1669,6 +1890,7 @@ namespace ThreeKingdoms.Story
         private void ProcessTemporaryHPBonusRemoval()
         {
             List<string> keysToRemove = new List<string>();
+            bool anyRemoved = false;
 
             foreach (var kvp in markers)
             {
@@ -1688,7 +1910,15 @@ namespace ThreeKingdoms.Story
                                 player.maxHP -= bonusHP;
                                 if (player.currentHP > player.maxHP)
                                     player.currentHP = player.maxHP;
-                                Debug.Log($"[规则] {player.generalName}的临时+{bonusHP}体力效果消失");
+                                Debug.Log($"[规则] {player.generalName}的临时+{bonusHP}体力效果消失，当前HP:{player.currentHP}/{player.maxHP}");
+
+                                // ⭐ 显示提示消息
+                                if (ThreeKingdoms.UI.BattleUI.Instance != null)
+                                {
+                                    ThreeKingdoms.UI.BattleUI.Instance.ShowMessage($"【一骑当千】{player.generalName} 临时体力加成消失 -{bonusHP}");
+                                }
+
+                                anyRemoved = true;
                             }
 
                             keysToRemove.Add(kvp.Key);
@@ -1702,6 +1932,12 @@ namespace ThreeKingdoms.Story
             foreach (var key in keysToRemove)
             {
                 markers.Remove(key);
+            }
+
+            // ⭐ 更新UI
+            if (anyRemoved && ThreeKingdoms.UI.BattleUI.Instance != null)
+            {
+                ThreeKingdoms.UI.BattleUI.Instance.UpdateAllPlayerInfo();
             }
         }
 

@@ -155,7 +155,25 @@ namespace ThreeKingdoms.AI
                         // ⭐ 检查是否还能使用杀
                         if (controlledPlayer.CanUseSlash())
                         {
-                            // 寻找攻击范围内的目标（排除盟友）
+                            // ⭐ 检查故事模式优先攻击目标（如虎牢关的关羽/刘备只攻击吕布）
+                            Player priorityTarget = StoryBattleManager.Instance?.GetPriorityTarget(controlledPlayer);
+                            if (priorityTarget != null)
+                            {
+                                // 有优先目标时，只攻击优先目标，不攻击其他人
+                                if (priorityTarget.isAlive)
+                                {
+                                    var slashTargets = GetSlashTargets();
+                                    if (slashTargets.Contains(priorityTarget))
+                                    {
+                                        actions.Add(new AIAction(AIActionType.UseSlash, card, priorityTarget));
+                                        Debug.Log($"[AI] {controlledPlayer.generalName} 对优先目标 {priorityTarget.generalName} 使用杀");
+                                    }
+                                }
+                                // 有优先目标但不在范围内时，不攻击其他人
+                                break;
+                            }
+
+                            // 无优先目标时，寻找攻击范围内的目标（排除盟友）
                             var targets = GetSlashTargets();
                             foreach (var target in targets)
                             {
@@ -169,6 +187,19 @@ namespace ThreeKingdoms.AI
                         break;
 
                     case "决斗":
+                        // ⭐ 检查故事模式优先攻击目标
+                        Player duelPriorityTarget = StoryBattleManager.Instance?.GetPriorityTarget(controlledPlayer);
+                        if (duelPriorityTarget != null)
+                        {
+                            // 有优先目标时，只决斗优先目标
+                            if (duelPriorityTarget.isAlive)
+                            {
+                                actions.Add(new AIAction(AIActionType.UseDuel, card, duelPriorityTarget));
+                                Debug.Log($"[AI] {controlledPlayer.generalName} 对优先目标 {duelPriorityTarget.generalName} 使用决斗");
+                            }
+                            break;
+                        }
+
                         var duelTargets = GetAttackTargets();
                         foreach (var target in duelTargets)
                         {
