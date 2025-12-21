@@ -511,9 +511,12 @@ namespace ThreeKingdoms.Story
                     // 临时体力加成（一骑当千）- 会在指定回合后消失
                     {
                         string thbTarget = rule.targetId ?? "enemies";
+                        string markerKey = $"temp_hp_bonus_{thbTarget}";
+
+                        Debug.Log($"[规则] TemporaryHPBonus: targetId={rule.targetId}, thbTarget={thbTarget}, markerKey={markerKey}");
 
                         // ⭐ 防止重复应用
-                        if (markers.ContainsKey($"temp_hp_bonus_{thbTarget}"))
+                        if (markers.ContainsKey(markerKey))
                         {
                             Debug.Log($"[规则] {thbTarget}已有临时体力加成，跳过重复应用");
                             break;
@@ -525,14 +528,19 @@ namespace ThreeKingdoms.Story
                         {
                             removeRound = parsedRound;
                         }
-                        markers[$"temp_hp_bonus_{thbTarget}"] = bonusHP;
+                        markers[markerKey] = bonusHP;
                         markers[$"temp_hp_remove_round_{thbTarget}"] = removeRound;
+
+                        Debug.Log($"[规则] 设置marker: {markerKey} = {bonusHP}");
+
                         // 立即应用HP加成
                         List<Player> thbTargets = GetTargetPlayers(thbTarget);
                         foreach (var player in thbTargets)
                         {
+                            int oldMaxHP = player.maxHP;
                             player.maxHP += bonusHP;
                             player.currentHP += bonusHP;
+                            Debug.Log($"[规则] {player.generalName} HP: {oldMaxHP} -> {player.maxHP} (临时+{bonusHP})");
                         }
                         Debug.Log($"[规则] {thbTarget}临时+{bonusHP}体力，刘备上场时移除");
                     }
@@ -1806,8 +1814,10 @@ namespace ThreeKingdoms.Story
 
                         // ⭐ 虎牢关血战：刘备上场时立即移除吕布的临时体力加成
                         string reinforceId = reinforcement.character.characterId.ToLower().Replace("_story", "");
+                        Debug.Log($"[增援] 检查是否触发吕布HP移除: reinforceId={reinforceId}, battleId={currentBattle?.battleId}");
                         if (reinforceId.Contains("liubei") && currentBattle?.battleId == "taodong_3")
                         {
+                            Debug.Log($"[增援] 刘备上场，触发RemoveLuBuTemporaryHP");
                             RemoveLuBuTemporaryHP();
                         }
                     }
@@ -1820,9 +1830,19 @@ namespace ThreeKingdoms.Story
         /// </summary>
         private void RemoveLuBuTemporaryHP()
         {
+            Debug.Log($"[RemoveLuBuTemporaryHP] 被调用，当前markers数量: {markers.Count}");
+
+            // 列出所有markers以便调试
+            foreach (var kvp in markers)
+            {
+                Debug.Log($"[RemoveLuBuTemporaryHP] marker: {kvp.Key} = {kvp.Value}");
+            }
+
             // 检查是否有吕布的临时HP加成标记
             if (markers.TryGetValue("temp_hp_bonus_lvbu", out int bonusHP) && bonusHP > 0)
             {
+                Debug.Log($"[RemoveLuBuTemporaryHP] 找到标记 temp_hp_bonus_lvbu = {bonusHP}");
+
                 // 找到吕布并移除临时HP
                 if (BattleManager.Instance != null)
                 {
@@ -1830,13 +1850,18 @@ namespace ThreeKingdoms.Story
                     {
                         if (player == null || !player.isAlive) continue;
                         string playerId = player.generalName?.ToLower().Replace("_story", "") ?? "";
+                        Debug.Log($"[RemoveLuBuTemporaryHP] 检查玩家: {playerId}");
+
                         if (playerId.Contains("lvbu") || playerId.Contains("吕布"))
                         {
+                            int oldMaxHP = player.maxHP;
+                            int oldHP = player.currentHP;
+
                             player.maxHP -= bonusHP;
                             if (player.currentHP > player.maxHP)
                                 player.currentHP = player.maxHP;
 
-                            Debug.Log($"[规则] 刘备上场！{player.generalName}的临时+{bonusHP}体力效果消失，当前HP:{player.currentHP}/{player.maxHP}");
+                            Debug.Log($"[规则] 刘备上场！{player.generalName}的临时+{bonusHP}体力效果消失，HP:{oldHP}/{oldMaxHP} -> {player.currentHP}/{player.maxHP}");
 
                             // 显示提示
                             if (ThreeKingdoms.UI.BattleUI.Instance != null)
@@ -1852,6 +1877,10 @@ namespace ThreeKingdoms.Story
                 // 清除标记
                 markers.Remove("temp_hp_bonus_lvbu");
                 markers.Remove("temp_hp_remove_round_lvbu");
+            }
+            else
+            {
+                Debug.Log($"[RemoveLuBuTemporaryHP] 未找到 temp_hp_bonus_lvbu 标记");
             }
         }
 
