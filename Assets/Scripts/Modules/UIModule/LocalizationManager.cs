@@ -410,6 +410,96 @@ namespace ThreeKingdoms
             AddTranslation("defeat_turn_limit", "超过 {0} 回合", "Exceed {0} turns", "{0}턴 초과");
             AddTranslation("defeat_fail", "任务失败", "Mission failed", "임무 실패");
 
+            // ==================== 特殊规则描述 ====================
+            AddTranslation("rule_initial_cards", "初始手牌变为{0}张", "Initial hand becomes {0} cards", "초기 패가 {0}장이 됩니다");
+            AddTranslation("rule_max_hp", "体力上限{0}", "Max HP {0}", "최대 체력 {0}");
+            AddTranslation("rule_attack_range", "攻击距离{0}", "Attack range {0}", "공격 범위 {0}");
+            AddTranslation("rule_fire_damage", "火焰伤害+{0}", "Fire damage +{0}", "화염 데미지 +{0}");
+            AddTranslation("rule_skill_disabled", "该技能被禁用", "This skill is disabled", "이 스킬은 비활성화됨");
+            AddTranslation("rule_no_attack", "敌人不会主动攻击", "Enemies won't attack actively", "적이 먼저 공격하지 않음");
+            AddTranslation("rule_draw_cards", "摸牌阶段摸牌数{0}", "Draw phase cards {0}", "드로우 단계 카드 수 {0}");
+            AddTranslation("rule_damage_reduce", "受到伤害-{0}", "Damage taken -{0}", "받는 데미지 -{0}");
+            AddTranslation("rule_first_damage_prevent", "首次受到伤害无效", "First damage prevented", "첫 데미지 무효");
+            AddTranslation("rule_draw_on_damage", "受到伤害后摸{0}张牌", "Draw {0} cards after taking damage", "데미지 받은 후 {0}장 뽑기");
+            AddTranslation("rule_extra_slash", "每回合可额外使用{0}张杀", "May use {0} extra Slash per turn", "턴당 [살] {0}장 추가 사용 가능");
+            AddTranslation("rule_no_ally_peach", "不能对盟友使用桃", "Cannot use Peach on allies", "아군에게 [도] 사용 불가");
+            AddTranslation("rule_heal_on_kill", "击杀敌人后回复{0}点体力", "Recover {0} HP after killing enemy", "적 처치 후 체력 {0} 회복");
+            AddTranslation("rule_double_damage", "造成伤害翻倍", "Damage dealt is doubled", "주는 데미지 2배");
+            AddTranslation("rule_reinforcement", "第{0}回合将有增援", "Reinforcements arrive at turn {0}", "{0}턴에 증원 도착");
+
+            // ==================== 故事模式特殊规则名称 ====================
+            // 讨董之战
+            AddTranslation("rule_righteous_fury", "义愤填膺", "Righteous Fury", "의분");
+            AddTranslation("rule_righteous_fury_desc", "曹操首次造成伤害+1", "Cao Cao's first damage +1", "조조 첫 데미지 +1");
+            AddTranslation("rule_save_people", "救民", "Save the People", "구민");
+            AddTranslation("rule_save_people_desc", "击败敌人后全体回复1点体力", "Allies recover 1 HP after defeating enemy", "적 처치 후 아군 전체 체력 1 회복");
+            AddTranslation("rule_duel_mode", "单挑", "Duel Mode", "일기토");
+            AddTranslation("rule_duel_mode_desc", "1对1对决，不受外部干扰", "1v1 duel, no outside interference", "1대1 대결, 외부 간섭 없음");
+            AddTranslation("rule_wine_still_warm", "酒尚温", "Wine Still Warm", "술이 아직 따뜻하다");
+            AddTranslation("rule_wine_still_warm_desc", "关羽首次使用杀不可被闪避", "Guan Yu's first Slash cannot be dodged", "관우 첫 [살]은 회피 불가");
+            AddTranslation("rule_one_man_army", "一骑当千", "One Man Army", "일기당천");
+            AddTranslation("rule_one_man_army_desc", "吕布起始+3体力上限，第3回合后移除", "Lu Bu starts with +3 max HP, removed after turn 3", "여포 최대 체력 +3, 3턴 후 제거");
+            AddTranslation("rule_peerless_might", "绝世武力", "Peerless Might", "절세무력");
+            AddTranslation("rule_peerless_might_desc", "第1回合吕布使用杀的伤害x2", "Lu Bu's Slash damage x2 on turn 1", "1턴째 여포 [살] 데미지 2배");
+            AddTranslation("rule_gradual_reinforcement", "逐步增援", "Gradual Reinforcement", "점진적 증원");
+            AddTranslation("rule_gradual_reinforcement_desc", "第2回合关羽加入，第3回合刘备加入", "Guan Yu joins turn 2, Liu Bei joins turn 3", "2턴에 관우, 3턴에 유비 합류");
+            AddTranslation("rule_xiliang_cavalry", "西凉铁骑", "Xiliang Cavalry", "서량철기");
+            AddTranslation("rule_xiliang_cavalry_desc", "敌方所有角色攻击距离+1", "All enemies attack range +1", "모든 적 공격 범위 +1");
+            AddTranslation("rule_emperor_escape", "挟天子西遁", "Emperor's Escape", "천자를 끼고 서쪽으로");
+            AddTranslation("rule_emperor_escape_desc", "董卓HP=0时逃走，不算死亡", "Dong Zhuo escapes at 0 HP, not killed", "동탁 체력 0일 때 도주, 사망 아님");
+
+            // 官渡之战
+            AddTranslation("rule_morale_boost", "士气大振", "Morale Boost", "사기 대진");
+            AddTranslation("rule_morale_boost_desc", "击败颜良后，后续战斗体力上限+1", "After defeating Yan Liang, max HP +1 in later battles", "안량 격파 후 이후 전투 최대 체력 +1");
+            AddTranslation("rule_low_morale", "士气低迷", "Low Morale", "사기 저하");
+            AddTranslation("rule_low_morale_desc", "我方受到伤害30%概率+1", "30% chance of +1 damage to allies", "아군 받는 데미지 30% 확률로 +1");
+            AddTranslation("rule_revenge_battle", "复仇之战", "Revenge Battle", "복수전");
+            AddTranslation("rule_revenge_battle_desc", "文丑对关羽使用杀或决斗时伤害+1", "Wen Chou deals +1 damage to Guan Yu", "문추가 관우에게 데미지 +1");
+            AddTranslation("rule_night_raid", "夜袭", "Night Raid", "야습");
+            AddTranslation("rule_night_raid_desc", "敌方所有角色起始手牌-1", "All enemies start with -1 card", "모든 적 초기 패 -1");
+            AddTranslation("rule_burn_supplies", "纵火焚粮", "Burn Supplies", "병량 방화");
+            AddTranslation("rule_burn_supplies_desc", "第2回合起敌方每回合结束失去1点体力", "Enemies lose 1 HP at end of turn from turn 2", "2턴부터 적 턴 종료 시 체력 1 상실");
+            AddTranslation("rule_desperate_fight", "背水一战", "Desperate Fight", "배수의 진");
+            AddTranslation("rule_desperate_fight_desc", "曹操手牌数≤2时，使用杀伤害+1", "Cao Cao's Slash +1 damage when hand ≤2", "조조 패 2장 이하 시 [살] 데미지 +1");
+            AddTranslation("rule_army_collapse", "军心崩溃", "Army Collapse", "군심 붕괴");
+            AddTranslation("rule_army_collapse_desc", "敌方所有角色手牌上限-1", "All enemies max hand -1", "모든 적 최대 패 -1");
+            AddTranslation("rule_hungry_tired", "饥疲交迫", "Hungry and Tired", "굶주림과 피로");
+            AddTranslation("rule_hungry_tired_desc", "敌方每回合结束时有50%概率失去1点体力", "50% chance enemies lose 1 HP at end of turn", "적 턴 종료 시 50% 확률로 체력 1 상실");
+            AddTranslation("rule_victory_pursuit", "乘胜追击", "Victory Pursuit", "승리 추격");
+            AddTranslation("rule_victory_pursuit_desc", "曹操使用杀造成伤害后，可摸1张牌", "Cao Cao draws 1 card after dealing Slash damage", "조조 [살] 데미지 후 1장 뽑기");
+
+            // 赤壁之战
+            AddTranslation("rule_tutorial", "教学模式", "Tutorial Mode", "튜토리얼 모드");
+            AddTranslation("rule_tutorial_desc", "入门教学战斗", "Introductory tutorial battle", "입문 튜토리얼 전투");
+            AddTranslation("rule_huwei", "虎威", "Tiger's Might", "호위");
+            AddTranslation("rule_huwei_desc", "张飞杀有30%概率令目标弃1张牌", "Zhang Fei's Slash has 30% to discard 1 card", "장비 [살] 30% 확률로 대상 1장 버리기");
+            AddTranslation("rule_no_peach", "单骑断桥", "Lone Rider", "단기 파교");
+            AddTranslation("rule_no_peach_desc", "张飞不能使用桃", "Zhang Fei cannot use Peach", "장비 [도] 사용 불가");
+            AddTranslation("rule_debate", "舌战模式", "Debate Mode", "설전 모드");
+            AddTranslation("rule_debate_desc", "以智斗为主的特殊战斗", "Special battle focused on wit", "지혜 대결 위주의 특수 전투");
+            AddTranslation("rule_persuade", "以理服人", "Persuasion", "이치로 설득");
+            AddTranslation("rule_persuade_desc", "诸葛亮杀伤可改为令目标弃2牌", "Zhuge Liang may convert damage to discard 2", "제갈량 데미지를 대상 2장 버리기로 변환 가능");
+            AddTranslation("rule_lusu_help", "鲁肃斡旋", "Lu Su's Mediation", "노숙의 중재");
+            AddTranslation("rule_lusu_help_desc", "鲁肃自动辅助诸葛亮", "Lu Su automatically supports Zhuge Liang", "노숙이 자동으로 제갈량 지원");
+            AddTranslation("rule_forge_letter", "伪造书信", "Forged Letter", "위조 서신");
+            AddTranslation("rule_forge_letter_desc", "反间成功可获得标记", "Successful Counter gains mark", "이간 성공 시 마크 획득");
+            AddTranslation("rule_trick", "中计", "Tricked", "계략에 빠지다");
+            AddTranslation("rule_trick_desc", "黑色牌视为假情报", "Black cards count as fake intel", "검은 카드는 가짜 정보로 간주");
+            AddTranslation("rule_suspicion", "曹操猜忌", "Cao Cao's Suspicion", "조조의 의심");
+            AddTranslation("rule_suspicion_desc", "每获得1个标记，蔡瑁HP-1", "Each mark reduces Cai Mao's HP by 1", "마크 1개당 채모 체력 -1");
+            AddTranslation("rule_retreat_debuff", "掩护撤退", "Cover Retreat", "엄호 철수");
+            AddTranslation("rule_retreat_debuff_desc", "我方所有角色起始手牌-1", "All allies start with -1 card", "아군 전체 초기 패 -1");
+            AddTranslation("rule_seasick", "水土不服", "Seasickness", "물갈이");
+            AddTranslation("rule_seasick_desc", "曹军每回合30%概率失去1点体力", "Cao army has 30% to lose 1 HP per turn", "조조군 턴마다 30% 확률로 체력 1 상실");
+            AddTranslation("rule_guanyu_priority", "关羽追击", "Guan Yu Pursuit", "관우 추격");
+            AddTranslation("rule_guanyu_priority_desc", "关羽优先攻击血量最低的敌人", "Guan Yu prioritizes lowest HP enemy", "관우가 체력 가장 낮은 적 우선 공격");
+            AddTranslation("rule_chain_ships", "铁索连船", "Chained Ships", "철쇄연환");
+            AddTranslation("rule_chain_ships_desc", "曹军攻击距离+1", "Cao army attack range +1", "조조군 공격 범위 +1");
+            AddTranslation("rule_conspiracy", "密谋", "Conspiracy", "밀모");
+            AddTranslation("rule_conspiracy_desc", "第2回合起火攻伤害+2", "Fire damage +2 from turn 2", "2턴부터 화공 데미지 +2");
+            AddTranslation("rule_east_wind", "东风起", "East Wind Rises", "동풍이 분다");
+            AddTranslation("rule_east_wind_desc", "第3回合起火攻伤害再+1", "Fire damage +1 more from turn 3", "3턴부터 화공 데미지 +1 추가");
+
             // ==================== 杀的限制消息 ====================
             AddTranslation("msg_slash_limit_reached", "本回合已无法再使用杀", "Cannot use Slash anymore this turn", "이번 턴에 더 이상 [살]을 사용할 수 없습니다");
             AddTranslation("msg_target_out_of_range", "目标不在攻击范围内（距离:{0}, 范围:{1}）", "Target out of range (Distance:{0}, Range:{1})", "대상이 공격 범위 밖 (거리:{0}, 범위:{1})");

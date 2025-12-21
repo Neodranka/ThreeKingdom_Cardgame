@@ -1895,140 +1895,16 @@ namespace ThreeKingdoms.UI
 
         /// <summary>
         /// ⭐ 初始化故事模式规则面板
+        /// 注意：故事模式的规则显示由 StoryBattleManager 统一处理
+        /// 此方法仅用于处理通过 Inspector 绑定的 UI 元素
         /// </summary>
         private void InitializeStoryRulePanel()
         {
-            // 检查是否在故事模式中
-            if (Story.StoryBattleManager.Instance == null ||
-                Story.StoryBattleManager.Instance.currentBattle == null)
-            {
-                // 非故事模式，隐藏规则面板
-                if (storyRulePanel != null)
-                    storyRulePanel.SetActive(false);
-                return;
-            }
-
-            // 显示规则面板
+            // 故事模式的规则面板由 StoryBattleManager.ShowVictoryConditionUI() 创建和管理
+            // 如果在 Inspector 中绑定了 storyRulePanel，则隐藏它（避免重复显示）
             if (storyRulePanel != null)
-                storyRulePanel.SetActive(true);
-
-            UpdateStoryRuleDisplay();
-        }
-
-        /// <summary>
-        /// ⭐ 更新故事模式规则显示
-        /// </summary>
-        private void UpdateStoryRuleDisplay()
-        {
-            var battle = Story.StoryBattleManager.Instance?.currentBattle;
-            if (battle == null) return;
-
-            // 战斗名称
-            if (battleNameText != null)
             {
-                battleNameText.text = GetLocalizedText(battle.nameKey, battle.battleId);
-                TMPFontHelper.SetFontByLanguage(battleNameText);
-            }
-
-            // 胜利条件
-            if (victoryConditionText != null)
-            {
-                string victoryLabel = GetLocalizedText("ui_victory_condition", "胜利条件");
-                string victoryDesc = GetVictoryConditionDescription(battle.victoryCondition);
-                victoryConditionText.text = $"<color=#00FF00>{victoryLabel}:</color> {victoryDesc}";
-                TMPFontHelper.SetFontByLanguage(victoryConditionText);
-            }
-
-            // 失败条件
-            if (defeatConditionText != null)
-            {
-                string defeatLabel = GetLocalizedText("ui_defeat_condition", "失败条件");
-                string defeatDesc = GetDefeatConditionDescription(battle.defeatCondition);
-                defeatConditionText.text = $"<color=#FF0000>{defeatLabel}:</color> {defeatDesc}";
-                TMPFontHelper.SetFontByLanguage(defeatConditionText);
-            }
-
-            // 特殊规则
-            if (specialRulesText != null)
-            {
-                if (!string.IsNullOrEmpty(battle.specialRuleKey))
-                {
-                    string ruleLabel = GetLocalizedText("ui_special_rules", "特殊规则");
-                    string ruleDesc = GetLocalizedText(battle.specialRuleKey, "");
-                    specialRulesText.text = $"<color=#FFFF00>{ruleLabel}:</color> {ruleDesc}";
-                    specialRulesText.gameObject.SetActive(true);
-                    TMPFontHelper.SetFontByLanguage(specialRulesText);
-                }
-                else if (battle.specialRules != null && battle.specialRules.Count > 0)
-                {
-                    // 显示多个特殊规则
-                    string ruleLabel = GetLocalizedText("ui_special_rules", "特殊规则");
-                    string rules = "";
-                    foreach (var rule in battle.specialRules)
-                    {
-                        string ruleName = GetLocalizedText(rule.nameKey, rule.ruleId);
-                        rules += $"\n- {ruleName}";
-                    }
-                    specialRulesText.text = $"<color=#FFFF00>{ruleLabel}:</color>{rules}";
-                    specialRulesText.gameObject.SetActive(true);
-                    TMPFontHelper.SetFontByLanguage(specialRulesText);
-                }
-                else
-                {
-                    specialRulesText.gameObject.SetActive(false);
-                }
-            }
-        }
-
-        /// <summary>
-        /// ⭐ 获取胜利条件描述
-        /// </summary>
-        private string GetVictoryConditionDescription(Story.VictoryCondition condition)
-        {
-            if (condition == null) return GetLocalizedText("victory_defeat_all", "击败所有敌人");
-
-            switch (condition.type)
-            {
-                case Story.VictoryType.DefeatAllEnemies:
-                    return GetLocalizedText("victory_defeat_all", "击败所有敌人");
-                case Story.VictoryType.DefeatTarget:
-                    string targetName = GetLocalizedText($"char_{condition.targetCharacterId}", condition.targetCharacterId);
-                    return string.Format(GetLocalizedText("victory_defeat_target", "击败 {0}"), targetName);
-                case Story.VictoryType.SurviveTurns:
-                    return string.Format(GetLocalizedText("victory_survive", "存活 {0} 回合"), condition.targetTurn);
-                case Story.VictoryType.AccumulateMarks:
-                    return string.Format(GetLocalizedText("victory_marks", "累积 {0} 个标记"), condition.targetCount);
-                default:
-                    if (!string.IsNullOrEmpty(condition.customConditionKey))
-                        return GetLocalizedText(condition.customConditionKey, "完成目标");
-                    return GetLocalizedText("victory_complete", "完成目标");
-            }
-        }
-
-        /// <summary>
-        /// ⭐ 获取失败条件描述
-        /// </summary>
-        private string GetDefeatConditionDescription(Story.DefeatCondition condition)
-        {
-            if (condition == null) return GetLocalizedText("defeat_player_death", "玩家死亡");
-
-            switch (condition.type)
-            {
-                case Story.DefeatType.PlayerDeath:
-                    return GetLocalizedText("defeat_player_death", "玩家死亡");
-                case Story.DefeatType.AllyDeath:
-                    string allyName = GetLocalizedText($"char_{condition.targetCharacterId}", condition.targetCharacterId);
-                    return string.Format(GetLocalizedText("defeat_ally_death", "{0} 死亡"), allyName);
-                case Story.DefeatType.AllAlliesDeath:
-                    return GetLocalizedText("defeat_all_allies", "我方全灭");
-                case Story.DefeatType.TurnLimitExceeded:
-                    // 回合限制从 StoryBattle.turnLimit 获取
-                    int turnLimit = Story.StoryBattleManager.Instance?.currentBattle?.turnLimit ?? 0;
-                    return string.Format(GetLocalizedText("defeat_turn_limit", "超过 {0} 回合"), turnLimit);
-                default:
-                    if (!string.IsNullOrEmpty(condition.customConditionKey))
-                        return GetLocalizedText(condition.customConditionKey, "任务失败");
-                    return GetLocalizedText("defeat_fail", "任务失败");
+                storyRulePanel.SetActive(false);
             }
         }
 
